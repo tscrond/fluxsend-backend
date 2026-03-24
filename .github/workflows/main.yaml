@@ -15,8 +15,8 @@ jobs:
         packages: write
         id-token: write
     with:
-      image-name-dockerhub: bobaklabs/dropper-backend
-      image-name-github: tscrond/dropper-backend
+      image-name-dockerhub: bobaklabs/fluxsend-backend
+      image-name-github: tscrond/fluxsend-backend
       arch: "linux/amd64"
     secrets:
         docker-hub-username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -29,8 +29,8 @@ jobs:
         packages: write
         id-token: write
     with:
-      image-name-dockerhub: bobaklabs/dropper-backend
-      image-name-github: tscrond/dropper-backend
+      image-name-dockerhub: bobaklabs/fluxsend-backend
+      image-name-github: tscrond/fluxsend-backend
       runner-name: arm64-runner
       arch: "linux/arm64"
     secrets:
