@@ -118,7 +118,7 @@ func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mailNotifier := mail.NewMailNotifier(s.emailSender)
+	mailNotifier := mail.NewMailNotifier(s.emailSender, s.backendConfig.MailFrom)
 
 	mailErr := mailNotifier.SendSharingNotification(
 		authUserData.Email,

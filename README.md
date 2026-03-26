@@ -54,6 +54,7 @@ SMTP_HOST=<redacted>
 SMTP_PORT="587"
 SMTP_USERNAME=<redacted>
 SMTP_PASSWORD=<redacted>
+MAIL_FROM="noreply@fluxsend.com"
 
 POSTGRES_USER="devuser"
 POSTGRES_PASSWORD="devpass" 
@@ -90,6 +91,7 @@ export SMTP_HOST=<redacted>
 export SMTP_PORT="587"
 export SMTP_USERNAME=<redacted>
 export SMTP_PASSWORD=<redacted>
+export MAIL_FROM="noreply@fluxsend.com"
 
 export POSTGRES_USER="devuser"
 export POSTGRES_PASSWORD="devpass" 

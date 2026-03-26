@@ -2,60 +2,112 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>File(s) Shared By {{.SenderEmail}}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Atma:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Files Shared By {{.SenderEmail}}</title>
   <style>
-    body, table, td, p {
-      font-family: 'Atma', Arial, sans-serif;
+    body,
+    table,
+    td,
+    p,
+    a {
+      font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+
+    @media only screen and (max-width: 640px) {
+      .container {
+        width: 100% !important;
+      }
+
+      .content {
+        padding: 20px !important;
+      }
+
+      .download-cell {
+        display: block !important;
+        width: 100% !important;
+        text-align: left !important;
+        padding-top: 10px !important;
+      }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f6fa;">
-  <table align="center" width="600" cellpadding="0" cellspacing="0" style="border: 5px dotted black; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-  <tr style="background-color: #d9d9d9;">
-    <td style="padding: 20px; text-align: center;">
-      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td style="text-align: center;">
-            <h1 style="margin: 0;">Dropper App</h1>
-          </td>
-        </tr>
-        <tr>
-          <td style="text-align: center; padding-top: 10px;">
-            <img src="https://cdn-icons-png.flaticon.com/512/103/103042.png" alt="Description" width="100" style="border-radius: 8px;" />
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-          <tr>
-            <td style="padding: 30px;">
-              <h2 style="margin: 0;">New File(s) Shared By {{.SenderEmail}}!</h2>
+<body style="margin: 0; padding: 0; background-color: #f8fafc;">
+  <div style="display: none; max-height: 0; overflow: hidden; opacity: 0;">
+    {{.SenderEmail}} shared files with you on FluxSend.
+  </div>
 
-              <p style="font-size: 16px; color: #333;">Hi!</p>
-              <p style="font-size: 16px; color: #333;">
-                <strong>{{.SenderEmail}}</strong> has just shared files with you via Dropper.
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc;">
+    <tr>
+      <td align="center" style="padding: 28px 12px;">
+        <table role="presentation" class="container" width="620" cellpadding="0" cellspacing="0" border="0" style="width: 620px; max-width: 620px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+          <tr>
+            <td style="padding: 24px 28px; background-color: #0f172a; background-image: linear-gradient(120deg, #0f172a 0%, #1e293b 55%, #374151 100%); color: #ffffff;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-size: 24px; line-height: 1.2; font-weight: 800; letter-spacing: 0.3px;">FluxSend</td>
+                  <td align="right">
+                    <span style="display: inline-block; padding: 6px 10px; background-color: #6366f1; border-radius: 999px; font-size: 12px; line-height: 1; font-weight: 700; color: #ffffff;">File Share</span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 14px 0 0; font-size: 14px; line-height: 1.5; color: #cbd5e1;">
+                Secure file sharing made simple.
               </p>
-              <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f1f1f1; border-radius: 6px; margin: 20px 0;">
+            </td>
+          </tr>
+
+          <tr>
+            <td class="content" style="padding: 28px;">
+              <h1 style="margin: 0 0 10px; font-size: 22px; line-height: 1.3; color: #0f172a; font-weight: 800;">
+                New files shared with you
+              </h1>
+              <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #334155;">
+                <strong style="color: #0f172a;">{{.SenderEmail}}</strong> sent you file access through FluxSend.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background-color: #ffffff;">
+                <tr>
+                  <td style="padding: 12px 16px; background-color: #f8fafc; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">
+                    Shared Files
+                  </td>
+                </tr>
                 {{range .Files}}
                 <tr>
-                  <td style="font-size: 14px; color: #555;">📄 {{.FileName}}</td>
-                  <td align="right">
-                    <a href="{{.DownloadURL}}" style="background-color: #4a90e2; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; font-size: 14px;">
-                      Download
-                    </a>
+                  <td style="padding: 14px 16px; border-top: 1px solid #e2e8f0;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-size: 14px; line-height: 1.5; color: #0f172a; font-weight: 600; word-break: break-word;">
+                          {{.FileName}}
+                        </td>
+                        <td class="download-cell" align="right" style="padding-left: 10px; white-space: nowrap;">
+                          <a href="{{.DownloadURL}}" style="display: inline-block; padding: 9px 14px; background-color: #4f46e5; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 13px; font-weight: 700;">
+                            Download
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
                 {{end}}
               </table>
-              <p style="font-size: 14px; color: #555;">
-                These files will be available until <strong>{{.ExpiryDate}}</strong>.
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 18px;">
+                <tr>
+                  <td style="padding: 12px 14px; border-radius: 8px; background-color: #eef2ff; color: #3730a3; font-size: 13px; line-height: 1.5;">
+                    Access expires on <strong>{{.ExpiryDate}}</strong>. Save the files before that time.
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 18px 0 0; font-size: 14px; line-height: 1.6; color: #334155;">
+                Thanks,<br>
+                <strong style="color: #0f172a;">FluxSend Team</strong>
               </p>
-              <p style="font-size: 14px; color: #555;">Thanks,<br>The Dropper Team</p>
             </td>
           </tr>
+
           <tr>
-            <td style="padding: 15px; background-color: #f5f6fa; font-size: 12px; color: #888; text-align: center;">
+            <td style="padding: 16px 28px 22px; border-top: 1px solid #e2e8f0; background-color: #ffffff; font-size: 12px; line-height: 1.5; color: #94a3b8; text-align: center;">
               This is an automated message. Please do not reply to this email.
             </td>
           </tr>

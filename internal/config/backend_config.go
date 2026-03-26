@@ -6,5 +6,6 @@ type BackendConfig struct {
 	ListenPort             string
 	FrontendEndpoint       string
 	BackendEndpoint        string
+	MailFrom               string
 	HTMLSanitizationPolicy *bluemonday.Policy
 }

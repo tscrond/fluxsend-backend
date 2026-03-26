@@ -31,6 +31,10 @@ func main() {
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	frontendEndpoint := os.Getenv("FRONTEND_ENDPOINT")
 	backendEndpoint := os.Getenv("BACKEND_ENDPOINT")
+	mailFrom := os.Getenv("MAIL_FROM")
+	if mailFrom == "" {
+		mailFrom = "noreply@fluxsend.com"
+	}
 
 	dbHost := os.Getenv("DB_HOST")
 	dbUser := os.Getenv("POSTGRES_USER")
@@ -72,6 +76,7 @@ func main() {
 		ListenPort:             fmt.Sprintf(":%s", listenPort),
 		BackendEndpoint:        backendEndpoint,
 		FrontendEndpoint:       frontendEndpoint,
+		MailFrom:               mailFrom,
 		HTMLSanitizationPolicy: htmlSanitizationPolicy,
 	}
 

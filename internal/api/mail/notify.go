@@ -10,23 +10,28 @@ import (
 
 type Notifier struct {
 	emailSender mailtypes.EmailSender
+	from        string
 }
 
-func NewMailNotifier(es mailtypes.EmailSender) Notifier {
+func NewMailNotifier(es mailtypes.EmailSender, from string) Notifier {
+	if from == "" {
+		from = "noreply@fluxsend.com"
+	}
+
 	return Notifier{
 		emailSender: es,
+		from:        from,
 	}
 }
 
 func (n *Notifier) SendSharingNotification(sharedByUser, emailTo, expiryDate string, files []mailtypes.FileInfo) error {
 
-	from := "noreply@dropper-app.win"
 	to := []string{emailTo}
 	subject := fmt.Sprintf("Subject: New File Transfer from %s", sharedByUser)
 	mime := "\r\nMIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\r\n"
 
 	messageConfig := mailtypes.MessageConfig{
-		From:    from,
+		From:    n.from,
 		To:      to,
 		Subject: subject,
 		Mime:    mime,
