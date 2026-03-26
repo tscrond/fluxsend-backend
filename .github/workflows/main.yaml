@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-amd64:
+  build-multiarch:
     uses: ./.github/workflows/_build.yaml
     permissions:
         contents: read
@@ -17,22 +17,7 @@ jobs:
     with:
       image-name-dockerhub: bobaklabs/fluxsend-backend
       image-name-github: tscrond/fluxsend-backend
-      arch: "linux/amd64"
-    secrets:
-        docker-hub-username: ${{ secrets.DOCKERHUB_USERNAME }}
-        docker-hub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-  build-arm64:
-    uses: ./.github/workflows/_build.yaml
-    permissions:
-        contents: read
-        packages: write
-        id-token: write
-    with:
-      image-name-dockerhub: bobaklabs/fluxsend-backend
-      image-name-github: tscrond/fluxsend-backend
-      runner-name: arm64-runner
-      arch: "linux/arm64"
+      arch: "linux/amd64,linux/arm64"
     secrets:
         docker-hub-username: ${{ secrets.DOCKERHUB_USERNAME }}
         docker-hub-token: ${{ secrets.DOCKERHUB_TOKEN }}
