@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	listenPort := os.Getenv("DROPPER_LISTEN_PORT")
+	listenPort := os.Getenv("FLUXSEND_LISTEN_PORT")
 	if listenPort == "" {
 		listenPort = "3000"
 	}
