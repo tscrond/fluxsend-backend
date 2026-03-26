@@ -75,15 +75,32 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	authUserData, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
 	if !ok {
 		log.Println("cannot read authorized user data")
-		return nil
+		return types.ErrUploadFailed
 	}
 
 	if data == nil {
 		log.Println("Data for bucket operation is empty")
-		return nil
+		return types.ErrUploadFailed
 	}
 
 	fileName := data.RequestHeaders.Filename
+
+	// Prepend folder to filename if provided
+	if data.Folder != "" {
+		fileName = data.Folder + "/" + fileName
+	}
+
+	_, err := b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
+		FileName:      fileName,
+	})
+	if err == nil {
+		return types.ErrFileAlreadyExists
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		log.Println("error checking existing file:", err)
+		return types.ErrUploadFailed
+	}
 
 	// userBucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.Id)
 	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, authUserData.Id)
@@ -129,11 +146,11 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	log.Println(contentType)
 	if _, err := io.Copy(writer, data.MultipartFile); err != nil {
 		log.Println("error uploading file: ", err)
-		return err
+		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 	if err := writer.Close(); err != nil {
 		log.Println("error closing writer:", err)
-		return err
+		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
 	newlyCreatedObj := b.Client.Bucket(newUserBucketName).Object(fileName)
@@ -141,7 +158,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	objAttrs, err := newlyCreatedObj.Attrs(ctx)
 	if err != nil {
 		log.Println("err reading obj attrs: ", err)
-		return err
+		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
 	// temporary fix
@@ -165,16 +182,15 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	file, err := b.repository.Queries.InsertFile(ctx, insertArgs)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Handle conflict (file with same md5_checksum already exists)
 			log.Printf("file already exists: %s\n", err)
-			return nil
+			return types.ErrFileAlreadyExists
 		} else {
 			log.Println("error inserting file to DB, removing the object from the bucket: ", err)
 			if err := newlyCreatedObj.Delete(ctx); err != nil {
 				log.Printf("error Object(%v).Delete: %v\n", newlyCreatedObj, err)
-				return err
+				return types.ErrUploadFailed
 			}
-			return err
+			return types.ErrUploadFailed
 		}
 	}
 	log.Printf("file %s uploaded successfully (checksum: %v)", fileName, file.Md5Checksum)
@@ -405,6 +421,24 @@ func (b *GCSBucketHandler) DeleteObjectFromBucket(ctx context.Context, object, b
 	}
 
 	log.Printf("object deleted successfully: (%s,%s)", o.BucketName(), o.ObjectName())
+	return nil
+}
+
+func (b *GCSBucketHandler) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
+	srcObj := b.Client.Bucket(bucket).Object(source)
+	dstObj := b.Client.Bucket(bucket).Object(destination)
+
+	if _, err := dstObj.CopierFrom(srcObj).Run(ctx); err != nil {
+		return fmt.Errorf("copy %q -> %q failed: %w", source, destination, err)
+	}
+
+	if err := srcObj.Delete(ctx); err != nil {
+		return fmt.Errorf("delete source %q after copy failed: %w", source, err)
+	}
+
 	return nil
 }
 

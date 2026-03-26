@@ -2,10 +2,12 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 
+	storagetypes "github.com/tscrond/dropper/internal/cloud_storage/types"
 	"github.com/tscrond/dropper/internal/filedata"
 	"github.com/tscrond/dropper/internal/userdata"
 	pkg "github.com/tscrond/dropper/pkg"
@@ -39,8 +41,11 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// Get folder from request if provided
+	folder := r.FormValue("folder")
+
 	// Create fileData object
-	fileData := filedata.NewFileData(file, header)
+	fileData := filedata.NewFileData(file, header, folder)
 	if fileData == nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "invalid_file_data", "")
 		return
@@ -51,7 +56,14 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, userdata.AuthorizedUserContextKey, authorizedUserData)
 
 	if err := s.bucketHandler.SendFileToBucket(ctx, fileData); err != nil {
-		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "bucket_upload_failed", "")
+		switch {
+		case errors.Is(err, storagetypes.ErrFileAlreadyExists):
+			pkg.WriteJSONResponse(w, http.StatusConflict, "File already exists", "")
+		case errors.Is(err, storagetypes.ErrStorageUnavailable):
+			pkg.WriteJSONResponse(w, http.StatusServiceUnavailable, "Storage unreachable", "")
+		default:
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "Upload failed", "")
+		}
 		return
 	}
 

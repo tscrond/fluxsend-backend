@@ -1,11 +1,13 @@
 services:
   frontend:
-    image: dropper-frontend:local
+    image: fluxsend-frontend:local
     container_name: frontend
     ports:
       - 8000:8000/tcp
     environment:
       - BACKEND_ENDPOINT=http://localhost:3000
+      - NGINX_BACKEND_HOST=backend
+      - NGINX_BACKEND_PORT=3000
 
   dev-postgres:
     image: postgres:16
@@ -21,7 +23,7 @@ services:
   backend:
     depends_on:
       - dev-postgres
-    image: dropper-backend:local
+    image: fluxsend-backend:local
     container_name: backend
     restart: always
     ports:

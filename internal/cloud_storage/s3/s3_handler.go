@@ -70,15 +70,32 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	authUserData, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
 	if !ok {
 		log.Println("cannot read authorized user data")
-		return nil
+		return types.ErrUploadFailed
 	}
 
 	if data == nil {
 		log.Println("Data for bucket operation is empty")
-		return nil
+		return types.ErrUploadFailed
 	}
 
 	fileName := data.RequestHeaders.Filename
+
+	// Prepend folder to filename if provided
+	if data.Folder != "" {
+		fileName = data.Folder + "/" + fileName
+	}
+
+	_, err := b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
+		FileName:      fileName,
+	})
+	if err == nil {
+		return types.ErrFileAlreadyExists
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		log.Println("error checking existing file:", err)
+		return types.ErrUploadFailed
+	}
 
 	// get or set user bucket name in DB (same pattern as GCS driver)
 	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, authUserData.Id)
@@ -137,7 +154,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	})
 	if err != nil {
 		log.Println("error uploading file: ", err)
-		return err
+		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
 	md5Hash := hex.EncodeToString(hasher.Sum(nil))
@@ -149,7 +166,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	})
 	if err != nil {
 		log.Println("err reading obj attrs: ", err)
-		return err
+		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
 	objSize := *headOutput.ContentLength
@@ -175,7 +192,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("file already exists: %s\n", err)
-			return nil
+			return types.ErrFileAlreadyExists
 		} else {
 			log.Println("error inserting file to DB, removing the object from the bucket: ", err)
 			if _, delErr := b.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
@@ -183,9 +200,9 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 				Key:    aws.String(objectKey),
 			}); delErr != nil {
 				log.Printf("error deleting object %s: %v\n", objectKey, delErr)
-				return delErr
+				return types.ErrUploadFailed
 			}
-			return err
+			return types.ErrUploadFailed
 		}
 	}
 	log.Printf("file %s uploaded successfully (checksum: %v)", fileName, file.Md5Checksum)
@@ -344,6 +361,39 @@ func (b *S3BucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bu
 	}
 
 	log.Printf("object deleted successfully: (%s,%s)", b.BaseBucketName, objectKey)
+	return nil
+}
+
+func (b *S3BucketHandler) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
+	userId := b.extractUserIdFromBucket(bucket)
+	sourceKey := source
+	destinationKey := destination
+	if userId != "" {
+		sourceKey = s3Key(userId, source)
+		destinationKey = s3Key(userId, destination)
+	}
+
+	copySource := b.BaseBucketName + "/" + sourceKey
+	_, err := b.Client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     aws.String(b.BaseBucketName),
+		CopySource: aws.String(copySource),
+		Key:        aws.String(destinationKey),
+	})
+	if err != nil {
+		return fmt.Errorf("copy %q -> %q failed: %w", sourceKey, destinationKey, err)
+	}
+
+	_, err = b.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(b.BaseBucketName),
+		Key:    aws.String(sourceKey),
+	})
+	if err != nil {
+		return fmt.Errorf("delete source %q after copy failed: %w", sourceKey, err)
+	}
+
 	return nil
 }
 

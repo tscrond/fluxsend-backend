@@ -132,7 +132,6 @@ func (q *Queries) GetFilesByOwner(ctx context.Context, ownerGoogleID sql.NullStr
 const insertFile = `-- name: InsertFile :one
 INSERT INTO files (owner_google_id, file_name, file_type, size, md5_checksum, private_download_token)
 VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (owner_google_id, md5_checksum,file_name) DO NOTHING
 RETURNING id, owner_google_id, file_name, file_type, size, md5_checksum, private_download_token
 `
 
@@ -165,4 +164,21 @@ func (q *Queries) InsertFile(ctx context.Context, arg InsertFileParams) (File, e
 		&i.PrivateDownloadToken,
 	)
 	return i, err
+}
+
+const updateFileNameByOwnerAndName = `-- name: UpdateFileNameByOwnerAndName :exec
+UPDATE files
+SET file_name = $1
+WHERE owner_google_id = $2 AND file_name = $3
+`
+
+type UpdateFileNameByOwnerAndNameParams struct {
+	FileName      string         `json:"file_name"`
+	OwnerGoogleID sql.NullString `json:"owner_google_id"`
+	FileName_2    string         `json:"file_name_2"`
+}
+
+func (q *Queries) UpdateFileNameByOwnerAndName(ctx context.Context, arg UpdateFileNameByOwnerAndNameParams) error {
+	_, err := q.db.ExecContext(ctx, updateFileNameByOwnerAndName, arg.FileName, arg.OwnerGoogleID, arg.FileName_2)
+	return err
 }

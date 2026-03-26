@@ -55,11 +55,16 @@ func (s *APIServer) Start() {
 	// functionality
 	r.Handle("/files/upload", s.authMiddleware(http.HandlerFunc(s.uploadHandler)))
 	r.Handle("/files/share", s.authMiddleware(http.HandlerFunc(s.shareWith)))
+	r.Handle("/files/tree", s.authMiddleware(http.HandlerFunc(s.getFilesTree)))
+	r.Handle("/files/move", s.authMiddleware(http.HandlerFunc(s.moveFile)))
 
 	r.Handle("/files/received", s.authMiddleware(http.HandlerFunc(s.getDataSharedForUser)))
 	r.Handle("/files/shared_by_user", s.authMiddleware(http.HandlerFunc(s.getDataSharedByUser)))
 	r.Handle("/files/delete", s.authMiddleware(http.HandlerFunc(s.deleteFile)))
 	r.Handle("/files/{checksum}/note", s.authMiddleware(http.HandlerFunc(s.fileNotesHandler)))
+
+	r.Handle("/folders", s.authMiddleware(http.HandlerFunc(s.foldersHandler)))
+	r.Handle("/folders/move", s.authMiddleware(http.HandlerFunc(s.moveFolder)))
 
 	r.Handle("/d/private/{token}", s.authMiddleware(http.HandlerFunc(s.downloadThroughProxyPersonal)))
 	r.Handle("/d/{token}", http.HandlerFunc(s.downloadThroughProxy))
