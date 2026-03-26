@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -37,6 +38,9 @@ type GCSBucketHandler struct {
 }
 
 func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository *repo.Repository) (types.ObjectStorage, error) {
+	if strings.TrimSpace(svcaccountPath) == "" {
+		return nil, errors.New("GOOGLE_APPLICATION_CREDENTIALS is empty for STORAGE_PROVIDER=gcs")
+	}
 
 	var err error
 	for i := 0; i < 5; i++ {

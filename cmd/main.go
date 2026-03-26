@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
@@ -48,10 +49,16 @@ func main() {
 	}
 	defer repository.Close()
 
-	storageProvider := os.Getenv("STORAGE_PROVIDER")
+	storageProvider := strings.ToLower(strings.TrimSpace(os.Getenv("STORAGE_PROVIDER")))
 	if storageProvider == "" {
-		storageProvider = "gcs"
+		// Auto-detect for chart setups where STORAGE_PROVIDER is not explicitly provided.
+		if os.Getenv("AWS_REGION") != "" || os.Getenv("AWS_ACCESS_KEY_ID") != "" || os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+			storageProvider = "s3"
+		} else {
+			storageProvider = "gcs"
+		}
 	}
+	log.Printf("selected storage provider: %s", storageProvider)
 
 	bucketHandler, err := InitObjectStorage(backendEndpoint, storageProvider, repository)
 	if err != nil {
