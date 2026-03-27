@@ -24,7 +24,7 @@ func NewStandardMailService(cfg *mailtypes.StandardSenderConfig, r *repo.Reposit
 
 func (s *StandardEmailService) Send(config mailtypes.MessageConfig) (any, error) {
 
-	fromHeader := fmt.Sprintf("From: Dropper Notifications <%s>\r\n", config.From)
+	fromHeader := fmt.Sprintf("From: FluxSend Notifications <%s>\r\n", config.From)
 	toHeader := fmt.Sprintf("To: %s\r\n", strings.Join(config.To, ", "))
 
 	msg := []byte(fromHeader + toHeader + config.Subject + config.Mime + "\r\n" + config.Body)

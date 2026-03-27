@@ -15,6 +15,7 @@ jobs:
         packages: write
         id-token: write
     with:
+      runner-name: arm64-runner
       image-name-dockerhub: bobaklabs/fluxsend-backend
       image-name-github: tscrond/fluxsend-backend
       arch: "linux/amd64,linux/arm64"
