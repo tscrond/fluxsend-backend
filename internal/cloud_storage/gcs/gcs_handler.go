@@ -403,6 +403,29 @@ func (b *GCSBucketHandler) GetBucketBaseName() string {
 	return b.BaseBucketName
 }
 
+func (b *GCSBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	var o *storage.ObjectHandle
+	for _, object := range objects {
+		o = b.Client.Bucket(bucket).Object(object)
+		attrs, err := o.Attrs(ctx)
+		if err != nil {
+			return fmt.Errorf("object.Attrs: %w", err)
+		}
+		o = o.If(storage.Conditions{GenerationMatch: attrs.Generation})
+
+		if err := o.Delete(ctx); err != nil {
+			return fmt.Errorf("Object(%q).Delete: %w", object, err)
+		}
+
+		log.Printf("object deleted successfully: (%s,%s)", o.BucketName(), o.ObjectName())
+	}
+
+	return nil
+}
+
 func (b *GCSBucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bucket string) error {
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)

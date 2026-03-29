@@ -364,6 +364,32 @@ func (b *S3BucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bu
 	return nil
 }
 
+func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for _, object := range objects {
+		// bucket is "<base>-<userId>"; extract userId to build the S3 key
+		userId := b.extractUserIdFromBucket(bucket)
+		objectKey := object
+		if userId != "" {
+			objectKey = s3Key(userId, object)
+		}
+
+		_, err := b.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(b.BaseBucketName),
+			Key:    aws.String(objectKey),
+		})
+		if err != nil {
+			return fmt.Errorf("Object(%q).Delete: %w", objectKey, err)
+		}
+
+		log.Printf("object deleted successfully: (%s,%s)", b.BaseBucketName, objectKey)
+	}
+
+	return nil
+}
+
 func (b *S3BucketHandler) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()

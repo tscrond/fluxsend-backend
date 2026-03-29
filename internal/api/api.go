@@ -61,6 +61,7 @@ func (s *APIServer) Start() {
 	r.Handle("/files/received", s.authMiddleware(http.HandlerFunc(s.getDataSharedForUser)))
 	r.Handle("/files/shared_by_user", s.authMiddleware(http.HandlerFunc(s.getDataSharedByUser)))
 	r.Handle("/files/delete", s.authMiddleware(http.HandlerFunc(s.deleteFile)))
+	r.Handle("/files/delete/batch", s.authMiddleware(http.HandlerFunc(s.deleteFilesBatch)))
 	r.Handle("/files/{checksum}/note", s.authMiddleware(http.HandlerFunc(s.fileNotesHandler)))
 
 	r.Handle("/folders", s.authMiddleware(http.HandlerFunc(s.foldersHandler)))
