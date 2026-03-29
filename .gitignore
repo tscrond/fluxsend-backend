@@ -23,6 +23,7 @@ go.work.sum
 
 # env file
 .env
+.native.env
 .envs
 bin
 tmp
