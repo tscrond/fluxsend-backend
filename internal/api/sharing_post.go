@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	mail "github.com/tscrond/dropper/internal/api/mail"
-	mailtypes "github.com/tscrond/dropper/internal/mailservice/types"
-	"github.com/tscrond/dropper/internal/repo/sqlc"
-	"github.com/tscrond/dropper/internal/userdata"
-	"github.com/tscrond/dropper/pkg"
+	mail "github.com/tscrond/fluxsend-backend/internal/api/mail"
+	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/internal/userdata"
+	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {

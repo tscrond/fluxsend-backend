@@ -12,10 +12,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/tscrond/dropper/internal/mappings"
-	"github.com/tscrond/dropper/internal/repo/sqlc"
-	"github.com/tscrond/dropper/internal/userdata"
-	pkg "github.com/tscrond/dropper/pkg"
+	"github.com/tscrond/fluxsend-backend/internal/mappings"
+	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/internal/userdata"
+	pkg "github.com/tscrond/fluxsend-backend/pkg"
 	"golang.org/x/oauth2"
 )
 

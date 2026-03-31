@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"reflect"
 
-	"github.com/tscrond/dropper/internal/repo/sqlc"
-	"github.com/tscrond/dropper/pkg"
+	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func MapBucketDataToDBFormat(ownerGoogleID string, bucketData *BucketData) ([]sqlc.File, error) {

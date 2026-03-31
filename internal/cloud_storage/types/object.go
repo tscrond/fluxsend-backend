@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/tscrond/dropper/internal/filedata"
+	"github.com/tscrond/fluxsend-backend/internal/filedata"
 )
 
 type ObjectStorage interface {

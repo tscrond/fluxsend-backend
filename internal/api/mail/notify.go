@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	templates "github.com/tscrond/dropper/internal/mailservice/templates"
-	mailtypes "github.com/tscrond/dropper/internal/mailservice/types"
+	templates "github.com/tscrond/fluxsend-backend/internal/mailservice/templates"
+	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 )
 
 type Notifier struct {
