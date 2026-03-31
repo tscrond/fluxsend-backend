@@ -1,7 +1,7 @@
 ARG TARGETOS
 ARG TARGETARCH
 
-FROM golang:1.24.3-alpine3.21 AS builder
+FROM golang:1.26.1-alpine3.23 AS builder
 
 WORKDIR /fluxsend
 
@@ -13,7 +13,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /fluxsend/fluxsend /fluxsend/c
 
 EXPOSE 3000
 
-FROM golang:1.24.3-alpine3.21
+FROM golang:1.26.1-alpine3.23
 
 WORKDIR /fluxsend
 
