@@ -7,10 +7,10 @@ import (
 	"log"
 	"net/http"
 
-	storagetypes "github.com/tscrond/dropper/internal/cloud_storage/types"
-	"github.com/tscrond/dropper/internal/filedata"
-	"github.com/tscrond/dropper/internal/userdata"
-	pkg "github.com/tscrond/dropper/pkg"
+	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/filedata"
+	"github.com/tscrond/fluxsend-backend/internal/userdata"
+	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {

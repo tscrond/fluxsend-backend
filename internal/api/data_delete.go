@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/tscrond/dropper/internal/repo/sqlc"
-	"github.com/tscrond/dropper/internal/userdata"
-	pkg "github.com/tscrond/dropper/pkg"
+	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/internal/userdata"
+	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {

@@ -8,9 +8,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tscrond/dropper/internal/repo/sqlc"
-	"github.com/tscrond/dropper/internal/userdata"
-	pkg "github.com/tscrond/dropper/pkg"
+	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/internal/userdata"
+	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
 type NoteContent struct {

@@ -7,10 +7,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
-	storagetypes "github.com/tscrond/dropper/internal/cloud_storage/types"
-	"github.com/tscrond/dropper/internal/config"
-	mailtypes "github.com/tscrond/dropper/internal/mailservice/types"
-	"github.com/tscrond/dropper/internal/repo"
+	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/config"
+	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"golang.org/x/oauth2"
 )
 

@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/tscrond/dropper/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
 
 type Migrator struct {

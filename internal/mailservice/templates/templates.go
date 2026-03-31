@@ -8,7 +8,7 @@ import (
 
 	_ "embed"
 
-	types "github.com/tscrond/dropper/internal/mailservice/types"
+	types "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 )
 
 //go:embed share.html

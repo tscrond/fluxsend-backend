@@ -6,8 +6,8 @@ import (
 	"net/smtp"
 	"strings"
 
-	mailtypes "github.com/tscrond/dropper/internal/mailservice/types"
-	"github.com/tscrond/dropper/internal/repo"
+	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
 type StandardEmailService struct {

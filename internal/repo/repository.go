@@ -9,8 +9,8 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	"github.com/tscrond/dropper/internal/repo/migrationhelper"
-	sqlc "github.com/tscrond/dropper/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/internal/repo/migrationhelper"
+	sqlc "github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
 
 type Repository struct {

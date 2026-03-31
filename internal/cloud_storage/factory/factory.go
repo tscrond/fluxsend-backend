@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tscrond/dropper/internal/cloud_storage/gcs"
-	s3handler "github.com/tscrond/dropper/internal/cloud_storage/s3"
-	"github.com/tscrond/dropper/internal/cloud_storage/types"
-	"github.com/tscrond/dropper/internal/repo"
+	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/gcs"
+	s3handler "github.com/tscrond/fluxsend-backend/internal/cloud_storage/s3"
+	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
 func NewStorageProvider(provider string, repository *repo.Repository) (types.ObjectStorage, error) {

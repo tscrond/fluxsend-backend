@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/tscrond/dropper/internal/repo/sqlc"
-	"github.com/tscrond/dropper/pkg"
+	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (m *Migrator) BackfillPrivateDownloadTokens() error {

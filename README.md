@@ -1,7 +1,4 @@
-# Dropper Backend
-
-This is the backend application for the Dropper frontend.
-It handles file uploads to a Google Cloud Storage (GCS) bucket.
+# FluxSend Backend
 
 ## Features
 
@@ -22,8 +19,8 @@ It handles file uploads to a Google Cloud Storage (GCS) bucket.
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/tscrond/dropper.git
-cd dropper
+git clone https://github.com/tscrond/fluxsend.git
+cd fluxsend
 ```
 
 ### Set Up Environment Variables
@@ -35,8 +32,8 @@ Create a `.env` file in the root directory and add the following variables:
 ```env
 #!/bin/bash
 
-DROPPER_LISTEN_PORT=3000
-GCS_BUCKET_NAME="dropper-app"
+FLUXSEND_LISTEN_PORT=3000
+GCS_BUCKET_NAME="fluxsend-app"
 GOOGLE_APPLICATION_CREDENTIALS=<redacted>
 
 GOOGLE_PROJECT_ID=<redacted>
@@ -72,8 +69,8 @@ BACKEND_ENDPOINT="http://localhost:3000"
 
 CURRENT_IP="localhost"
 
-export DROPPER_LISTEN_PORT=3000
-export GCS_BUCKET_NAME="dropper-app"
+export FLUXSEND_LISTEN_PORT=3000
+export GCS_BUCKET_NAME="fluxsend-app"
 export GOOGLE_APPLICATION_CREDENTIALS=<redacted>
 
 export GOOGLE_PROJECT_ID=<redacted>

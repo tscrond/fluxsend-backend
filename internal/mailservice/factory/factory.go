@@ -7,9 +7,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	mailservice "github.com/tscrond/dropper/internal/mailservice/mail"
-	"github.com/tscrond/dropper/internal/mailservice/types"
-	"github.com/tscrond/dropper/internal/repo"
+	mailservice "github.com/tscrond/fluxsend-backend/internal/mailservice/mail"
+	"github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
 func NewEmailService(provider string, repository *repo.Repository) (types.EmailSender, error) {
