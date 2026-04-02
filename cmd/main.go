@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -12,6 +13,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/tscrond/fluxsend-backend/internal/api"
+	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagefactory "github.com/tscrond/fluxsend-backend/internal/cloud_storage/factory"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
@@ -64,11 +66,37 @@ func main() {
 	}
 	log.Printf("selected storage provider: %s", storageProvider)
 
+	enableCloudFrontDownloads, err := getEnvBool("ENABLE_CLOUDFRONT_DOWNLOADS", false)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	bucketHandler, err := InitObjectStorage(backendEndpoint, storageProvider, repository)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer bucketHandler.Close()
+
+	var cloudFrontSigner *cdn.CloudFrontURLSigner
+	if enableCloudFrontDownloads {
+		if storageProvider != "s3" {
+			log.Fatalln("ENABLE_CLOUDFRONT_DOWNLOADS requires STORAGE_PROVIDER=s3")
+		}
+
+		cloudFrontSigner, err = cdn.NewCloudFrontURLSigner(
+			bucketHandler.GetBucketBaseName(),
+			os.Getenv("CLOUDFRONT_DOMAIN"),
+			os.Getenv("CLOUDFRONT_KEY_PAIR_ID"),
+			os.Getenv("CLOUDFRONT_PRIVATE_KEY_PATH"),
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		log.Println("CloudFront download signing enabled")
+	} else {
+		log.Println("CloudFront download signing disabled; using storage signed URLs")
+	}
 
 	htmlSanitizationPolicy := bluemonday.UGCPolicy()
 
@@ -86,7 +114,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, repository, &oauth2.Config{
+	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, &oauth2.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
 		RedirectURL:  fmt.Sprintf("%s/auth/callback", backendEndpoint),
@@ -121,4 +149,18 @@ func InitRepository(connString string) (*repo.Repository, error) {
 	}
 
 	return repo.NewRepository(db)
+}
+
+func getEnvBool(name string, defaultValue bool) (bool, error) {
+	rawValue := strings.TrimSpace(os.Getenv(name))
+	if rawValue == "" {
+		return defaultValue, nil
+	}
+
+	parsedValue, err := strconv.ParseBool(rawValue)
+	if err != nil {
+		return false, fmt.Errorf("invalid %s value %q: %w", name, rawValue, err)
+	}
+
+	return parsedValue, nil
 }
