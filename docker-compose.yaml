@@ -43,6 +43,10 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - ENABLE_CLOUDFRONT_DOWNLOADS=${ENABLE_CLOUDFRONT_DOWNLOADS:-false}
+      - CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN:-}
+      - CLOUDFRONT_KEY_PAIR_ID=${CLOUDFRONT_KEY_PAIR_ID:-}
+      - CLOUDFRONT_PRIVATE_KEY_PATH=${CLOUDFRONT_PRIVATE_KEY_PATH:-}
       # Mail config
       - MAIL_FROM=${MAIL_FROM:-noreply@fluxsend.com}
       # DB config
@@ -53,6 +57,7 @@ services:
 
     volumes:
       - ./config/bucket-auth.json:/config/bucket-auth.json:ro
+      - /home/tskr/wazne/fluxsend_private_key.pem:/config/fluxsend_private_key.pem:ro
 
     
 # networks:

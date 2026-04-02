@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
+	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
@@ -15,20 +16,22 @@ import (
 )
 
 type APIServer struct {
-	backendConfig config.BackendConfig
-	bucketHandler storagetypes.ObjectStorage
-	emailSender   mailtypes.EmailSender
-	repository    *repo.Repository
-	OAuthConfig   *oauth2.Config
+	backendConfig    config.BackendConfig
+	bucketHandler    storagetypes.ObjectStorage
+	cloudFrontSigner *cdn.CloudFrontURLSigner
+	emailSender      mailtypes.EmailSender
+	repository       *repo.Repository
+	OAuthConfig      *oauth2.Config
 }
 
-func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, bh storagetypes.ObjectStorage, repository *repo.Repository, oauth2conf *oauth2.Config) *APIServer {
+func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, bh storagetypes.ObjectStorage, cloudFrontSigner *cdn.CloudFrontURLSigner, repository *repo.Repository, oauth2conf *oauth2.Config) *APIServer {
 	return &APIServer{
-		backendConfig: backendConfig,
-		bucketHandler: bh,
-		emailSender:   es,
-		repository:    repository,
-		OAuthConfig:   oauth2conf,
+		backendConfig:    backendConfig,
+		bucketHandler:    bh,
+		cloudFrontSigner: cloudFrontSigner,
+		emailSender:      es,
+		repository:       repository,
+		OAuthConfig:      oauth2conf,
 	}
 }
 

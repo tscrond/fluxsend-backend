@@ -46,6 +46,12 @@ AWS_ACCESS_KEY_ID=<redacted>
 AWS_SECRET_ACCESS_KEY=<redacted>
 AWS_REGION=<redacted>
 
+# optional: CloudFront download redirects for S3-backed downloads
+ENABLE_CLOUDFRONT_DOWNLOADS=false
+CLOUDFRONT_DOMAIN="cdn.example.com"
+CLOUDFRONT_KEY_PAIR_ID=<redacted>
+CLOUDFRONT_PRIVATE_KEY_PATH="/path/to/cloudfront-private-key.pem"
+
 # for "standard" email provider
 SMTP_HOST=<redacted>
 SMTP_PORT="587"
@@ -82,6 +88,12 @@ export GOOGLE_CLIENT_SECRET=<redacted>
 export AWS_ACCESS_KEY_ID=<redacted>
 export AWS_SECRET_ACCESS_KEY=<redacted>
 export AWS_REGION=<redacted>
+
+# optional: CloudFront download redirects for S3-backed downloads
+export ENABLE_CLOUDFRONT_DOWNLOADS=false
+export CLOUDFRONT_DOMAIN="cdn.example.com"
+export CLOUDFRONT_KEY_PAIR_ID=<redacted>
+export CLOUDFRONT_PRIVATE_KEY_PATH="/path/to/cloudfront-private-key.pem"
 
 # for "standard" email provider
 export SMTP_HOST=<redacted>
@@ -131,7 +143,15 @@ This will build the Docker image and start the backend service.
 | Method | Endpoint                  | Description |
 |--------|---------------------------|-------------|
 | GET    | `/d/private/{token}`      | Authenticated. Allows users to download their private files via a secure token. |
-| GET    | `/d/{token}`              | Public. Proxy for downloading shared files using a token (possibly with time-limited access). |
+| GET    | `/d/{token}`              | Public. Resolves a shared file token and redirects to a short-lived signed download URL. |
+
+## CloudFront Download Flag
+
+- `ENABLE_CLOUDFRONT_DOWNLOADS=false` by default.
+- When set to `true`, download redirects use CloudFront signed URLs instead of storage-signed URLs.
+- This path currently supports `STORAGE_PROVIDER=s3` only.
+- Required when enabled: `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_PAIR_ID`, `CLOUDFRONT_PRIVATE_KEY_PATH`.
+- The CloudFront URL shape is `https://<CLOUDFRONT_DOMAIN>/<userId>/<object>`.
 
 ## 👤 User Info Endpoints
 

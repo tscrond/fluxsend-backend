@@ -1,12 +1,10 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"io"
 	"log"
-	"maps"
 	"net/http"
 	"time"
 
@@ -23,7 +21,7 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 	// 2. check if user is authorized
 	// 3. check if token exists
 	// 4. generate short-lived signed URL
-	// 5. stream the file output from signed URL to the response writer
+	// 5. redirect user to the signed URL
 	ctx := r.Context()
 
 	if r.Method != http.MethodGet {
@@ -48,10 +46,7 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 	}
 
 	mode := r.URL.Query().Get("mode") // "inline" or "download"
-	disposition := "attachment"       // default behavior
-	if mode == "inline" {
-		disposition = "inline"
-	} else if mode != "download" && mode != "" {
+	if mode != "inline" && mode != "download" && mode != "" {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "invalid_download_mode", "")
 		return
 	}
@@ -82,38 +77,13 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 	bucket := bucketAndObjectRow.BucketName.String
 	object := bucketAndObjectRow.ObjectName
 
-	signedUrl, err := s.bucketHandler.GenerateSignedURL(ctx, bucket, object, time.Now().Add(1*time.Minute))
+	signedUrl, err := s.resolveDownloadURL(ctx, bucket, object, time.Now().Add(1*time.Minute))
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "cannot_generate_url", "")
 		return
 	}
 
-	// fmt.Println(signedUrl)
-
-	// 4. stream the file contents to the writer
-	resp, err := http.Get(signedUrl)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "signed_url_fetch_failed", "")
-		return
-	}
-	defer resp.Body.Close()
-
-	// Copy headers
-	maps.Copy(w.Header(), resp.Header)
-
-	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=%q", disposition, bucketAndObjectRow.ObjectName))
-
-	w.WriteHeader(http.StatusOK)
-
-	// Stream the body
-	bytes_written, err := io.Copy(w, resp.Body)
-	if err != nil {
-		// log.Println("streaming error:", err)
-		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "streaming_error", "")
-		return
-	}
-
-	log.Printf("written %d bytes", bytes_written)
+	http.Redirect(w, r, signedUrl, http.StatusFound)
 }
 
 func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +94,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 	// 1. take in token as a query parameter or path
 	// 2. check if token exists
 	// 3. generate short-lived signed URL
-	// 4. stream the file output from signed URL to the response writer
+	// 4. redirect user to the signed URL
 	ctx := r.Context()
 
 	if r.Method != http.MethodGet {
@@ -133,10 +103,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 	}
 
 	mode := r.URL.Query().Get("mode") // "inline" or "download"
-	disposition := "attachment"       // default behavior
-	if mode == "inline" {
-		disposition = "inline"
-	} else if mode != "download" && mode != "" {
+	if mode != "inline" && mode != "download" && mode != "" {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "invalid_download_mode", "")
 		return
 	}
@@ -176,7 +143,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 	}
 
 	// 3. generate signed url
-	signedUrl, err := s.bucketHandler.GenerateSignedURL(ctx,
+	signedUrl, err := s.resolveDownloadURL(ctx,
 		bucketAndObject.UserBucket.String,
 		bucketAndObject.FileName,
 		time.Now().Add(time.Minute),
@@ -187,30 +154,15 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// 4. stream the file contents to the writer
-	resp, err := http.Get(signedUrl)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "signed_url_fetch_failed", "")
-		return
-	}
-	defer resp.Body.Close()
+	http.Redirect(w, r, signedUrl, http.StatusFound)
+}
 
-	// Copy headers
-	maps.Copy(w.Header(), resp.Header)
-
-	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=%q", disposition, bucketAndObject.FileName))
-
-	w.WriteHeader(http.StatusOK)
-
-	// Stream the body
-	bytes_written, err := io.Copy(w, resp.Body)
-	if err != nil {
-		// log.Println("streaming error:", err)
-		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "streaming_error", "")
-		return
+func (s *APIServer) resolveDownloadURL(ctx context.Context, bucket, object string, expiresAt time.Time) (string, error) {
+	if s.cloudFrontSigner != nil {
+		return s.cloudFrontSigner.SignURL(bucket, object, expiresAt)
 	}
 
-	log.Printf("written %d bytes", bytes_written)
+	return s.bucketHandler.GenerateSignedURL(ctx, bucket, object, expiresAt)
 }
 
 func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {
