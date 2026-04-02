@@ -140,26 +140,3 @@ func normalizeCloudFrontDomain(domain string) (string, error) {
 
 	return domain, nil
 }
-
-// func parseCloudFrontPrivateKey(privateKeyPEM []byte) (crypto.Signer, error) {
-// 	block, _ := pem.Decode(privateKeyPEM)
-// 	if block == nil {
-// 		return nil, fmt.Errorf("invalid CloudFront private key: PEM decode failed")
-// 	}
-
-// 	if key, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
-// 		return key, nil
-// 	}
-
-// 	parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("invalid CloudFront private key: %w", err)
-// 	}
-
-// 	signer, ok := parsedKey.(crypto.Signer)
-// 	if !ok {
-// 		return nil, fmt.Errorf("invalid CloudFront private key: unsupported key type %T", parsedKey)
-// 	}
-
-// 	return signer, nil
-// }
