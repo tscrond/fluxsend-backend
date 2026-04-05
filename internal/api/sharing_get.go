@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -77,14 +78,14 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 	bucket := bucketAndObjectRow.BucketName.String
 	object := bucketAndObjectRow.ObjectName
 
-	signedUrl, err := s.resolveDownloadURL(ctx, bucket, object, time.Now().Add(1*time.Minute))
+	signedUrl, err := s.resolveDownloadURL(ctx, bucket, object, mode, time.Now().Add(1*time.Minute))
 	if err != nil {
 		log.Printf("cannot generate download URL for bucket=%q object=%q: %v", bucket, object, err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "cannot_generate_url", "")
 		return
 	}
 
-	http.Redirect(w, r, signedUrl, http.StatusFound)
+	s.handleDownloadResponse(w, r, signedUrl, object, mode)
 }
 
 func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
@@ -147,6 +148,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 	signedUrl, err := s.resolveDownloadURL(ctx,
 		bucketAndObject.UserBucket.String,
 		bucketAndObject.FileName,
+		mode,
 		time.Now().Add(time.Minute),
 	)
 
@@ -155,15 +157,56 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	http.Redirect(w, r, signedUrl, http.StatusFound)
+	s.handleDownloadResponse(w, r, signedUrl, bucketAndObject.FileName, mode)
 }
 
-func (s *APIServer) resolveDownloadURL(ctx context.Context, bucket, object string, expiresAt time.Time) (string, error) {
+func (s *APIServer) resolveDownloadURL(ctx context.Context, bucket, object, mode string, expiresAt time.Time) (string, error) {
 	if s.cloudFrontSigner != nil {
+		// CloudFront does not support response-content-disposition;
+		// download mode is handled by proxying in handleDownloadResponse.
 		return s.cloudFrontSigner.SignURL(bucket, object, expiresAt)
 	}
 
-	return s.bucketHandler.GenerateSignedURL(ctx, bucket, object, expiresAt)
+	var contentDisposition string
+	if mode == "download" {
+		contentDisposition = "attachment; filename=\"" + object + "\""
+	}
+
+	return s.bucketHandler.GenerateSignedURL(ctx, bucket, object, expiresAt, contentDisposition)
+}
+
+func (s *APIServer) handleDownloadResponse(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) {
+	if mode == "download" && s.cloudFrontSigner != nil {
+		s.proxyDownload(w, signedUrl, filename)
+		return
+	}
+	http.Redirect(w, r, signedUrl, http.StatusFound)
+}
+
+func (s *APIServer) proxyDownload(w http.ResponseWriter, signedUrl, filename string) {
+	resp, err := http.Get(signedUrl)
+	if err != nil {
+		log.Printf("download proxy: fetch error: %v", err)
+		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("download proxy: upstream returned %d", resp.StatusCode)
+		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
+		return
+	}
+
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	if ct := resp.Header.Get("Content-Type"); ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+	if cl := resp.Header.Get("Content-Length"); cl != "" {
+		w.Header().Set("Content-Length", cl)
+	}
+
+	io.Copy(w, resp.Body)
 }
 
 func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {
