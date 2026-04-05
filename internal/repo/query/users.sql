@@ -1,7 +1,7 @@
 -- name: CreateUser :exec
 INSERT INTO users (google_id, user_name, user_email, user_bucket)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (google_id) DO NOTHING;
+ON CONFLICT (google_id) DO UPDATE SET user_bucket = EXCLUDED.user_bucket;
 
 -- name: GetUserByGoogleID :one
 SELECT * FROM users WHERE google_id = $1;

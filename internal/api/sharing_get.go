@@ -79,6 +79,7 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 
 	signedUrl, err := s.resolveDownloadURL(ctx, bucket, object, time.Now().Add(1*time.Minute))
 	if err != nil {
+		log.Printf("cannot generate download URL for bucket=%q object=%q: %v", bucket, object, err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "cannot_generate_url", "")
 		return
 	}

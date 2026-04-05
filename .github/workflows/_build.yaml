@@ -77,20 +77,18 @@ jobs:
 
       - name: Build and push Docker image to Docker Hub (${{ inputs.arch }})
         if: matrix.registry == 'docker.io' && github.event_name != 'pull_request'
-        id: build-and-push-dockerhub
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta-dockerhub.outputs.tags }}
           labels: ${{ steps.meta-dockerhub.outputs.labels }}
           platforms: ${{ inputs.arch }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=docker.io/${{ inputs.image-name-dockerhub }}:cache
+          cache-to: type=registry,ref=docker.io/${{ inputs.image-name-dockerhub }}:cache,mode=max
 
       - name: Build and push Docker image to GHCR (${{ inputs.arch }})
         if: matrix.registry == 'ghcr.io' && github.event_name != 'pull_request'
-        id: build-and-push-ghcr
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -98,5 +96,5 @@ jobs:
           tags: ${{ steps.meta-ghcr.outputs.tags }}
           labels: ${{ steps.meta-ghcr.outputs.labels }}
           platforms: ${{ inputs.arch }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ inputs.image-name-github }}:cache
+          cache-to: type=registry,ref=ghcr.io/${{ inputs.image-name-github }}:cache,mode=max
