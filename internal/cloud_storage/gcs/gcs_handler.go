@@ -11,6 +11,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -372,21 +373,27 @@ func (b *GCSBucketHandler) Close() error {
 	return nil
 }
 
-func (b *GCSBucketHandler) GenerateSignedURL(ctx context.Context, bucket, object string, expiresAt time.Time) (string, error) {
+func (b *GCSBucketHandler) GenerateSignedURL(ctx context.Context, bucket, object string, expiresAt time.Time, contentDisposition string) (string, error) {
 
 	email, pkey, err := pkg.LoadServiceAccount(b.ServiceAccountKeyPath)
 	if err != nil {
 		return "", fmt.Errorf("Bucket(%q) error reading svc account: %w", bucket, err)
 	}
 
-	u, err := storage.SignedURL(bucket, object, &storage.SignedURLOptions{
+	opts := &storage.SignedURLOptions{
 		Scheme:         storage.SigningSchemeV4,
 		Method:         "GET",
 		Expires:        expiresAt,
 		GoogleAccessID: email,
 		PrivateKey:     pkey,
-		// Style:          storage.VirtualHostedStyle(),
-	})
+	}
+	if contentDisposition != "" {
+		opts.QueryParameters = url.Values{
+			"response-content-disposition": []string{contentDisposition},
+		}
+	}
+
+	u, err := storage.SignedURL(bucket, object, opts)
 
 	if err != nil {
 		return "", fmt.Errorf("Bucket(%q).SignedURL: %w", bucket, err)

@@ -322,7 +322,7 @@ func (b *S3BucketHandler) GetBucketBaseName() string {
 	return b.BaseBucketName
 }
 
-func (b *S3BucketHandler) GenerateSignedURL(ctx context.Context, bucket, object string, expiresAt time.Time) (string, error) {
+func (b *S3BucketHandler) GenerateSignedURL(ctx context.Context, bucket, object string, expiresAt time.Time, contentDisposition string) (string, error) {
 	// bucket may be "<base>-<userId>" from DB; extract userId to build the real S3 key
 	userId := b.extractUserIdFromBucket(bucket)
 	objectKey := object
@@ -330,10 +330,15 @@ func (b *S3BucketHandler) GenerateSignedURL(ctx context.Context, bucket, object 
 		objectKey = s3Key(userId, object)
 	}
 
-	presignResult, err := b.PresignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+	input := &s3.GetObjectInput{
 		Bucket: aws.String(b.BaseBucketName),
 		Key:    aws.String(objectKey),
-	}, s3.WithPresignExpires(time.Until(expiresAt)))
+	}
+	if contentDisposition != "" {
+		input.ResponseContentDisposition = aws.String(contentDisposition)
+	}
+
+	presignResult, err := b.PresignClient.PresignGetObject(ctx, input, s3.WithPresignExpires(time.Until(expiresAt)))
 	if err != nil {
 		return "", fmt.Errorf("Bucket(%q).PresignGetObject: %w", b.BaseBucketName, err)
 	}
