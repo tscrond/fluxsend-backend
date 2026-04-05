@@ -13,7 +13,7 @@ import (
 const createUser = `-- name: CreateUser :exec
 INSERT INTO users (google_id, user_name, user_email, user_bucket)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (google_id) DO NOTHING
+ON CONFLICT (google_id) DO UPDATE SET user_bucket = EXCLUDED.user_bucket
 `
 
 type CreateUserParams struct {

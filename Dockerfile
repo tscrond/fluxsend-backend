@@ -1,23 +1,26 @@
-ARG TARGETOS
-ARG TARGETARCH
-
-FROM golang:1.26.1-alpine3.23 AS builder
+# ---- Build stage ----
+FROM --platform=$BUILDPLATFORM golang:1.26.1-alpine3.23 AS builder
 
 WORKDIR /fluxsend
+
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
 
-RUN go mod download
+ARG TARGETOS
+ARG TARGETARCH
 
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /fluxsend/fluxsend /fluxsend/cmd
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -o /fluxsend/fluxsend ./cmd
 
-EXPOSE 3000
-
-FROM golang:1.26.1-alpine3.23
+# ---- Final stage ----
+FROM alpine:3.23
 
 WORKDIR /fluxsend
 
-COPY --from=builder /fluxsend/fluxsend /fluxsend/fluxsend
-COPY --from=builder /fluxsend/internal/repo /fluxsend/internal/repo
+COPY --from=builder /fluxsend/fluxsend .
+COPY --from=builder /fluxsend/internal/repo/migrations ./internal/repo/migrations
 
-CMD [ "/fluxsend/fluxsend" ]
+EXPOSE 3000
+
+CMD ["./fluxsend"]
