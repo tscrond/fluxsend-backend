@@ -11,6 +11,18 @@ import (
 	"time"
 )
 
+const countUnseenShares = `-- name: CountUnseenShares :one
+SELECT COUNT(*) FROM shares
+WHERE shared_for = $1 AND received_seen_at IS NULL AND expires_at > NOW()
+`
+
+func (q *Queries) CountUnseenShares(ctx context.Context, sharedFor sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUnseenShares, sharedFor)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getBucketAndObjectFromToken = `-- name: GetBucketAndObjectFromToken :one
 SELECT
 u.user_bucket,
@@ -56,6 +68,33 @@ func (q *Queries) GetBucketObjectAndOwnerFromPrivateToken(ctx context.Context, p
 	return i, err
 }
 
+const getExistingPublicShare = `-- name: GetExistingPublicShare :one
+SELECT id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at FROM shares
+WHERE shared_by = $1 AND shared_for IS NULL AND file_id = $2 AND expires_at > NOW()
+LIMIT 1
+`
+
+type GetExistingPublicShareParams struct {
+	SharedBy sql.NullString `json:"shared_by"`
+	FileID   sql.NullInt32  `json:"file_id"`
+}
+
+func (q *Queries) GetExistingPublicShare(ctx context.Context, arg GetExistingPublicShareParams) (Share, error) {
+	row := q.db.QueryRowContext(ctx, getExistingPublicShare, arg.SharedBy, arg.FileID)
+	var i Share
+	err := row.Scan(
+		&i.ID,
+		&i.SharedBy,
+		&i.SharedFor,
+		&i.SharingToken,
+		&i.FileID,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.ReceivedSeenAt,
+	)
+	return i, err
+}
+
 const getFileFromPrivateToken = `-- name: GetFileFromPrivateToken :one
 SELECT id, owner_google_id, file_name, file_type, size, md5_checksum, private_download_token FROM files WHERE private_download_token = $1
 `
@@ -78,7 +117,7 @@ func (q *Queries) GetFileFromPrivateToken(ctx context.Context, privateDownloadTo
 const getFilesSharedByUser = `-- name: GetFilesSharedByUser :many
 SELECT
     f.id, f.owner_google_id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token,
-    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at
+    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at
 FROM shares s
 JOIN files f ON s.file_id = f.id
 WHERE s.shared_by = $1
@@ -99,6 +138,7 @@ type GetFilesSharedByUserRow struct {
 	FileID               sql.NullInt32  `json:"file_id"`
 	CreatedAt            sql.NullTime   `json:"created_at"`
 	ExpiresAt            time.Time      `json:"expires_at"`
+	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
 }
 
 func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullString) ([]GetFilesSharedByUserRow, error) {
@@ -125,6 +165,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 			&i.FileID,
 			&i.CreatedAt,
 			&i.ExpiresAt,
+			&i.ReceivedSeenAt,
 		); err != nil {
 			return nil, err
 		}
@@ -142,7 +183,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 const getFilesSharedWithUser = `-- name: GetFilesSharedWithUser :many
 SELECT
     f.id, f.owner_google_id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token,
-    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at
+    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at
 FROM shares s
 JOIN files f ON s.file_id = f.id
 WHERE s.shared_for = $1
@@ -163,6 +204,7 @@ type GetFilesSharedWithUserRow struct {
 	FileID               sql.NullInt32  `json:"file_id"`
 	CreatedAt            sql.NullTime   `json:"created_at"`
 	ExpiresAt            time.Time      `json:"expires_at"`
+	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
 }
 
 func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.NullString) ([]GetFilesSharedWithUserRow, error) {
@@ -189,6 +231,7 @@ func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.Null
 			&i.FileID,
 			&i.CreatedAt,
 			&i.ExpiresAt,
+			&i.ReceivedSeenAt,
 		); err != nil {
 			return nil, err
 		}
@@ -225,12 +268,46 @@ func (q *Queries) GetTokenExpirationTime(ctx context.Context, sharingToken strin
 	return expires_at, err
 }
 
+const insertPublicShare = `-- name: InsertPublicShare :one
+INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
+VALUES ($1, NULL, $2, $3, $4)
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at
+`
+
+type InsertPublicShareParams struct {
+	SharedBy     sql.NullString `json:"shared_by"`
+	FileID       sql.NullInt32  `json:"file_id"`
+	ExpiresAt    time.Time      `json:"expires_at"`
+	SharingToken string         `json:"sharing_token"`
+}
+
+func (q *Queries) InsertPublicShare(ctx context.Context, arg InsertPublicShareParams) (Share, error) {
+	row := q.db.QueryRowContext(ctx, insertPublicShare,
+		arg.SharedBy,
+		arg.FileID,
+		arg.ExpiresAt,
+		arg.SharingToken,
+	)
+	var i Share
+	err := row.Scan(
+		&i.ID,
+		&i.SharedBy,
+		&i.SharedFor,
+		&i.SharingToken,
+		&i.FileID,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.ReceivedSeenAt,
+	)
+	return i, err
+}
+
 const insertShare = `-- name: InsertShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
 SET expires_at = EXCLUDED.expires_at
-RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at
 `
 
 type InsertShareParams struct {
@@ -258,6 +335,17 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) (Share
 		&i.FileID,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.ReceivedSeenAt,
 	)
 	return i, err
+}
+
+const markShareSeen = `-- name: MarkShareSeen :exec
+UPDATE shares SET received_seen_at = NOW()
+WHERE sharing_token = $1 AND received_seen_at IS NULL
+`
+
+func (q *Queries) MarkShareSeen(ctx context.Context, sharingToken string) error {
+	_, err := q.db.ExecContext(ctx, markShareSeen, sharingToken)
+	return err
 }

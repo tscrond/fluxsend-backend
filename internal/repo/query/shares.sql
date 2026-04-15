@@ -47,3 +47,21 @@ WHERE f.private_download_token = $1;
 
 -- name: GetTokenExpirationTime :one
 SELECT expires_at FROM shares WHERE sharing_token = $1;
+
+-- name: GetExistingPublicShare :one
+SELECT * FROM shares
+WHERE shared_by = $1 AND shared_for IS NULL AND file_id = $2 AND expires_at > NOW()
+LIMIT 1;
+
+-- name: InsertPublicShare :one
+INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
+VALUES ($1, NULL, $2, $3, $4)
+RETURNING *;
+
+-- name: CountUnseenShares :one
+SELECT COUNT(*) FROM shares
+WHERE shared_for = $1 AND received_seen_at IS NULL AND expires_at > NOW();
+
+-- name: MarkShareSeen :exec
+UPDATE shares SET received_seen_at = NOW()
+WHERE sharing_token = $1 AND received_seen_at IS NULL;

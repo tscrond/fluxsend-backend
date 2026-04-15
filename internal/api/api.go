@@ -62,7 +62,10 @@ func (s *APIServer) Start() {
 	r.Handle("/files/move", s.authMiddleware(http.HandlerFunc(s.moveFile)))
 
 	r.Handle("/files/received", s.authMiddleware(http.HandlerFunc(s.getDataSharedForUser)))
+	r.Handle("/files/received/unseen_count", s.authMiddleware(http.HandlerFunc(s.getUnseenReceivedCount)))
+	r.Handle("/files/received/mark_seen", s.authMiddleware(http.HandlerFunc(s.markReceivedSeen)))
 	r.Handle("/files/shared_by_user", s.authMiddleware(http.HandlerFunc(s.getDataSharedByUser)))
+	r.Handle("/files/quick_share", s.authMiddleware(http.HandlerFunc(s.quickShare)))
 	r.Handle("/files/delete", s.authMiddleware(http.HandlerFunc(s.deleteFile)))
 	r.Handle("/files/delete/batch", s.authMiddleware(http.HandlerFunc(s.deleteFilesBatch)))
 	r.Handle("/files/{checksum}/note", s.authMiddleware(http.HandlerFunc(s.fileNotesHandler)))

@@ -1,7 +1,9 @@
 services:
   frontend:
-    image: fluxsend-frontend:local
+    image: fluxsend-frontend:dev
     container_name: frontend
+    depends_on:
+      - backend
     ports:
       - 8000:8000/tcp
     environment:
@@ -23,7 +25,7 @@ services:
   backend:
     depends_on:
       - dev-postgres
-    image: fluxsend-backend:local
+    image: fluxsend-backend:dev
     container_name: backend
     restart: always
     ports:
