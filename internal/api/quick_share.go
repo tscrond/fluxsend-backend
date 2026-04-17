@@ -88,7 +88,12 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a new public share
-	generatedToken, _ := pkg.RandToken(32)
+	generatedToken, err := pkg.RandToken(32)
+	if err != nil {
+		log.Println("error generating public share token:", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
+		return
+	}
 	expiresAt := time.Now().Add(expiryDuration)
 
 	share, err := s.repository.Queries.InsertPublicShare(ctx, sqlc.InsertPublicShareParams{
