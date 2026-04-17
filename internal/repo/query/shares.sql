@@ -64,6 +64,7 @@ RETURNING *;
 SELECT COUNT(*) FROM shares
 WHERE shared_for = $1 AND received_seen_at IS NULL AND expires_at > NOW();
 
--- name: MarkShareSeen :exec
+-- name: MarkShareSeen :one
 UPDATE shares SET received_seen_at = NOW()
-WHERE sharing_token = $1 AND shared_for = $2 AND received_seen_at IS NULL;
+WHERE sharing_token = $1 AND shared_for = $2 AND received_seen_at IS NULL
+RETURNING *;

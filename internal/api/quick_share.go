@@ -174,17 +174,23 @@ func (s *APIServer) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.repository.Queries.MarkShareSeen(ctx, sqlc.MarkShareSeenParams{
+	share, err := s.repository.Queries.MarkShareSeen(ctx, sqlc.MarkShareSeenParams{
 		SharingToken: req.SharingToken,
 		SharedFor: sql.NullString{
 			String: authUserInfo.Email,
 			Valid:  true,
 		},
-	}); err != nil {
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			pkg.WriteJSONResponse(w, http.StatusNotFound, "", "share_not_found")
+			return
+		}
 		log.Println("error marking share seen:", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
 
+	log.Printf("share %s marked seen\n", share.SharingToken)
 	pkg.WriteJSONResponse(w, http.StatusOK, "", "ok")
 }

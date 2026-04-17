@@ -271,6 +271,8 @@ func (q *Queries) GetTokenExpirationTime(ctx context.Context, sharingToken strin
 const insertPublicShare = `-- name: InsertPublicShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, NULL, $2, $3, $4)
+ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL 
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token
 RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at
 `
 
@@ -340,9 +342,10 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) (Share
 	return i, err
 }
 
-const markShareSeen = `-- name: MarkShareSeen :exec
+const markShareSeen = `-- name: MarkShareSeen :one
 UPDATE shares SET received_seen_at = NOW()
 WHERE sharing_token = $1 AND shared_for = $2 AND received_seen_at IS NULL
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at
 `
 
 type MarkShareSeenParams struct {
@@ -350,7 +353,18 @@ type MarkShareSeenParams struct {
 	SharedFor    sql.NullString `json:"shared_for"`
 }
 
-func (q *Queries) MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) error {
-	_, err := q.db.ExecContext(ctx, markShareSeen, arg.SharingToken, arg.SharedFor)
-	return err
+func (q *Queries) MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (Share, error) {
+	row := q.db.QueryRowContext(ctx, markShareSeen, arg.SharingToken, arg.SharedFor)
+	var i Share
+	err := row.Scan(
+		&i.ID,
+		&i.SharedBy,
+		&i.SharedFor,
+		&i.SharingToken,
+		&i.FileID,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.ReceivedSeenAt,
+	)
+	return i, err
 }
