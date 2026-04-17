@@ -147,7 +147,7 @@ func (s *APIServer) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authorizedUserData := ctx.Value(userdata.AuthorizedUserContextKey)
-	_, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
+	authUserInfo, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
 	if !ok {
 		log.Println("cannot read authorized user data")
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
@@ -169,7 +169,13 @@ func (s *APIServer) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.repository.Queries.MarkShareSeen(ctx, req.SharingToken); err != nil {
+	if err := s.repository.Queries.MarkShareSeen(ctx, sqlc.MarkShareSeenParams{
+		SharingToken: req.SharingToken,
+		SharedFor: sql.NullString{
+			String: authUserInfo.Email,
+			Valid:  true,
+		},
+	}); err != nil {
 		log.Println("error marking share seen:", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return

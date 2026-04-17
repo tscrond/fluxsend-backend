@@ -56,6 +56,8 @@ LIMIT 1;
 -- name: InsertPublicShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, NULL, $2, $3, $4)
+ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL 
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token
 RETURNING *;
 
 -- name: CountUnseenShares :one
@@ -64,4 +66,4 @@ WHERE shared_for = $1 AND received_seen_at IS NULL AND expires_at > NOW();
 
 -- name: MarkShareSeen :exec
 UPDATE shares SET received_seen_at = NOW()
-WHERE sharing_token = $1 AND received_seen_at IS NULL;
+WHERE sharing_token = $1 AND shared_for = $2 AND received_seen_at IS NULL;

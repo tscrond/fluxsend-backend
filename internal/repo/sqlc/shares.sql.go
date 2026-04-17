@@ -342,10 +342,15 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) (Share
 
 const markShareSeen = `-- name: MarkShareSeen :exec
 UPDATE shares SET received_seen_at = NOW()
-WHERE sharing_token = $1 AND received_seen_at IS NULL
+WHERE sharing_token = $1 AND shared_for = $2 AND received_seen_at IS NULL
 `
 
-func (q *Queries) MarkShareSeen(ctx context.Context, sharingToken string) error {
-	_, err := q.db.ExecContext(ctx, markShareSeen, sharingToken)
+type MarkShareSeenParams struct {
+	SharingToken string         `json:"sharing_token"`
+	SharedFor    sql.NullString `json:"shared_for"`
+}
+
+func (q *Queries) MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) error {
+	_, err := q.db.ExecContext(ctx, markShareSeen, arg.SharingToken, arg.SharedFor)
 	return err
 }
