@@ -87,8 +87,8 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	}
 
 	_, err := b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID: uuid.NullUUID{Valid: true, UUID: uuid.MustParse(authUserData.InternalID)},
-		FileName:      fileName,
+		OwnerID:  uuid.NullUUID{Valid: true, UUID: uuid.MustParse(authUserData.InternalID)},
+		FileName: fileName,
 	})
 	if err == nil {
 		return types.ErrFileAlreadyExists
@@ -115,7 +115,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 
 		if err := b.repository.Queries.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
 			UserBucket: sql.NullString{String: retrievedBucketName, Valid: true},
-			ID:   uuid.MustParse(authUserData.InternalID),
+			ID:         uuid.MustParse(authUserData.InternalID),
 		}); err != nil {
 			log.Println(err)
 			return err

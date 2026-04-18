@@ -60,8 +60,8 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 	// Look up the file owned by this user
 	parsedUUID, _ := uuid.Parse(authUserData.InternalID)
 	fileData, err := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID: uuid.NullUUID{Valid: true, UUID: parsedUUID},
-		FileName:      req.Object,
+		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
+		FileName: req.Object,
 	})
 	if err != nil {
 		log.Println("error getting object data for quick share:", err)

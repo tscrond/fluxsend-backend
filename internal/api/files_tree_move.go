@@ -217,8 +217,8 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := s.repository.Queries.DeleteFileByNameAndId(r.Context(), sqlc.DeleteFileByNameAndIdParams{
-			OwnerID: uuid.NullUUID{Valid: true, UUID: userUUID},
-			FileName:      f.FileName,
+			OwnerID:  uuid.NullUUID{Valid: true, UUID: userUUID},
+			FileName: f.FileName,
 		}); err != nil {
 			log.Println("failed deleting file metadata:", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "delete_folder_error", nil)
@@ -259,8 +259,8 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err := s.repository.Queries.GetFileByOwnerAndName(r.Context(), sqlc.GetFileByOwnerAndNameParams{
-		OwnerID: uuid.NullUUID{Valid: true, UUID: userUUID},
-		FileName:      source,
+		OwnerID:  uuid.NullUUID{Valid: true, UUID: userUUID},
+		FileName: source,
 	})
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusNotFound, "source_not_found", nil)
@@ -275,9 +275,9 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.repository.Queries.UpdateFileNameByOwnerAndName(r.Context(), sqlc.UpdateFileNameByOwnerAndNameParams{
-		FileName:      destination,
-		OwnerID: uuid.NullUUID{Valid: true, UUID: userUUID},
-		FileName_2:    source,
+		FileName:   destination,
+		OwnerID:    uuid.NullUUID{Valid: true, UUID: userUUID},
+		FileName_2: source,
 	}); err != nil {
 		log.Println("failed updating file metadata:", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_file_error", nil)
@@ -351,9 +351,9 @@ func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := s.repository.Queries.UpdateFileNameByOwnerAndName(r.Context(), sqlc.UpdateFileNameByOwnerAndNameParams{
-			FileName:      newPath,
-			OwnerID: uuid.NullUUID{Valid: true, UUID: userUUID},
-			FileName_2:    f.FileName,
+			FileName:   newPath,
+			OwnerID:    uuid.NullUUID{Valid: true, UUID: userUUID},
+			FileName_2: f.FileName,
 		}); err != nil {
 			log.Println("failed updating file metadata:", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_folder_error", nil)
