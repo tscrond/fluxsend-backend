@@ -42,7 +42,12 @@ func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
 		log.Println("issues deleting object: ", err)
 	}
 
-	parsedUUID, _ := uuid.Parse(authUserData.InternalID)
+	parsedUUID, err := uuid.Parse(authUserData.InternalID)
+	if err != nil {
+		log.Println("cannot parse authorized user internal ID: ", err)
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
+		return
+	}
 	if err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
 		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
 		FileName: object,
