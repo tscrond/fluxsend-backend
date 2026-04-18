@@ -1,12 +1,12 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
@@ -35,16 +35,17 @@ func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.Id)
+	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
 
 	// dont fail if object does not exist, just report the error
 	if err := s.bucketHandler.DeleteObjectFromBucket(ctx, object, bucket); err != nil {
 		log.Println("issues deleting object: ", err)
 	}
 
+	parsedUUID, _ := uuid.Parse(authUserData.InternalID)
 	if err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
-		OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
-		FileName:      object,
+		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
+		FileName: object,
 	}); err != nil {
 		log.Println("errors deleting file from DB: ", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "delete_file_error", nil)
@@ -89,13 +90,14 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.Id)
+	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
 
 	// dont fail if object does not exist, just report the error
 	if err := s.bucketHandler.DeleteObjectsFromBucket(ctx, objToDelete.Files, bucket); err != nil {
 		log.Println("issues deleting object(s): ", err)
 	}
 
+	parsedUUIDBatch, _ := uuid.Parse(authUserData.InternalID)
 	deletedFiles := make([]string, 0, len(objToDelete.Files))
 	failedFiles := make([]string, 0)
 
@@ -105,8 +107,8 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
-			OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
-			FileName:      object,
+			OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUIDBatch},
+			FileName: object,
 		})
 		if err != nil {
 			log.Printf("errors deleting file from DB (%s): %v", object, err)
@@ -139,7 +141,7 @@ func (s *APIServer) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
 	}
-	bucketName := pkg.GetUserBucketName(s.bucketHandler.GetBucketBaseName(), authUserData.Id)
+	bucketName := pkg.GetUserBucketName(s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
 
 	fullResponse := map[string]any{}
 	fullResponse["bucket"] = map[string]any{
@@ -172,7 +174,8 @@ func (s *APIServer) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	deletedAccount, err := s.repository.Queries.DeleteAccount(ctx, authUserData.Id)
+	parsedUUIDDel, _ := uuid.Parse(authUserData.InternalID)
+	deletedAccount, err := s.repository.Queries.DeleteAccount(ctx, parsedUUIDDel)
 	if err != nil {
 		log.Println("issues deleting object: ", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "authorization_failed", nil)
@@ -180,7 +183,7 @@ func (s *APIServer) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullResponse["account_deleted"] = map[string]any{
-		"id":        deletedAccount.GoogleID,
+		"id":        deletedAccount.ID.String(),
 		"email":     deletedAccount.UserEmail,
 		"user_name": deletedAccount.UserName.String,
 	}

@@ -7,23 +7,25 @@ package sqlc
 import (
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type File struct {
 	ID                   int32          `json:"id"`
-	OwnerGoogleID        sql.NullString `json:"owner_google_id"`
 	FileName             string         `json:"file_name"`
 	FileType             sql.NullString `json:"file_type"`
 	Size                 sql.NullInt64  `json:"size"`
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
+	OwnerID              uuid.NullUUID  `json:"owner_id"`
 }
 
 type Note struct {
-	ID      int32          `json:"id"`
-	UserID  sql.NullString `json:"user_id"`
-	FileID  sql.NullInt32  `json:"file_id"`
-	Content string         `json:"content"`
+	ID      int32         `json:"id"`
+	FileID  sql.NullInt32 `json:"file_id"`
+	Content string        `json:"content"`
+	UserID  uuid.NullUUID `json:"user_id"`
 }
 
 type Share struct {
@@ -42,4 +44,5 @@ type User struct {
 	UserName   sql.NullString `json:"user_name"`
 	UserEmail  string         `json:"user_email"`
 	UserBucket sql.NullString `json:"user_bucket"`
+	ID         uuid.UUID      `json:"id"`
 }

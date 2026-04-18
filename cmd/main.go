@@ -71,7 +71,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	bucketHandler, err := InitObjectStorage(backendEndpoint, storageProvider, repository)
+	bucketHandler, err := InitObjectStorage(backendEndpoint, storageProvider, bucketMode, repository)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -129,11 +129,11 @@ func InitMailSender(provider string, repository *repo.Repository) (mailtypes.Ema
 	return mailfactory.NewEmailService(provider, repository)
 }
 
-func InitObjectStorage(backendEndpoint, storageProvider string, repository *repo.Repository) (storagetypes.ObjectStorage, error) {
+func InitObjectStorage(backendEndpoint, storageProvider, mode string, repository *repo.Repository) (storagetypes.ObjectStorage, error) {
 
 	log.Printf("%s", fmt.Sprintf("%s/auth/callback", backendEndpoint))
 
-	return storagefactory.NewStorageProvider(storageProvider, repository)
+	return storagefactory.NewStorageProvider(storageProvider, mode, repository)
 }
 
 func InitRepository(connString string) (*repo.Repository, error) {

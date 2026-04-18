@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
@@ -67,10 +68,11 @@ func (s *APIServer) editFileNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	parsedUUID, _ := uuid.Parse(authUserData.InternalID)
 	if _, err = s.repository.Queries.UpdateNoteForFile(
 		ctx,
 		sqlc.UpdateNoteForFileParams{
-			UserID:  sql.NullString{Valid: true, String: authUserData.Id},
+			UserID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
 			FileID:  sql.NullInt32{Valid: true, Int32: id},
 			Content: sanitizedNoteContent,
 		},
@@ -113,8 +115,9 @@ func (s *APIServer) getFileNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	parsedUUIDGet, _ := uuid.Parse(authUserData.InternalID)
 	note, err := s.repository.Queries.GetNoteForFileById(ctx, sqlc.GetNoteForFileByIdParams{
-		UserID: sql.NullString{Valid: true, String: authUserData.Id},
+		UserID: uuid.NullUUID{Valid: true, UUID: parsedUUIDGet},
 		FileID: sql.NullInt32{Valid: true, Int32: fileId},
 	})
 	if err != nil {

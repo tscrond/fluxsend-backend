@@ -7,7 +7,8 @@ const AuthorizedUserContextKey ContextKey = "authorized_user"
 
 // Info gathered after successful oauth2 callback
 type AuthorizedUserInfo struct {
-	Id         string `json:"id"`
+	InternalID string `json:"internal_id"` // UUID from our database
+	Id         string `json:"id"`          // Google OAuth subject ID
 	Email      string `json:"email"`
 	Name       string `json:"name"`
 	GivenName  string `json:"given_name"`

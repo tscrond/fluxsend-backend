@@ -8,15 +8,17 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const getNoteForFileById = `-- name: GetNoteForFileById :one
-SELECT id, user_id, file_id, content FROM notes WHERE user_id = $1 AND file_id = $2
+SELECT id, file_id, content, user_id FROM notes WHERE user_id = $1 AND file_id = $2
 `
 
 type GetNoteForFileByIdParams struct {
-	UserID sql.NullString `json:"user_id"`
-	FileID sql.NullInt32  `json:"file_id"`
+	UserID uuid.NullUUID `json:"user_id"`
+	FileID sql.NullInt32 `json:"file_id"`
 }
 
 func (q *Queries) GetNoteForFileById(ctx context.Context, arg GetNoteForFileByIdParams) (Note, error) {
@@ -24,9 +26,9 @@ func (q *Queries) GetNoteForFileById(ctx context.Context, arg GetNoteForFileById
 	var i Note
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.FileID,
 		&i.Content,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -36,13 +38,13 @@ INSERT INTO notes (user_id, file_id, content)
 VALUES ($1, $2, $3)
 ON CONFLICT (user_id, file_id) 
 DO UPDATE SET content = EXCLUDED.content
-RETURNING id, user_id, file_id, content
+RETURNING id, file_id, content, user_id
 `
 
 type UpdateNoteForFileParams struct {
-	UserID  sql.NullString `json:"user_id"`
-	FileID  sql.NullInt32  `json:"file_id"`
-	Content string         `json:"content"`
+	UserID  uuid.NullUUID `json:"user_id"`
+	FileID  sql.NullInt32 `json:"file_id"`
+	Content string        `json:"content"`
 }
 
 func (q *Queries) UpdateNoteForFile(ctx context.Context, arg UpdateNoteForFileParams) (Note, error) {
@@ -50,9 +52,9 @@ func (q *Queries) UpdateNoteForFile(ctx context.Context, arg UpdateNoteForFilePa
 	var i Note
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.FileID,
 		&i.Content,
+		&i.UserID,
 	)
 	return i, err
 }

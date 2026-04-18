@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	"github.com/tscrond/fluxsend-backend/pkg"
@@ -57,8 +58,9 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Look up the file owned by this user
+	parsedUUID, _ := uuid.Parse(authUserData.InternalID)
 	fileData, err := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
+		OwnerID: uuid.NullUUID{Valid: true, UUID: parsedUUID},
 		FileName:      req.Object,
 	})
 	if err != nil {

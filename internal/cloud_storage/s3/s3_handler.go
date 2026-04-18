@@ -18,6 +18,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/google/uuid"
 
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
@@ -86,7 +87,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	}
 
 	_, err := b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
+		OwnerID: uuid.NullUUID{Valid: true, UUID: uuid.MustParse(authUserData.InternalID)},
 		FileName:      fileName,
 	})
 	if err == nil {
@@ -98,7 +99,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	}
 
 	// get or set user bucket name in DB (same pattern as GCS driver)
-	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, authUserData.Id)
+	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, uuid.MustParse(authUserData.InternalID))
 	if err != nil {
 		log.Println(err)
 		return err
@@ -114,7 +115,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 
 		if err := b.repository.Queries.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
 			UserBucket: sql.NullString{String: retrievedBucketName, Valid: true},
-			GoogleID:   authUserData.Id,
+			ID:   uuid.MustParse(authUserData.InternalID),
 		}); err != nil {
 			log.Println(err)
 			return err
@@ -180,7 +181,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	}
 
 	insertArgs := sqlc.InsertFileParams{
-		OwnerGoogleID:        sql.NullString{Valid: true, String: authUserData.Id},
+		OwnerID:              uuid.NullUUID{Valid: true, UUID: uuid.MustParse(authUserData.InternalID)},
 		FileName:             fileName,
 		FileType:             sql.NullString{Valid: true, String: contentType},
 		Size:                 sql.NullInt64{Valid: true, Int64: objSize},
@@ -314,7 +315,7 @@ func (b *S3BucketHandler) GetUserBucketName(ctx context.Context) (string, error)
 	}
 
 	// return the same "<base>-<userId>" format for DB compatibility
-	bucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.Id)
+	bucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.InternalID)
 	return bucketName, nil
 }
 
