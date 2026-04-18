@@ -36,15 +36,41 @@ func encodeS3Key(key string) string {
 	return strings.Join(parts, "/")
 }
 
+func showHelp() {
+	fmt.Printf(`Migration tool for legacy S3 OAuth2 ID prefixes
+Options:
+	--dry-run
+		(optional) doesn't perform any migrations, checks if migration would complete successfully and views contents that will be migrated
+	--delete-old
+		(optional) auto-deletes old bucket prefixes in the bucket
+Usage:
+	export DATABASE_URL=<full_db_connstring> # ex. postgres://devuser:devpass@localhost:5432/devdb?sslmode=disable
+	export S3_BUCKET_NAME=<s3_bucket_name> # ex. my-bucket-123123
+	export AWS_REGION=<your_region> # ex. eu-north-1
+
+	./migrate_s3_keys
+Explanation
+	In the usage example - the command needs 3 env variables to work correctly.
+	Command ran without arguments performs a migration and doesn't delete old prefixes.
+`)
+}
+
 func main() {
 	dryRun := false
 	deleteOld := false
 	for _, arg := range os.Args[1:] {
 		switch arg {
+		case "--help":
+			showHelp()
+			os.Exit(0)
 		case "--dry-run":
 			dryRun = true
 		case "--delete-old":
 			deleteOld = true
+		default:
+			showHelp()
+			log.Printf("no such option %s\n", arg)
+			os.Exit(1)
 		}
 	}
 
