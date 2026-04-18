@@ -1,5 +1,6 @@
 -- Migration: Switch primary user identifier from google_id to UUID
 -- Non-destructive: google_id is kept as a UNIQUE column for OAuth lookups
+BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -46,3 +47,5 @@ ALTER TABLE notes ADD CONSTRAINT unique_user_file_note UNIQUE (user_id, file_id)
 UPDATE users SET user_bucket =
     substring(user_bucket FROM 1 FOR length(user_bucket) - length(google_id)) || id::text
 WHERE user_bucket IS NOT NULL AND google_id != '';
+
+COMMIT;
