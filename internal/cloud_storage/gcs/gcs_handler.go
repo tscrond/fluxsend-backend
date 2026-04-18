@@ -98,10 +98,9 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 
 	userUuid, err := uuid.Parse(authUserData.InternalID)
 	if err != nil {
-		log.Println("error converting string to UUID")
+		log.Printf("error converting string to UUID: %v", err)
 		return types.ErrTypeConversion
 	}
-	log.Println("user uuid: ", userUuid)
 
 	_, err = b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
 		OwnerID:  uuid.NullUUID{Valid: true, UUID: userUuid},
