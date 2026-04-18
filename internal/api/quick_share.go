@@ -58,7 +58,12 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Look up the file owned by this user
-	parsedUUID, _ := uuid.Parse(authUserData.InternalID)
+	parsedUUID, err := uuid.Parse(authUserData.InternalID)
+	if err != nil {
+		log.Println("invalid authorized user internal ID:", err)
+		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
+		return
+	}
 	fileData, err := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
 		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
 		FileName: req.Object,
