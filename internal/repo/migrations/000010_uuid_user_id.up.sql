@@ -20,11 +20,13 @@ ALTER TABLE notes DROP CONSTRAINT IF EXISTS unique_user_file_note;
 -- 4. Add new UUID-based owner column to files, populate, drop old
 ALTER TABLE files ADD COLUMN owner_id UUID;
 UPDATE files SET owner_id = u.id FROM users u WHERE files.owner_google_id = u.google_id;
+ALTER TABLE files ALTER COLUMN owner_id SET NOT NULL;
 ALTER TABLE files DROP COLUMN owner_google_id;
 
 -- 5. Add new UUID-based user column to notes, populate, drop old, rename
 ALTER TABLE notes ADD COLUMN uuid_user_id UUID;
 UPDATE notes SET uuid_user_id = u.id FROM users u WHERE notes.user_id = u.google_id;
+ALTER TABLE notes ALTER COLUMN uuid_user_id SET NOT NULL;
 ALTER TABLE notes DROP COLUMN user_id;
 ALTER TABLE notes RENAME COLUMN uuid_user_id TO user_id;
 
