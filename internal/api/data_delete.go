@@ -174,11 +174,16 @@ func (s *APIServer) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	parsedUUIDDel, _ := uuid.Parse(authUserData.InternalID)
+	parsedUUIDDel, err := uuid.Parse(authUserData.InternalID)
+	if err != nil {
+		log.Println("failed parsing user ID")
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "user_id_parse_error", nil)
+		return
+	}
 	deletedAccount, err := s.repository.Queries.DeleteAccount(ctx, parsedUUIDDel)
 	if err != nil {
 		log.Println("issues deleting object: ", err)
-		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "authorization_failed", nil)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "delete_account_failure", nil)
 		return
 	}
 

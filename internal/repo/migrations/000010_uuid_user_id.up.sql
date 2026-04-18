@@ -1,6 +1,8 @@
 -- Migration: Switch primary user identifier from google_id to UUID
 -- Non-destructive: google_id is kept as a UNIQUE column for OAuth lookups
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- 1. Add UUID column to users and populate for existing rows
 ALTER TABLE users ADD COLUMN id UUID DEFAULT gen_random_uuid();
 UPDATE users SET id = gen_random_uuid() WHERE id IS NULL;
