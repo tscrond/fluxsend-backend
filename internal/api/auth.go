@@ -172,7 +172,7 @@ func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, userUUID string)
 	// 4. transform mapped data to []sqlc.File format
 	filesFromBuckets, err := mappings.MapBucketDataToDBFormat(userUUID, bucketDataMapped)
 	if err != nil {
-		return errors.New("cannot map bucket data to db format")
+		return fmt.Errorf("cannot map bucket data to db format: %w", err)
 	}
 
 	// 5. check if the DB has missing records, if yes - return them as []sqlc.File
