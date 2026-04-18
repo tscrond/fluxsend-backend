@@ -78,7 +78,11 @@ func (s *APIServer) getUserPrivateFileByName(w http.ResponseWriter, r *http.Requ
 
 	fileName := r.URL.Query().Get("file")
 
-	parsedUUID, _ := uuid.Parse(userData.InternalID)
+	parsedUUID, err := uuid.Parse(userData.InternalID)
+	if err != nil {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", "")
+		return
+	}
 	downloadToken, err := s.repository.Queries.GetPrivateDownloadTokenByFileName(ctx, sqlc.GetPrivateDownloadTokenByFileNameParams{
 		FileName: fileName,
 		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
