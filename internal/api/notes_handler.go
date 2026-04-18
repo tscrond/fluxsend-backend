@@ -115,7 +115,13 @@ func (s *APIServer) getFileNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parsedUUIDGet, _ := uuid.Parse(authUserData.InternalID)
+	parsedUUIDGet, err := uuid.Parse(authUserData.InternalID)
+	if err != nil {
+		log.Println("cannot parse authorized user internal id")
+		w.WriteHeader(http.StatusForbidden)
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", "")
+		return
+	}
 	note, err := s.repository.Queries.GetNoteForFileById(ctx, sqlc.GetNoteForFileByIdParams{
 		UserID: uuid.NullUUID{Valid: true, UUID: parsedUUIDGet},
 		FileID: sql.NullInt32{Valid: true, Int32: fileId},
