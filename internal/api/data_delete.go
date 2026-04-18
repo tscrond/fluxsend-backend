@@ -97,7 +97,12 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 		log.Println("issues deleting object(s): ", err)
 	}
 
-	parsedUUIDBatch, _ := uuid.Parse(authUserData.InternalID)
+	parsedUUIDBatch, err := uuid.Parse(authUserData.InternalID)
+	if err != nil {
+		log.Printf("invalid authorized user internal ID %q: %v", authUserData.InternalID, err)
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
+		return
+	}
 	deletedFiles := make([]string, 0, len(objToDelete.Files))
 	failedFiles := make([]string, 0)
 
