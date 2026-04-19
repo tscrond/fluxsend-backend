@@ -8,19 +8,21 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const getPrivateDownloadTokenByFileName = `-- name: GetPrivateDownloadTokenByFileName :one
-SELECT private_download_token FROM files WHERE file_name = $1 AND owner_google_id = $2
+SELECT private_download_token FROM files WHERE file_name = $1 AND owner_id = $2
 `
 
 type GetPrivateDownloadTokenByFileNameParams struct {
-	FileName      string         `json:"file_name"`
-	OwnerGoogleID sql.NullString `json:"owner_google_id"`
+	FileName string    `json:"file_name"`
+	OwnerID  uuid.UUID `json:"owner_id"`
 }
 
 func (q *Queries) GetPrivateDownloadTokenByFileName(ctx context.Context, arg GetPrivateDownloadTokenByFileNameParams) (sql.NullString, error) {
-	row := q.db.QueryRowContext(ctx, getPrivateDownloadTokenByFileName, arg.FileName, arg.OwnerGoogleID)
+	row := q.db.QueryRowContext(ctx, getPrivateDownloadTokenByFileName, arg.FileName, arg.OwnerID)
 	var private_download_token sql.NullString
 	err := row.Scan(&private_download_token)
 	return private_download_token, err

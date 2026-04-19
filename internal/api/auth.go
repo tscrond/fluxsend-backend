@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
@@ -93,23 +94,40 @@ func (s *APIServer) authCallback(w http.ResponseWriter, r *http.Request) {
 
 	// create/update new user if not exists
 	username := sql.NullString{String: jsonResp.Name, Valid: true}
+	// Bucket name will be updated with UUID after user creation
 	userBucket := sql.NullString{
 		String: fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), jsonResp.Id),
 		Valid: func() bool {
 			return jsonResp.Id != ""
 		}(),
 	}
-	if err := s.repository.Queries.CreateUser(ctx, sqlc.CreateUserParams{
+	createdUser, err := s.repository.Queries.CreateUser(ctx, sqlc.CreateUserParams{
 		GoogleID:   jsonResp.Id,
 		UserName:   username,
 		UserEmail:  jsonResp.Email,
 		UserBucket: userBucket,
-	}); err != nil {
+	})
+	if err != nil {
+		log.Printf("error creating/updating user: %v", err)
 		http.Redirect(w, r, s.backendConfig.FrontendEndpoint, http.StatusInternalServerError)
+		return
 	}
 
-	log.Printf("USER ID: %s", jsonResp.Id)
-	if err := s.syncDatabaseWithBucket(ctx, jsonResp.Id); err != nil {
+	internalID := createdUser.ID.String()
+
+	// Update bucket name to use UUID if it still has the old google_id format
+	expectedBucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), internalID)
+	if createdUser.UserBucket.String != expectedBucket {
+		if err := s.repository.Queries.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
+			UserBucket: sql.NullString{String: expectedBucket, Valid: true},
+			ID:         createdUser.ID,
+		}); err != nil {
+			log.Printf("error updating bucket name: %v", err)
+		}
+	}
+
+	log.Printf("USER ID (UUID): %s (Google: %s)", internalID, jsonResp.Id)
+	if err := s.syncDatabaseWithBucket(ctx, internalID); err != nil {
 		log.Println("error syncing the DB: ", err)
 	} else {
 		log.Println("database sync with remote buckets succeeded!")
@@ -118,27 +136,29 @@ func (s *APIServer) authCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.backendConfig.FrontendEndpoint, http.StatusTemporaryRedirect)
 }
 
-func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, googleUserID string) error {
+func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, userUUID string) error {
 	// sync strategy:
 	// 1. check objects in db
-	// 2. check objects in GCS
-	// 3. diff GCS to DB
-	// 4. fill the DB with diff between GCS
-	// parse data of logged in user
+	// 2. check objects in remote storage
+	// 3. diff remote to DB
+	// 4. fill the DB with diff
+
+	parsedUUID, err := uuid.Parse(userUUID)
+	if err != nil {
+		return fmt.Errorf("invalid user UUID: %w", err)
+	}
 
 	// 1. check objects in the db
 	filesFromDatabase, err := s.repository.Queries.GetFilesByOwner(
 		ctx,
-		sql.NullString{Valid: true, String: googleUserID},
+		parsedUUID,
 	)
 	if err != nil {
 		return err
 	}
 
-	// log.Println(filesFromDatabase)
-
 	// 2. get files objects from bucket handler
-	bucketDataFromObjectStore, err := s.bucketHandler.GetUserBucketData(ctx, googleUserID)
+	bucketDataFromObjectStore, err := s.bucketHandler.GetUserBucketData(ctx, parsedUUID.String())
 	if err != nil {
 		return err
 	}
@@ -150,19 +170,18 @@ func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, googleUserID str
 	}
 
 	// 4. transform mapped data to []sqlc.File format
-	filesFromBuckets, err := mappings.MapBucketDataToDBFormat(googleUserID, bucketDataMapped)
+	filesFromBuckets, err := mappings.MapBucketDataToDBFormat(parsedUUID, bucketDataMapped)
 	if err != nil {
-		return errors.New("cannot map bucket data to db format")
+		return fmt.Errorf("cannot map bucket data to db format: %w", err)
 	}
 
 	// 5. check if the DB has missing records, if yes - return them as []sqlc.File
 	diffFiles := mappings.FindMissingFilesFromDB(filesFromBuckets, filesFromDatabase)
-	// log.Printf("missing files in the DB %+v\n", diffFiles)
 
 	// 6. fill the missing records
 	for _, f := range diffFiles {
 		insertArgs := sqlc.InsertFileParams{
-			OwnerGoogleID:        f.OwnerGoogleID,
+			OwnerID:              f.OwnerID,
 			FileName:             f.FileName,
 			FileType:             f.FileType,
 			Size:                 f.Size,
@@ -175,7 +194,6 @@ func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, googleUserID str
 			log.Println("errors syncing the DB (filling missing records): ", err)
 			continue
 		}
-
 	}
 	return nil
 }
@@ -201,12 +219,20 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "Could not fetch logged user info")
 			return
 		}
-		// log.Println("logged user info::", userInfo)
+
+		// Look up internal UUID from google_id
+		dbUser, err := s.repository.Queries.GetUserByGoogleID(r.Context(), userInfo.Id)
+		if err != nil {
+			log.Printf("cannot find user by google_id %s: %v", userInfo.Id, err)
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User not found")
+			return
+		}
+		userInfo.InternalID = dbUser.ID.String()
 
 		ctx := context.WithValue(r.Context(), userdata.VerifiedUserContextKey, verifiedUserData)
 		ctx = context.WithValue(ctx, userdata.AuthorizedUserContextKey, userInfo)
 
-		if err := s.bucketHandler.CreateBucketIfNotExists(ctx, userInfo.Id); err != nil {
+		if err := s.bucketHandler.CreateBucketIfNotExists(ctx, userInfo.InternalID); err != nil {
 			log.Println(err)
 			return
 		}

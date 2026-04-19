@@ -70,7 +70,7 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if authUserData.Id != bucketAndObjectRow.OwnerGoogleID.String {
+	if authUserData.InternalID != bucketAndObjectRow.OwnerID.String() {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", "")
 		return
 	}
@@ -277,7 +277,7 @@ func prepSharedFilesFormat(sharedFiles []sqlc.GetFilesSharedWithUserRow) []any {
 		savedData := make(map[string]any)
 
 		savedData["file_id"] = sharedFile.FileID.Int32
-		savedData["owner_google_id"] = sharedFile.OwnerGoogleID.String
+		savedData["owner_id"] = sharedFile.OwnerID
 		savedData["file_name"] = sharedFile.FileName
 		savedData["file_type"] = sharedFile.FileType.String
 		savedData["md5_checksum"] = sharedFile.Md5Checksum
@@ -303,7 +303,7 @@ func prepSharedByFilesFormat(sharedFiles []sqlc.GetFilesSharedByUserRow) []any {
 		savedData := make(map[string]any)
 
 		savedData["file_id"] = sharedFile.FileID.Int32
-		savedData["owner_google_id"] = sharedFile.OwnerGoogleID.String
+		savedData["owner_id"] = sharedFile.OwnerID
 		savedData["file_name"] = sharedFile.FileName
 		savedData["file_type"] = sharedFile.FileType.String
 		savedData["md5_checksum"] = sharedFile.Md5Checksum

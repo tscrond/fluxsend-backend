@@ -18,6 +18,7 @@ import (
 
 	"cloud.google.com/go/storage"
 
+	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
@@ -95,9 +96,15 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		fileName = data.Folder + "/" + fileName
 	}
 
-	_, err := b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
-		FileName:      fileName,
+	userUuid, err := uuid.Parse(authUserData.InternalID)
+	if err != nil {
+		log.Printf("error converting string to UUID: %v", err)
+		return types.ErrTypeConversion
+	}
+
+	_, err = b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  userUuid,
+		FileName: fileName,
 	})
 	if err == nil {
 		return types.ErrFileAlreadyExists
@@ -108,7 +115,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	}
 
 	// userBucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.Id)
-	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, authUserData.Id)
+	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, userUuid)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -125,7 +132,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 
 		if err := b.repository.Queries.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
 			UserBucket: sql.NullString{String: retrievedBucketName, Valid: true},
-			GoogleID:   authUserData.Id,
+			ID:         userUuid,
 		}); err != nil {
 			log.Println(err)
 			return err
@@ -175,7 +182,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		return err
 	}
 	insertArgs := sqlc.InsertFileParams{
-		OwnerGoogleID:        sql.NullString{Valid: true, String: authUserData.Id},
+		OwnerID:              userUuid,
 		FileName:             fileName,
 		FileType:             sql.NullString{Valid: true, String: objAttrs.ContentType},
 		Size:                 sql.NullInt64{Valid: true, Int64: objAttrs.Size},

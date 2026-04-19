@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	mail "github.com/tscrond/fluxsend-backend/internal/api/mail"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
@@ -64,11 +65,12 @@ func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
 	sharingInfos := make([]map[string]any, 0)
 	filesForMail := make([]mailtypes.FileInfo, 0)
 
+	parsedUUID, _ := uuid.Parse(authUserData.InternalID)
 	for _, objectName := range req.Objects {
 		// get shared object's attributes (id and checksum)
 		sharedObjectData, err := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-			OwnerGoogleID: sql.NullString{Valid: true, String: authUserData.Id},
-			FileName:      objectName,
+			OwnerID:  parsedUUID,
+			FileName: objectName,
 		})
 
 		if err != nil {

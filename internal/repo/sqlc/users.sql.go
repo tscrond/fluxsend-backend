@@ -8,12 +8,15 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
-const createUser = `-- name: CreateUser :exec
+const createUser = `-- name: CreateUser :one
 INSERT INTO users (google_id, user_name, user_email, user_bucket)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (google_id) DO UPDATE SET user_bucket = EXCLUDED.user_bucket
+RETURNING google_id, user_name, user_email, user_bucket, id
 `
 
 type CreateUserParams struct {
@@ -23,45 +26,54 @@ type CreateUserParams struct {
 	UserBucket sql.NullString `json:"user_bucket"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.ExecContext(ctx, createUser,
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.GoogleID,
 		arg.UserName,
 		arg.UserEmail,
 		arg.UserBucket,
 	)
-	return err
-}
-
-const deleteAccount = `-- name: DeleteAccount :one
-DELETE FROM users WHERE google_id = $1 RETURNING google_id, user_name, user_email, user_bucket
-`
-
-func (q *Queries) DeleteAccount(ctx context.Context, googleID string) (User, error) {
-	row := q.db.QueryRowContext(ctx, deleteAccount, googleID)
 	var i User
 	err := row.Scan(
 		&i.GoogleID,
 		&i.UserName,
 		&i.UserEmail,
 		&i.UserBucket,
+		&i.ID,
+	)
+	return i, err
+}
+
+const deleteAccount = `-- name: DeleteAccount :one
+DELETE FROM users WHERE id = $1 RETURNING google_id, user_name, user_email, user_bucket, id
+`
+
+func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, deleteAccount, id)
+	var i User
+	err := row.Scan(
+		&i.GoogleID,
+		&i.UserName,
+		&i.UserEmail,
+		&i.UserBucket,
+		&i.ID,
 	)
 	return i, err
 }
 
 const getUserBucketById = `-- name: GetUserBucketById :one
-SELECT user_bucket FROM users WHERE google_id = $1
+SELECT user_bucket FROM users WHERE id = $1
 `
 
-func (q *Queries) GetUserBucketById(ctx context.Context, googleID string) (sql.NullString, error) {
-	row := q.db.QueryRowContext(ctx, getUserBucketById, googleID)
+func (q *Queries) GetUserBucketById(ctx context.Context, id uuid.UUID) (sql.NullString, error) {
+	row := q.db.QueryRowContext(ctx, getUserBucketById, id)
 	var user_bucket sql.NullString
 	err := row.Scan(&user_bucket)
 	return user_bucket, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT google_id, user_name, user_email, user_bucket FROM users WHERE user_email = $1
+SELECT google_id, user_name, user_email, user_bucket, id FROM users WHERE user_email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, userEmail string) (User, error) {
@@ -72,12 +84,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, userEmail string) (User, e
 		&i.UserName,
 		&i.UserEmail,
 		&i.UserBucket,
+		&i.ID,
 	)
 	return i, err
 }
 
 const getUserByGoogleID = `-- name: GetUserByGoogleID :one
-SELECT google_id, user_name, user_email, user_bucket FROM users WHERE google_id = $1
+SELECT google_id, user_name, user_email, user_bucket, id FROM users WHERE google_id = $1
 `
 
 func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID string) (User, error) {
@@ -88,20 +101,38 @@ func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID string) (User,
 		&i.UserName,
 		&i.UserEmail,
 		&i.UserBucket,
+		&i.ID,
+	)
+	return i, err
+}
+
+const getUserById = `-- name: GetUserById :one
+SELECT google_id, user_name, user_email, user_bucket, id FROM users WHERE id = $1
+`
+
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
+	var i User
+	err := row.Scan(
+		&i.GoogleID,
+		&i.UserName,
+		&i.UserEmail,
+		&i.UserBucket,
+		&i.ID,
 	)
 	return i, err
 }
 
 const updateUserBucketNameById = `-- name: UpdateUserBucketNameById :exec
-UPDATE users SET user_bucket = $1 WHERE google_id = $2
+UPDATE users SET user_bucket = $1 WHERE id = $2
 `
 
 type UpdateUserBucketNameByIdParams struct {
 	UserBucket sql.NullString `json:"user_bucket"`
-	GoogleID   string         `json:"google_id"`
+	ID         uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateUserBucketNameById(ctx context.Context, arg UpdateUserBucketNameByIdParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserBucketNameById, arg.UserBucket, arg.GoogleID)
+	_, err := q.db.ExecContext(ctx, updateUserBucketNameById, arg.UserBucket, arg.ID)
 	return err
 }

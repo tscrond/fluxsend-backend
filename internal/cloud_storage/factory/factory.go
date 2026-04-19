@@ -12,6 +12,11 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
+// TODO: use bucketMode parameter to define if storage backends:
+// - give each user one bucket
+// OR
+// - use a single bucket with per-user prefixing
+
 func NewStorageProvider(provider string, repository *repo.Repository) (types.ObjectStorage, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 

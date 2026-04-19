@@ -1,9 +1,9 @@
 package api
 
 import (
-	"database/sql"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	"github.com/tscrond/fluxsend-backend/pkg"
@@ -49,7 +49,7 @@ func (s *APIServer) getUserBucketData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucketData, err := s.bucketHandler.GetUserBucketData(ctx, userData.Id)
+	bucketData, err := s.bucketHandler.GetUserBucketData(ctx, userData.InternalID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", map[string]any{
 			"bucket_data": nil,
@@ -78,9 +78,14 @@ func (s *APIServer) getUserPrivateFileByName(w http.ResponseWriter, r *http.Requ
 
 	fileName := r.URL.Query().Get("file")
 
+	parsedUUID, err := uuid.Parse(userData.InternalID)
+	if err != nil {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", "")
+		return
+	}
 	downloadToken, err := s.repository.Queries.GetPrivateDownloadTokenByFileName(ctx, sqlc.GetPrivateDownloadTokenByFileNameParams{
-		FileName:      fileName,
-		OwnerGoogleID: sql.NullString{Valid: true, String: userData.Id},
+		FileName: fileName,
+		OwnerID:  parsedUUID,
 	})
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")

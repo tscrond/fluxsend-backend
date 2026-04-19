@@ -8,4 +8,4 @@ SET private_download_token = $1
 WHERE id = $2;
 
 -- name: GetPrivateDownloadTokenByFileName :one 
-SELECT private_download_token FROM files WHERE file_name = $1 AND owner_google_id = $2;
+SELECT private_download_token FROM files WHERE file_name = $1 AND owner_id = $2;
