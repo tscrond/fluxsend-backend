@@ -277,7 +277,7 @@ func prepSharedFilesFormat(sharedFiles []sqlc.GetFilesSharedWithUserRow) []any {
 		savedData := make(map[string]any)
 
 		savedData["file_id"] = sharedFile.FileID.Int32
-		savedData["owner_id"] = sharedFile.OwnerID.UUID.String()
+		savedData["owner_id"] = sharedFile.OwnerID
 		savedData["file_name"] = sharedFile.FileName
 		savedData["file_type"] = sharedFile.FileType.String
 		savedData["md5_checksum"] = sharedFile.Md5Checksum
@@ -303,7 +303,7 @@ func prepSharedByFilesFormat(sharedFiles []sqlc.GetFilesSharedByUserRow) []any {
 		savedData := make(map[string]any)
 
 		savedData["file_id"] = sharedFile.FileID.Int32
-		savedData["owner_id"] = sharedFile.OwnerID.UUID.String()
+		savedData["owner_id"] = sharedFile.OwnerID
 		savedData["file_name"] = sharedFile.FileName
 		savedData["file_type"] = sharedFile.FileType.String
 		savedData["md5_checksum"] = sharedFile.Md5Checksum

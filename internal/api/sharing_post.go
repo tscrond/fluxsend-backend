@@ -69,7 +69,7 @@ func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
 	for _, objectName := range req.Objects {
 		// get shared object's attributes (id and checksum)
 		sharedObjectData, err := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-			OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
+			OwnerID:  parsedUUID,
 			FileName: objectName,
 		})
 

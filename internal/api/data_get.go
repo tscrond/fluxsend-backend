@@ -85,7 +85,7 @@ func (s *APIServer) getUserPrivateFileByName(w http.ResponseWriter, r *http.Requ
 	}
 	downloadToken, err := s.repository.Queries.GetPrivateDownloadTokenByFileName(ctx, sqlc.GetPrivateDownloadTokenByFileNameParams{
 		FileName: fileName,
-		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
+		OwnerID:  parsedUUID,
 	})
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")

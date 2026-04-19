@@ -82,7 +82,7 @@ func (s *APIServer) getFilesTree(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := normalizePath(r.URL.Query().Get("path"))
-	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), uuid.NullUUID{Valid: true, UUID: userUUID})
+	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), userUUID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
@@ -145,7 +145,7 @@ func (s *APIServer) getFolders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := normalizePath(r.URL.Query().Get("path"))
-	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), uuid.NullUUID{Valid: true, UUID: userUUID})
+	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), userUUID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
@@ -189,7 +189,7 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 
 	recursive := strings.EqualFold(r.URL.Query().Get("recursive"), "true")
 
-	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), uuid.NullUUID{Valid: true, UUID: userUUID})
+	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), userUUID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
@@ -217,7 +217,7 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := s.repository.Queries.DeleteFileByNameAndId(r.Context(), sqlc.DeleteFileByNameAndIdParams{
-			OwnerID:  uuid.NullUUID{Valid: true, UUID: userUUID},
+			OwnerID:  userUUID,
 			FileName: f.FileName,
 		}); err != nil {
 			log.Println("failed deleting file metadata:", err)
@@ -259,7 +259,7 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err := s.repository.Queries.GetFileByOwnerAndName(r.Context(), sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  uuid.NullUUID{Valid: true, UUID: userUUID},
+		OwnerID:  userUUID,
 		FileName: source,
 	})
 	if err != nil {
@@ -276,7 +276,7 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.repository.Queries.UpdateFileNameByOwnerAndName(r.Context(), sqlc.UpdateFileNameByOwnerAndNameParams{
 		FileName:   destination,
-		OwnerID:    uuid.NullUUID{Valid: true, UUID: userUUID},
+		OwnerID:    userUUID,
 		FileName_2: source,
 	}); err != nil {
 		log.Println("failed updating file metadata:", err)
@@ -319,7 +319,7 @@ func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), uuid.NullUUID{Valid: true, UUID: userUUID})
+	filesByOwner, err := s.repository.Queries.GetFilesByOwner(r.Context(), userUUID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
@@ -352,7 +352,7 @@ func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
 
 		if err := s.repository.Queries.UpdateFileNameByOwnerAndName(r.Context(), sqlc.UpdateFileNameByOwnerAndNameParams{
 			FileName:   newPath,
-			OwnerID:    uuid.NullUUID{Valid: true, UUID: userUUID},
+			OwnerID:    userUUID,
 			FileName_2: f.FileName,
 		}); err != nil {
 			log.Println("failed updating file metadata:", err)

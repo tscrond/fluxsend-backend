@@ -65,7 +65,7 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fileData, err := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
+		OwnerID:  parsedUUID,
 		FileName: req.Object,
 	})
 	if err != nil {

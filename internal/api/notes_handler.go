@@ -72,7 +72,7 @@ func (s *APIServer) editFileNotes(w http.ResponseWriter, r *http.Request) {
 	if _, err = s.repository.Queries.UpdateNoteForFile(
 		ctx,
 		sqlc.UpdateNoteForFileParams{
-			UserID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
+			UserID:  parsedUUID,
 			FileID:  sql.NullInt32{Valid: true, Int32: id},
 			Content: sanitizedNoteContent,
 		},
@@ -123,7 +123,7 @@ func (s *APIServer) getFileNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	note, err := s.repository.Queries.GetNoteForFileById(ctx, sqlc.GetNoteForFileByIdParams{
-		UserID: uuid.NullUUID{Valid: true, UUID: parsedUUIDGet},
+		UserID: parsedUUIDGet,
 		FileID: sql.NullInt32{Valid: true, Int32: fileId},
 	})
 	if err != nil {

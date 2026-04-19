@@ -49,7 +49,7 @@ func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
-		OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUID},
+		OwnerID:  parsedUUID,
 		FileName: object,
 	}); err != nil {
 		log.Println("errors deleting file from DB: ", err)
@@ -117,7 +117,7 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
-			OwnerID:  uuid.NullUUID{Valid: true, UUID: parsedUUIDBatch},
+			OwnerID:  parsedUUIDBatch,
 			FileName: object,
 		})
 		if err != nil {

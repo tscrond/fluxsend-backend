@@ -103,7 +103,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	}
 
 	_, err = b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  uuid.NullUUID{Valid: true, UUID: userUuid},
+		OwnerID:  userUuid,
 		FileName: fileName,
 	})
 	if err == nil {
@@ -182,7 +182,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		return err
 	}
 	insertArgs := sqlc.InsertFileParams{
-		OwnerID:              uuid.NullUUID{Valid: true, UUID: userUuid},
+		OwnerID:              userUuid,
 		FileName:             fileName,
 		FileType:             sql.NullString{Valid: true, String: objAttrs.ContentType},
 		Size:                 sql.NullInt64{Valid: true, Int64: objAttrs.Size},

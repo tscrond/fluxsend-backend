@@ -17,8 +17,8 @@ SELECT private_download_token FROM files WHERE file_name = $1 AND owner_id = $2
 `
 
 type GetPrivateDownloadTokenByFileNameParams struct {
-	FileName string        `json:"file_name"`
-	OwnerID  uuid.NullUUID `json:"owner_id"`
+	FileName string    `json:"file_name"`
+	OwnerID  uuid.UUID `json:"owner_id"`
 }
 
 func (q *Queries) GetPrivateDownloadTokenByFileName(ctx context.Context, arg GetPrivateDownloadTokenByFileNameParams) (sql.NullString, error) {

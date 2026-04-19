@@ -151,14 +151,14 @@ func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, userUUID string)
 	// 1. check objects in the db
 	filesFromDatabase, err := s.repository.Queries.GetFilesByOwner(
 		ctx,
-		uuid.NullUUID{Valid: true, UUID: parsedUUID},
+		parsedUUID,
 	)
 	if err != nil {
 		return err
 	}
 
 	// 2. get files objects from bucket handler
-	bucketDataFromObjectStore, err := s.bucketHandler.GetUserBucketData(ctx, userUUID)
+	bucketDataFromObjectStore, err := s.bucketHandler.GetUserBucketData(ctx, parsedUUID.String())
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, userUUID string)
 	}
 
 	// 4. transform mapped data to []sqlc.File format
-	filesFromBuckets, err := mappings.MapBucketDataToDBFormat(userUUID, bucketDataMapped)
+	filesFromBuckets, err := mappings.MapBucketDataToDBFormat(parsedUUID, bucketDataMapped)
 	if err != nil {
 		return fmt.Errorf("cannot map bucket data to db format: %w", err)
 	}

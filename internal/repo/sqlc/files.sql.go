@@ -17,8 +17,8 @@ DELETE FROM files WHERE owner_id = $1 AND file_name = $2
 `
 
 type DeleteFileByNameAndIdParams struct {
-	OwnerID  uuid.NullUUID `json:"owner_id"`
-	FileName string        `json:"file_name"`
+	OwnerID  uuid.UUID `json:"owner_id"`
+	FileName string    `json:"file_name"`
 }
 
 func (q *Queries) DeleteFileByNameAndId(ctx context.Context, arg DeleteFileByNameAndIdParams) error {
@@ -52,8 +52,8 @@ WHERE owner_id = $1 AND file_name = $2
 `
 
 type GetFileByOwnerAndNameParams struct {
-	OwnerID  uuid.NullUUID `json:"owner_id"`
-	FileName string        `json:"file_name"`
+	OwnerID  uuid.UUID `json:"owner_id"`
+	FileName string    `json:"file_name"`
 }
 
 type GetFileByOwnerAndNameRow struct {
@@ -100,7 +100,7 @@ SELECT id, file_name, file_type, size, md5_checksum, private_download_token, own
 // VALUES ($1, $2, $3, $4, $5, $6)
 // ON CONFLICT (owner_id, md5_checksum) DO NOTHING
 // RETURNING id;
-func (q *Queries) GetFilesByOwner(ctx context.Context, ownerID uuid.NullUUID) ([]File, error) {
+func (q *Queries) GetFilesByOwner(ctx context.Context, ownerID uuid.UUID) ([]File, error) {
 	rows, err := q.db.QueryContext(ctx, getFilesByOwner, ownerID)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ RETURNING id, file_name, file_type, size, md5_checksum, private_download_token, 
 `
 
 type InsertFileParams struct {
-	OwnerID              uuid.NullUUID  `json:"owner_id"`
+	OwnerID              uuid.UUID      `json:"owner_id"`
 	FileName             string         `json:"file_name"`
 	FileType             sql.NullString `json:"file_type"`
 	Size                 sql.NullInt64  `json:"size"`
@@ -175,9 +175,9 @@ WHERE owner_id = $2 AND file_name = $3
 `
 
 type UpdateFileNameByOwnerAndNameParams struct {
-	FileName   string        `json:"file_name"`
-	OwnerID    uuid.NullUUID `json:"owner_id"`
-	FileName_2 string        `json:"file_name_2"`
+	FileName   string    `json:"file_name"`
+	OwnerID    uuid.UUID `json:"owner_id"`
+	FileName_2 string    `json:"file_name_2"`
 }
 
 func (q *Queries) UpdateFileNameByOwnerAndName(ctx context.Context, arg UpdateFileNameByOwnerAndNameParams) error {

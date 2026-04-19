@@ -86,8 +86,9 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 		fileName = data.Folder + "/" + fileName
 	}
 
+	authorizedUserId := uuid.MustParse(authUserData.InternalID)
 	_, err := b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  uuid.NullUUID{Valid: true, UUID: uuid.MustParse(authUserData.InternalID)},
+		OwnerID:  authorizedUserId,
 		FileName: fileName,
 	})
 	if err == nil {
@@ -99,7 +100,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	}
 
 	// get or set user bucket name in DB (same pattern as GCS driver)
-	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, uuid.MustParse(authUserData.InternalID))
+	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, authorizedUserId)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -181,7 +182,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	}
 
 	insertArgs := sqlc.InsertFileParams{
-		OwnerID:              uuid.NullUUID{Valid: true, UUID: uuid.MustParse(authUserData.InternalID)},
+		OwnerID:              authorizedUserId,
 		FileName:             fileName,
 		FileType:             sql.NullString{Valid: true, String: contentType},
 		Size:                 sql.NullInt64{Valid: true, Int64: objSize},

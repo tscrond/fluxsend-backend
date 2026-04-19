@@ -132,7 +132,7 @@ type GetFilesSharedByUserRow struct {
 	Size                 sql.NullInt64  `json:"size"`
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
-	OwnerID              uuid.NullUUID  `json:"owner_id"`
+	OwnerID              uuid.UUID      `json:"owner_id"`
 	ID_2                 int32          `json:"id_2"`
 	SharedBy             sql.NullString `json:"shared_by"`
 	SharedFor            sql.NullString `json:"shared_for"`
@@ -198,7 +198,7 @@ type GetFilesSharedWithUserRow struct {
 	Size                 sql.NullInt64  `json:"size"`
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
-	OwnerID              uuid.NullUUID  `json:"owner_id"`
+	OwnerID              uuid.UUID      `json:"owner_id"`
 	ID_2                 int32          `json:"id_2"`
 	SharedBy             sql.NullString `json:"shared_by"`
 	SharedFor            sql.NullString `json:"shared_for"`

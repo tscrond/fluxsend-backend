@@ -17,7 +17,7 @@ SELECT id, file_id, content, user_id FROM notes WHERE user_id = $1 AND file_id =
 `
 
 type GetNoteForFileByIdParams struct {
-	UserID uuid.NullUUID `json:"user_id"`
+	UserID uuid.UUID     `json:"user_id"`
 	FileID sql.NullInt32 `json:"file_id"`
 }
 
@@ -42,7 +42,7 @@ RETURNING id, file_id, content, user_id
 `
 
 type UpdateNoteForFileParams struct {
-	UserID  uuid.NullUUID `json:"user_id"`
+	UserID  uuid.UUID     `json:"user_id"`
 	FileID  sql.NullInt32 `json:"file_id"`
 	Content string        `json:"content"`
 }

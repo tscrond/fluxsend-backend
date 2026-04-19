@@ -8,21 +8,17 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func MapBucketDataToDBFormat(ownerUUID string, bucketData *BucketData) ([]sqlc.File, error) {
-	parsedUUID, err := uuid.Parse(ownerUUID)
-	if err != nil {
-		return nil, err
-	}
+func MapBucketDataToDBFormat(ownerUUID uuid.UUID, bucketData *BucketData) ([]sqlc.File, error) {
 
 	var sqlFiles []sqlc.File
 	for _, obj := range bucketData.Objects {
-		privateDownloadToken, err := pkg.GenerateSecureTokenFromIDStr(ownerUUID)
+		privateDownloadToken, err := pkg.GenerateSecureTokenFromIDStr(ownerUUID.String())
 		if err != nil {
 			return nil, err
 		}
 
 		newFile := sqlc.File{
-			OwnerID:              uuid.NullUUID{Valid: true, UUID: parsedUUID},
+			OwnerID:              ownerUUID,
 			FileName:             obj.Name,
 			FileType:             sql.NullString{Valid: true, String: obj.ContentType},
 			Size:                 sql.NullInt64{Valid: true, Int64: obj.Size},

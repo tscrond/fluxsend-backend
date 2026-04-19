@@ -18,14 +18,14 @@ type File struct {
 	Size                 sql.NullInt64  `json:"size"`
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
-	OwnerID              uuid.NullUUID  `json:"owner_id"`
+	OwnerID              uuid.UUID      `json:"owner_id"`
 }
 
 type Note struct {
 	ID      int32         `json:"id"`
 	FileID  sql.NullInt32 `json:"file_id"`
 	Content string        `json:"content"`
-	UserID  uuid.NullUUID `json:"user_id"`
+	UserID  uuid.UUID     `json:"user_id"`
 }
 
 type Share struct {
