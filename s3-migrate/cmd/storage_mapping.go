@@ -186,7 +186,9 @@ func MigrateStorageMappingS3(ctx context.Context, dbURL, bucketName, region stri
 			log.Printf("[skip] destination already exists: %s", newKey)
 			if deleteOld {
 				_, delErr := client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: aws.String(bucketName), Key: aws.String(oldKey)})
-				if delErr == nil {
+				if delErr != nil {
+					log.Printf("[warn] destination %s already exists, but failed deleting old key %s: %v", newKey, oldKey, delErr)
+				} else {
 					deleted++
 				}
 			}
