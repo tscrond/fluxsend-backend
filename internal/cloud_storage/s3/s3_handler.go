@@ -140,7 +140,8 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 
 	// compute the userId from the stored bucket name to build the S3 key
 	userId := b.extractUserIdFromBucket(newUserBucketName)
-	objectKey := s3Key(userId, fileName)
+	storageMapping := uuid.New()
+	objectKey := s3Key(userId, storageMapping.String())
 
 	// compute MD5 while reading
 	hasher := md5.New()
@@ -188,6 +189,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 		Size:                 sql.NullInt64{Valid: true, Int64: objSize},
 		Md5Checksum:          md5Hash,
 		PrivateDownloadToken: sql.NullString{Valid: true, String: privateDownloadToken},
+		StorageMapping:       storageMapping,
 	}
 
 	file, err := b.repository.Queries.InsertFile(ctx, insertArgs)

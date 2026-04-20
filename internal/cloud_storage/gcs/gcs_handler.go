@@ -141,7 +141,8 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	}
 
 	// write new object to the bucket
-	writer := b.Client.Bucket(newUserBucketName).Object(fileName).NewWriter(ctx)
+	storageMapping := uuid.New()
+	writer := b.Client.Bucket(newUserBucketName).Object(storageMapping.String()).NewWriter(ctx)
 	contentType := data.RequestHeaders.Header.Get("Content-Type")
 	if contentType == "" {
 		// Fallback to detection if header missing
@@ -165,7 +166,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
-	newlyCreatedObj := b.Client.Bucket(newUserBucketName).Object(fileName)
+	newlyCreatedObj := b.Client.Bucket(newUserBucketName).Object(storageMapping.String())
 
 	objAttrs, err := newlyCreatedObj.Attrs(ctx)
 	if err != nil {
@@ -188,6 +189,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		Size:                 sql.NullInt64{Valid: true, Int64: objAttrs.Size},
 		Md5Checksum:          string(hex.EncodeToString(objAttrs.MD5)),
 		PrivateDownloadToken: sql.NullString{Valid: true, String: privateDownloadToken},
+		StorageMapping:       storageMapping,
 	}
 
 	// ensure the object data is saved to DB if it does not exist
@@ -349,7 +351,7 @@ func (b *GCSBucketHandler) GetUserBucketName(ctx context.Context) (string, error
 		return "", errors.New("cannot read authorized user data")
 	}
 
-	bucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.Id)
+	bucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.InternalID)
 
 	return bucketName, nil
 }

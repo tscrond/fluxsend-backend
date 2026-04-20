@@ -27,7 +27,7 @@ func (q *Queries) DeleteFileByNameAndId(ctx context.Context, arg DeleteFileByNam
 }
 
 const getFileById = `-- name: GetFileById :one
-SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id FROM files WHERE id = $1
+SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping FROM files WHERE id = $1
 `
 
 func (q *Queries) GetFileById(ctx context.Context, id int32) (File, error) {
@@ -41,12 +41,13 @@ func (q *Queries) GetFileById(ctx context.Context, id int32) (File, error) {
 		&i.Md5Checksum,
 		&i.PrivateDownloadToken,
 		&i.OwnerID,
+		&i.StorageMapping,
 	)
 	return i, err
 }
 
 const getFileByOwnerAndName = `-- name: GetFileByOwnerAndName :one
-SELECT id, md5_checksum
+SELECT id, file_name, md5_checksum, storage_mapping
 FROM files
 WHERE owner_id = $1 AND file_name = $2
 `
@@ -57,14 +58,21 @@ type GetFileByOwnerAndNameParams struct {
 }
 
 type GetFileByOwnerAndNameRow struct {
-	ID          int32  `json:"id"`
-	Md5Checksum string `json:"md5_checksum"`
+	ID             int32     `json:"id"`
+	FileName       string    `json:"file_name"`
+	Md5Checksum    string    `json:"md5_checksum"`
+	StorageMapping uuid.UUID `json:"storage_mapping"`
 }
 
 func (q *Queries) GetFileByOwnerAndName(ctx context.Context, arg GetFileByOwnerAndNameParams) (GetFileByOwnerAndNameRow, error) {
 	row := q.db.QueryRowContext(ctx, getFileByOwnerAndName, arg.OwnerID, arg.FileName)
 	var i GetFileByOwnerAndNameRow
-	err := row.Scan(&i.ID, &i.Md5Checksum)
+	err := row.Scan(
+		&i.ID,
+		&i.FileName,
+		&i.Md5Checksum,
+		&i.StorageMapping,
+	)
 	return i, err
 }
 
@@ -92,7 +100,7 @@ func (q *Queries) GetFileIdFromToken(ctx context.Context, privateDownloadToken s
 
 const getFilesByOwner = `-- name: GetFilesByOwner :many
 
-SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id FROM files WHERE owner_id = $1
+SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping FROM files WHERE owner_id = $1
 `
 
 // -- name: InsertFileReturningID :one
@@ -117,6 +125,7 @@ func (q *Queries) GetFilesByOwner(ctx context.Context, ownerID uuid.UUID) ([]Fil
 			&i.Md5Checksum,
 			&i.PrivateDownloadToken,
 			&i.OwnerID,
+			&i.StorageMapping,
 		); err != nil {
 			return nil, err
 		}
@@ -132,9 +141,9 @@ func (q *Queries) GetFilesByOwner(ctx context.Context, ownerID uuid.UUID) ([]Fil
 }
 
 const insertFile = `-- name: InsertFile :one
-INSERT INTO files (owner_id, file_name, file_type, size, md5_checksum, private_download_token)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, file_name, file_type, size, md5_checksum, private_download_token, owner_id
+INSERT INTO files (owner_id, file_name, file_type, size, md5_checksum, private_download_token, storage_mapping)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping
 `
 
 type InsertFileParams struct {
@@ -144,6 +153,7 @@ type InsertFileParams struct {
 	Size                 sql.NullInt64  `json:"size"`
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
+	StorageMapping       uuid.UUID      `json:"storage_mapping"`
 }
 
 func (q *Queries) InsertFile(ctx context.Context, arg InsertFileParams) (File, error) {
@@ -154,6 +164,7 @@ func (q *Queries) InsertFile(ctx context.Context, arg InsertFileParams) (File, e
 		arg.Size,
 		arg.Md5Checksum,
 		arg.PrivateDownloadToken,
+		arg.StorageMapping,
 	)
 	var i File
 	err := row.Scan(
@@ -164,8 +175,25 @@ func (q *Queries) InsertFile(ctx context.Context, arg InsertFileParams) (File, e
 		&i.Md5Checksum,
 		&i.PrivateDownloadToken,
 		&i.OwnerID,
+		&i.StorageMapping,
 	)
 	return i, err
+}
+
+const updateFileNameByID = `-- name: UpdateFileNameByID :exec
+UPDATE files
+SET file_name = $1
+WHERE id = $2
+`
+
+type UpdateFileNameByIDParams struct {
+	FileName string `json:"file_name"`
+	ID       int32  `json:"id"`
+}
+
+func (q *Queries) UpdateFileNameByID(ctx context.Context, arg UpdateFileNameByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateFileNameByID, arg.FileName, arg.ID)
+	return err
 }
 
 const updateFileNameByOwnerAndName = `-- name: UpdateFileNameByOwnerAndName :exec

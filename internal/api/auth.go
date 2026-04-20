@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
@@ -137,18 +135,11 @@ func (s *APIServer) authCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, userUUID string) error {
-	// sync strategy:
-	// 1. check objects in db
-	// 2. check objects in remote storage
-	// 3. diff remote to DB
-	// 4. fill the DB with diff
-
 	parsedUUID, err := uuid.Parse(userUUID)
 	if err != nil {
 		return fmt.Errorf("invalid user UUID: %w", err)
 	}
 
-	// 1. check objects in the db
 	filesFromDatabase, err := s.repository.Queries.GetFilesByOwner(
 		ctx,
 		parsedUUID,
@@ -157,44 +148,10 @@ func (s *APIServer) syncDatabaseWithBucket(ctx context.Context, userUUID string)
 		return err
 	}
 
-	// 2. get files objects from bucket handler
-	bucketDataFromObjectStore, err := s.bucketHandler.GetUserBucketData(ctx, parsedUUID.String())
-	if err != nil {
-		return err
-	}
+	// The DB is the source of truth for visible names now because bucket object
+	// keys are anonymous UUIDs and cannot be mapped back to logical paths.
+	log.Printf("database metadata sync complete for user=%s files=%d", parsedUUID.String(), len(filesFromDatabase))
 
-	// 3. map any type to *mappings.BucketData
-	bucketDataMapped, ok := bucketDataFromObjectStore.(*mappings.BucketData)
-	if !ok {
-		return errors.New("cannot map bucket data")
-	}
-
-	// 4. transform mapped data to []sqlc.File format
-	filesFromBuckets, err := mappings.MapBucketDataToDBFormat(parsedUUID, bucketDataMapped)
-	if err != nil {
-		return fmt.Errorf("cannot map bucket data to db format: %w", err)
-	}
-
-	// 5. check if the DB has missing records, if yes - return them as []sqlc.File
-	diffFiles := mappings.FindMissingFilesFromDB(filesFromBuckets, filesFromDatabase)
-
-	// 6. fill the missing records
-	for _, f := range diffFiles {
-		insertArgs := sqlc.InsertFileParams{
-			OwnerID:              f.OwnerID,
-			FileName:             f.FileName,
-			FileType:             f.FileType,
-			Size:                 f.Size,
-			Md5Checksum:          f.Md5Checksum,
-			PrivateDownloadToken: f.PrivateDownloadToken,
-		}
-
-		_, err := s.repository.Queries.InsertFile(ctx, insertArgs)
-		if err != nil {
-			log.Println("errors syncing the DB (filling missing records): ", err)
-			continue
-		}
-	}
 	return nil
 }
 

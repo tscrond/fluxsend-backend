@@ -19,6 +19,7 @@ type File struct {
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
 	OwnerID              uuid.UUID      `json:"owner_id"`
+	StorageMapping       uuid.UUID      `json:"storage_mapping"`
 }
 
 type Note struct {

@@ -37,17 +37,27 @@ func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
 
 	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
 
-	// dont fail if object does not exist, just report the error
-	if err := s.bucketHandler.DeleteObjectFromBucket(ctx, object, bucket); err != nil {
-		log.Println("issues deleting object: ", err)
-	}
-
 	parsedUUID, err := uuid.Parse(authUserData.InternalID)
 	if err != nil {
 		log.Println("cannot parse authorized user internal ID: ", err)
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
 	}
+
+	fileRow, err := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  parsedUUID,
+		FileName: object,
+	})
+	if err != nil {
+		pkg.WriteJSONResponse(w, http.StatusNotFound, "file_not_found", nil)
+		return
+	}
+
+	// dont fail if object does not exist, just report the error
+	if err := s.bucketHandler.DeleteObjectFromBucket(ctx, fileRow.StorageMapping.String(), bucket); err != nil {
+		log.Println("issues deleting object: ", err)
+	}
+
 	if err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
 		OwnerID:  parsedUUID,
 		FileName: object,
@@ -97,18 +107,20 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 
 	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
 
-	// dont fail if object does not exist, just report the error
-	if err := s.bucketHandler.DeleteObjectsFromBucket(ctx, objToDelete.Files, bucket); err != nil {
-		log.Println("issues deleting object(s): ", err)
-	}
-
 	parsedUUIDBatch, err := uuid.Parse(authUserData.InternalID)
 	if err != nil {
 		log.Printf("invalid authorized user internal ID %q: %v", authUserData.InternalID, err)
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
 	}
-	deletedFiles := make([]string, 0, len(objToDelete.Files))
+
+	type resolvedDelete struct {
+		logicalName string
+		objectKey   string
+	}
+
+	resolvedDeletes := make([]resolvedDelete, 0, len(objToDelete.Files))
+	storageObjectKeys := make([]string, 0, len(objToDelete.Files))
 	failedFiles := make([]string, 0)
 
 	for _, object := range objToDelete.Files {
@@ -116,17 +128,41 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
+		fileRow, lookupErr := s.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
 			OwnerID:  parsedUUIDBatch,
 			FileName: object,
 		})
-		if err != nil {
-			log.Printf("errors deleting file from DB (%s): %v", object, err)
+		if lookupErr != nil {
+			log.Printf("errors resolving file from DB (%s): %v", object, lookupErr)
 			failedFiles = append(failedFiles, object)
 			continue
 		}
 
-		deletedFiles = append(deletedFiles, object)
+		resolvedDeletes = append(resolvedDeletes, resolvedDelete{
+			logicalName: object,
+			objectKey:   fileRow.StorageMapping.String(),
+		})
+		storageObjectKeys = append(storageObjectKeys, fileRow.StorageMapping.String())
+	}
+
+	// dont fail if object does not exist, just report the error
+	if err := s.bucketHandler.DeleteObjectsFromBucket(ctx, storageObjectKeys, bucket); err != nil {
+		log.Println("issues deleting object(s): ", err)
+	}
+
+	deletedFiles := make([]string, 0, len(resolvedDeletes))
+	for _, resolved := range resolvedDeletes {
+		err := s.repository.Queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
+			OwnerID:  parsedUUIDBatch,
+			FileName: resolved.logicalName,
+		})
+		if err != nil {
+			log.Printf("errors deleting file from DB (%s): %v", resolved.logicalName, err)
+			failedFiles = append(failedFiles, resolved.logicalName)
+			continue
+		}
+
+		deletedFiles = append(deletedFiles, resolved.logicalName)
 	}
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "success", map[string]any{

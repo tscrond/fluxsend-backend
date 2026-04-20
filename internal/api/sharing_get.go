@@ -76,16 +76,17 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 	}
 
 	bucket := bucketAndObjectRow.BucketName.String
-	object := bucketAndObjectRow.ObjectName
+	object := bucketAndObjectRow.ObjectName.String()
+	fileName := bucketAndObjectRow.FileName
 
-	signedUrl, err := s.resolveDownloadURL(ctx, bucket, object, mode, time.Now().Add(1*time.Minute))
+	signedUrl, err := s.resolveDownloadURL(ctx, bucket, object, fileName, mode, time.Now().Add(1*time.Minute))
 	if err != nil {
 		log.Printf("cannot generate download URL for bucket=%q object=%q: %v", bucket, object, err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "cannot_generate_url", "")
 		return
 	}
 
-	s.handleDownloadResponse(w, r, signedUrl, object, mode)
+	s.handleDownloadResponse(w, r, signedUrl, fileName, mode)
 }
 
 func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
@@ -147,6 +148,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 	// 3. generate signed url
 	signedUrl, err := s.resolveDownloadURL(ctx,
 		bucketAndObject.UserBucket.String,
+		bucketAndObject.StorageMapping.String(),
 		bucketAndObject.FileName,
 		mode,
 		time.Now().Add(time.Minute),
@@ -160,7 +162,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 	s.handleDownloadResponse(w, r, signedUrl, bucketAndObject.FileName, mode)
 }
 
-func (s *APIServer) resolveDownloadURL(ctx context.Context, bucket, object, mode string, expiresAt time.Time) (string, error) {
+func (s *APIServer) resolveDownloadURL(ctx context.Context, bucket, object, filename, mode string, expiresAt time.Time) (string, error) {
 	if s.cloudFrontSigner != nil {
 		// CloudFront does not support response-content-disposition;
 		// download mode is handled by proxying in handleDownloadResponse.
@@ -169,7 +171,7 @@ func (s *APIServer) resolveDownloadURL(ctx context.Context, bucket, object, mode
 
 	var contentDisposition string
 	if mode == "download" {
-		contentDisposition = "attachment; filename=\"" + object + "\""
+		contentDisposition = "attachment; filename=\"" + filename + "\""
 	}
 
 	return s.bucketHandler.GenerateSignedURL(ctx, bucket, object, expiresAt, contentDisposition)

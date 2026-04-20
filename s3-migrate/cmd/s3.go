@@ -1,4 +1,7 @@
-package main
+/*
+Copyright © 2026 NAME HERE <EMAIL ADDRESS>
+*/
+package cmd
 
 import (
 	"context"
@@ -15,78 +18,63 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	_ "github.com/lib/pq"
+	"github.com/spf13/cobra"
 )
 
-// This script migrates S3 object keys from google_id prefixes to UUID prefixes.
-// It reads the users table to get the google_id -> uuid mapping, then copies
-// all objects under each user's google_id prefix to the corresponding UUID prefix.
-//
-// Usage:
-//   DATABASE_URL=postgres://... S3_BUCKET_NAME=... AWS_REGION=... go run cmd/migrate_s3_keys/main.go
-//
-// Add --dry-run flag to preview changes without making them.
-// Add --delete-old flag to delete old objects after successful copy.
+var (
+	dryRun    bool
+	deleteOld bool
+)
 
-// encodeS3Key URL-encodes each segment of an S3 key, preserving '/' separators.
-func encodeS3Key(key string) string {
-	parts := strings.Split(key, "/")
-	for i, p := range parts {
-		parts[i] = url.PathEscape(p)
-	}
-	return strings.Join(parts, "/")
-}
+// s3Cmd represents the s3 command
+var s3Cmd = &cobra.Command{
+	Use:   "s3",
+	Short: "Migrate S3 keys from google_id to UUID",
+	Run: func(cmd *cobra.Command, args []string) {
+		dbURL := os.Getenv("DATABASE_URL")
+		bucketName := os.Getenv("S3_BUCKET_NAME")
+		region := os.Getenv("AWS_REGION")
 
-func showHelp() {
-	fmt.Printf(`Migration tool for legacy S3 OAuth2 ID prefixes
-Options:
-	--dry-run
-		(optional) doesn't perform any migrations, checks if migration would complete successfully and views contents that will be migrated
-	--delete-old
-		(optional) auto-deletes old bucket prefixes in the bucket
-Usage:
-	export DATABASE_URL=<full_db_connstring> # ex. postgres://devuser:devpass@localhost:5432/devdb?sslmode=disable
-	export S3_BUCKET_NAME=<s3_bucket_name> # ex. my-bucket-123123
-	export AWS_REGION=<your_region> # ex. eu-north-1
-
-	./migrate_s3_keys
-Explanation
-	In the usage example - the command needs 3 env variables to work correctly.
-	Command ran without arguments performs a migration and doesn't delete old prefixes.
-`)
-}
-
-func main() {
-	dryRun := false
-	deleteOld := false
-	for _, arg := range os.Args[1:] {
-		switch arg {
-		case "--help":
-			showHelp()
-			os.Exit(0)
-		case "--dry-run":
-			dryRun = true
-		case "--delete-old":
-			deleteOld = true
-		default:
-			showHelp()
-			log.Printf("no such option %s\n", arg)
-			os.Exit(1)
+		if dbURL == "" || bucketName == "" || region == "" {
+			log.Fatal("DATABASE_URL, S3_BUCKET_NAME, and AWS_REGION must be set")
 		}
-	}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	bucketName := os.Getenv("S3_BUCKET_NAME")
-	region := os.Getenv("AWS_REGION")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
 
-	if dbURL == "" || bucketName == "" || region == "" {
-		log.Fatal("DATABASE_URL, S3_BUCKET_NAME, and AWS_REGION must be set")
-	}
+		err := MigrateS3Keys(S3MigrationParams{
+			DbURL:      dbURL,
+			BucketName: bucketName,
+			Region:     region,
+			DryRun:     dryRun,
+			DeleteOld:  deleteOld,
+		}, ctx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
+		if err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+func init() {
+	s3Cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview migration without changes")
+	s3Cmd.Flags().BoolVar(&deleteOld, "delete-old", false, "Delete old objects after copy")
+
+	rootCmd.AddCommand(s3Cmd)
+}
+
+type S3MigrationParams struct {
+	DbURL      string
+	BucketName string
+	Region     string
+	DryRun     bool
+	DeleteOld  bool
+}
+
+func MigrateS3Keys(migrationParams S3MigrationParams, ctx context.Context) error {
 
 	// Connect to database
-	db, err := sql.Open("postgres", dbURL)
+	db, err := sql.Open("postgres", migrationParams.DbURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
@@ -115,13 +103,13 @@ func main() {
 
 	if len(users) == 0 {
 		log.Println("No users found, nothing to migrate.")
-		return
+		return nil
 	}
 
 	log.Printf("Found %d users to migrate", len(users))
 
 	// Initialize S3 client
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(migrationParams.Region))
 	if err != nil {
 		log.Fatalf("failed to load AWS config: %v", err)
 	}
@@ -143,7 +131,7 @@ func main() {
 
 		// List all objects under the old prefix
 		listOutput, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-			Bucket: aws.String(bucketName),
+			Bucket: aws.String(migrationParams.BucketName),
 			Prefix: aws.String(oldPrefix),
 		})
 		if err != nil {
@@ -165,16 +153,16 @@ func main() {
 			relativePath := strings.TrimPrefix(oldKey, oldPrefix)
 			newKey := newPrefix + relativePath
 
-			if dryRun {
+			if migrationParams.DryRun {
 				fmt.Printf("    [dry-run] Would copy: %s -> %s\n", oldKey, newKey)
 				continue
 			}
 
 			// Copy object to new key — CopySource must be URL-encoded per segment
 			encodedKey := encodeS3Key(oldKey)
-			copySource := fmt.Sprintf("%s/%s", bucketName, encodedKey)
+			copySource := fmt.Sprintf("%s/%s", migrationParams.BucketName, encodedKey)
 			_, err := client.CopyObject(ctx, &s3.CopyObjectInput{
-				Bucket:     aws.String(bucketName),
+				Bucket:     aws.String(migrationParams.BucketName),
 				CopySource: aws.String(copySource),
 				Key:        aws.String(newKey),
 			})
@@ -189,7 +177,7 @@ func main() {
 		}
 
 		// Delete old objects if requested
-		if deleteOld && !dryRun && len(copiedKeys) > 0 {
+		if migrationParams.DeleteOld && !migrationParams.DryRun && len(copiedKeys) > 0 {
 			var objectIds []s3types.ObjectIdentifier
 			for _, key := range copiedKeys {
 				objectIds = append(objectIds, s3types.ObjectIdentifier{
@@ -198,7 +186,7 @@ func main() {
 			}
 
 			_, err := client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-				Bucket: aws.String(bucketName),
+				Bucket: aws.String(migrationParams.BucketName),
 				Delete: &s3types.Delete{Objects: objectIds},
 			})
 			if err != nil {
@@ -211,10 +199,21 @@ func main() {
 	}
 
 	log.Printf("\nMigration complete: %d objects copied, %d old objects deleted", totalCopied, totalDeleted)
-	if dryRun {
+	if migrationParams.DryRun {
 		log.Println("(dry-run mode — no changes were made)")
 	}
-	if !deleteOld && totalCopied > 0 {
+	if !migrationParams.DeleteOld && totalCopied > 0 {
 		log.Println("Old objects were NOT deleted. Run with --delete-old to remove them after verifying.")
 	}
+
+	return nil
+}
+
+// encodeS3Key URL-encodes each segment of an S3 key, preserving '/' separators.
+func encodeS3Key(key string) string {
+	parts := strings.Split(key, "/")
+	for i, p := range parts {
+		parts[i] = url.PathEscape(p)
+	}
+	return strings.Join(parts, "/")
 }
