@@ -13,6 +13,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/tscrond/fluxsend-backend/internal/api"
+	"github.com/tscrond/fluxsend-backend/internal/auth"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagefactory "github.com/tscrond/fluxsend-backend/internal/cloud_storage/factory"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
@@ -20,8 +21,6 @@ import (
 	mailfactory "github.com/tscrond/fluxsend-backend/internal/mailservice/factory"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 )
 
 func main() {
@@ -114,13 +113,21 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, &oauth2.Config{
-		ClientID:     clientId,
-		ClientSecret: clientSecret,
-		RedirectURL:  fmt.Sprintf("%s/auth/callback", backendEndpoint),
-		Scopes:       []string{"email", "profile"},
-		Endpoint:     google.Endpoint,
-	})
+	authConfig := config.AuthConfig{
+		GoogleOAuthConfig: config.GoogleOAuthConfig{
+			ClientID:     clientId,
+			ClientSecret: clientSecret,
+			RedirectURL:  fmt.Sprintf("%s/auth/google/callback", backendEndpoint),
+			Scopes:       []string{"email", "profile"},
+		},
+	}
+
+	authProviders, err := InitAuth(authConfig)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, authProviders)
 
 	s.Start()
 }
@@ -163,4 +170,12 @@ func getEnvBool(name string, defaultValue bool) (bool, error) {
 	}
 
 	return parsedValue, nil
+}
+
+func InitAuth(authConfig config.AuthConfig) (map[string]auth.AuthProvider, error) {
+	initializedProviders, err := auth.InitAuthProviders(authConfig, "google")
+	if err != nil {
+		return nil, fmt.Errorf("error initializing auth providers: %w", err)
+	}
+	return initializedProviders, nil
 }

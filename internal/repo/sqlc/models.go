@@ -22,11 +22,32 @@ type File struct {
 	StorageMapping       uuid.UUID      `json:"storage_mapping"`
 }
 
+type Identity struct {
+	ID             uuid.UUID      `json:"id"`
+	UserID         uuid.UUID      `json:"user_id"`
+	Provider       string         `json:"provider"`
+	ProviderUserID string         `json:"provider_user_id"`
+	Email          sql.NullString `json:"email"`
+	EmailVerified  sql.NullBool   `json:"email_verified"`
+	Name           sql.NullString `json:"name"`
+	AvatarUrl      sql.NullString `json:"avatar_url"`
+	CreatedAt      sql.NullTime   `json:"created_at"`
+}
+
 type Note struct {
 	ID      int32         `json:"id"`
 	FileID  sql.NullInt32 `json:"file_id"`
 	Content string        `json:"content"`
 	UserID  uuid.UUID     `json:"user_id"`
+}
+
+type Session struct {
+	ID                  uuid.UUID      `json:"id"`
+	UserID              uuid.UUID      `json:"user_id"`
+	Provider            string         `json:"provider"`
+	ProviderAccessToken sql.NullString `json:"provider_access_token"`
+	ExpiresAt           time.Time      `json:"expires_at"`
+	CreatedAt           time.Time      `json:"created_at"`
 }
 
 type Share struct {
@@ -38,9 +59,17 @@ type Share struct {
 	CreatedAt      sql.NullTime   `json:"created_at"`
 	ExpiresAt      time.Time      `json:"expires_at"`
 	ReceivedSeenAt sql.NullTime   `json:"received_seen_at"`
+	SharedByUserID uuid.NullUUID  `json:"shared_by_user_id"`
 }
 
 type User struct {
+	ID         uuid.UUID      `json:"id"`
+	UserBucket sql.NullString `json:"user_bucket"`
+	UserEmail  string         `json:"user_email"`
+	CreatedAt  time.Time      `json:"created_at"`
+}
+
+type UsersOld struct {
 	GoogleID   string         `json:"google_id"`
 	UserName   sql.NullString `json:"user_name"`
 	UserEmail  string         `json:"user_email"`

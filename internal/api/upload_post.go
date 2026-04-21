@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -19,18 +18,11 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	verifiedUserData, ok := r.Context().Value(userdata.VerifiedUserContextKey).(*userdata.VerifiedUserInfo)
+	_, ok := r.Context().Value(userdata.AuthorizedUserContextKey).(*userdata.AuthorizedUserInfo)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "failed_to_retrieve_user_data", "")
 		return
 	}
-
-	authorizedUserData, ok := r.Context().Value(userdata.AuthorizedUserContextKey).(*userdata.AuthorizedUserInfo)
-	if !ok {
-		pkg.WriteJSONResponse(w, http.StatusForbidden, "failed_to_retrieve_user_data", "")
-		return
-	}
-	// fmt.Println("Authorized User:", authorizedUserData)
 
 	// Get file from request
 	file, header, err := r.FormFile("file")
@@ -51,11 +43,7 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, userdata.VerifiedUserContextKey, verifiedUserData)
-	ctx = context.WithValue(ctx, userdata.AuthorizedUserContextKey, authorizedUserData)
-
-	if err := s.bucketHandler.SendFileToBucket(ctx, fileData); err != nil {
+	if err := s.bucketHandler.SendFileToBucket(r.Context(), fileData); err != nil {
 		switch {
 		case errors.Is(err, storagetypes.ErrFileAlreadyExists):
 			pkg.WriteJSONResponse(w, http.StatusConflict, "File already exists", "")

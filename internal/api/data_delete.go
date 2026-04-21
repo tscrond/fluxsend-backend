@@ -268,7 +268,7 @@ func (s *APIServer) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	fullResponse["account_deleted"] = map[string]any{
 		"id":        deletedAccount.ID.String(),
 		"email":     deletedAccount.UserEmail,
-		"user_name": deletedAccount.UserName.String,
+		"user_name": authUserData.Name,
 	}
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "success", fullResponse)
