@@ -27,6 +27,7 @@ WHERE s.shared_by = $1;
 -- name: GetBucketAndObjectFromToken :one
 SELECT
 u.user_bucket,
+f.storage_mapping,
 f.file_name
 FROM shares s
 JOIN files f ON s.file_id = f.id
@@ -40,7 +41,8 @@ SELECT * FROM files WHERE private_download_token = $1;
 SELECT
     u.user_bucket AS bucket_name,
     u.id AS owner_id,
-    f.file_name AS object_name
+    f.storage_mapping AS object_name,
+    f.file_name AS file_name
 FROM files f
 JOIN users u ON f.owner_id = u.id
 WHERE f.private_download_token = $1;

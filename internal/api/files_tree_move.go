@@ -208,10 +208,15 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := pkg.GetUserBucketName(s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
+	bucket, err := s.resolveUserBucketName(r.Context(), userUUID, authUserData.InternalID)
+	if err != nil {
+		log.Println("cannot resolve user bucket name:", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
 	deletedCount := 0
 	for _, f := range toDelete {
-		if err := s.bucketHandler.DeleteObjectFromBucket(r.Context(), f.FileName, bucket); err != nil {
+		if err := s.bucketHandler.DeleteObjectFromBucket(r.Context(), f.StorageMapping.String(), bucket); err != nil {
 			log.Println("failed deleting object from bucket:", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "delete_folder_error", nil)
 			return
@@ -239,7 +244,7 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authUserData, userUUID, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
@@ -258,7 +263,7 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := s.repository.Queries.GetFileByOwnerAndName(r.Context(), sqlc.GetFileByOwnerAndNameParams{
+	sourceFile, err := s.repository.Queries.GetFileByOwnerAndName(r.Context(), sqlc.GetFileByOwnerAndNameParams{
 		OwnerID:  userUUID,
 		FileName: source,
 	})
@@ -267,17 +272,9 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := pkg.GetUserBucketName(s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
-	if err := s.bucketHandler.MoveObjectInBucket(r.Context(), source, destination, bucket); err != nil {
-		log.Println("failed moving object in bucket:", err)
-		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_file_error", nil)
-		return
-	}
-
-	if err := s.repository.Queries.UpdateFileNameByOwnerAndName(r.Context(), sqlc.UpdateFileNameByOwnerAndNameParams{
-		FileName:   destination,
-		OwnerID:    userUUID,
-		FileName_2: source,
+	if err := s.repository.Queries.UpdateFileNameByID(r.Context(), sqlc.UpdateFileNameByIDParams{
+		FileName: destination,
+		ID:       sourceFile.ID,
 	}); err != nil {
 		log.Println("failed updating file metadata:", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_file_error", nil)
@@ -296,7 +293,7 @@ func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authUserData, userUUID, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
@@ -338,22 +335,14 @@ func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := pkg.GetUserBucketName(s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
 	moved := 0
 	for _, f := range toMove {
 		relative := strings.TrimPrefix(f.FileName, sourcePrefix)
 		newPath := destination + "/" + relative
 
-		if err := s.bucketHandler.MoveObjectInBucket(r.Context(), f.FileName, newPath, bucket); err != nil {
-			log.Println("failed moving object in bucket:", err)
-			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_folder_error", nil)
-			return
-		}
-
-		if err := s.repository.Queries.UpdateFileNameByOwnerAndName(r.Context(), sqlc.UpdateFileNameByOwnerAndNameParams{
-			FileName:   newPath,
-			OwnerID:    userUUID,
-			FileName_2: f.FileName,
+		if err := s.repository.Queries.UpdateFileNameByID(r.Context(), sqlc.UpdateFileNameByIDParams{
+			FileName: newPath,
+			ID:       f.ID,
 		}); err != nil {
 			log.Println("failed updating file metadata:", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_folder_error", nil)

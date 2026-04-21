@@ -1,6 +1,6 @@
 -- name: InsertFile :one
-INSERT INTO files (owner_id, file_name, file_type, size, md5_checksum, private_download_token)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO files (owner_id, file_name, file_type, size, md5_checksum, private_download_token, storage_mapping)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- -- name: InsertFileReturningID :one
@@ -13,7 +13,7 @@ RETURNING *;
 SELECT * FROM files WHERE owner_id = $1;
 
 -- name: GetFileByOwnerAndName :one
-SELECT id, md5_checksum
+SELECT id, file_name, md5_checksum, storage_mapping
 FROM files
 WHERE owner_id = $1 AND file_name = $2;
 
@@ -33,3 +33,8 @@ SELECT id FROM files WHERE md5_checksum = $1;
 UPDATE files
 SET file_name = $1
 WHERE owner_id = $2 AND file_name = $3;
+
+-- name: UpdateFileNameByID :exec
+UPDATE files
+SET file_name = $1
+WHERE id = $2;

@@ -28,6 +28,7 @@ func (q *Queries) CountUnseenShares(ctx context.Context, sharedFor sql.NullStrin
 const getBucketAndObjectFromToken = `-- name: GetBucketAndObjectFromToken :one
 SELECT
 u.user_bucket,
+f.storage_mapping,
 f.file_name
 FROM shares s
 JOIN files f ON s.file_id = f.id
@@ -36,14 +37,15 @@ WHERE s.sharing_token = $1
 `
 
 type GetBucketAndObjectFromTokenRow struct {
-	UserBucket sql.NullString `json:"user_bucket"`
-	FileName   string         `json:"file_name"`
+	UserBucket     sql.NullString `json:"user_bucket"`
+	StorageMapping uuid.UUID      `json:"storage_mapping"`
+	FileName       string         `json:"file_name"`
 }
 
 func (q *Queries) GetBucketAndObjectFromToken(ctx context.Context, sharingToken string) (GetBucketAndObjectFromTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, getBucketAndObjectFromToken, sharingToken)
 	var i GetBucketAndObjectFromTokenRow
-	err := row.Scan(&i.UserBucket, &i.FileName)
+	err := row.Scan(&i.UserBucket, &i.StorageMapping, &i.FileName)
 	return i, err
 }
 
@@ -51,7 +53,8 @@ const getBucketObjectAndOwnerFromPrivateToken = `-- name: GetBucketObjectAndOwne
 SELECT
     u.user_bucket AS bucket_name,
     u.id AS owner_id,
-    f.file_name AS object_name
+    f.storage_mapping AS object_name,
+    f.file_name AS file_name
 FROM files f
 JOIN users u ON f.owner_id = u.id
 WHERE f.private_download_token = $1
@@ -60,13 +63,19 @@ WHERE f.private_download_token = $1
 type GetBucketObjectAndOwnerFromPrivateTokenRow struct {
 	BucketName sql.NullString `json:"bucket_name"`
 	OwnerID    uuid.UUID      `json:"owner_id"`
-	ObjectName string         `json:"object_name"`
+	ObjectName uuid.UUID      `json:"object_name"`
+	FileName   string         `json:"file_name"`
 }
 
 func (q *Queries) GetBucketObjectAndOwnerFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (GetBucketObjectAndOwnerFromPrivateTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, getBucketObjectAndOwnerFromPrivateToken, privateDownloadToken)
 	var i GetBucketObjectAndOwnerFromPrivateTokenRow
-	err := row.Scan(&i.BucketName, &i.OwnerID, &i.ObjectName)
+	err := row.Scan(
+		&i.BucketName,
+		&i.OwnerID,
+		&i.ObjectName,
+		&i.FileName,
+	)
 	return i, err
 }
 
@@ -98,7 +107,7 @@ func (q *Queries) GetExistingPublicShare(ctx context.Context, arg GetExistingPub
 }
 
 const getFileFromPrivateToken = `-- name: GetFileFromPrivateToken :one
-SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id FROM files WHERE private_download_token = $1
+SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping FROM files WHERE private_download_token = $1
 `
 
 func (q *Queries) GetFileFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (File, error) {
@@ -112,13 +121,14 @@ func (q *Queries) GetFileFromPrivateToken(ctx context.Context, privateDownloadTo
 		&i.Md5Checksum,
 		&i.PrivateDownloadToken,
 		&i.OwnerID,
+		&i.StorageMapping,
 	)
 	return i, err
 }
 
 const getFilesSharedByUser = `-- name: GetFilesSharedByUser :many
 SELECT
-    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id,
+    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping,
     s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at
 FROM shares s
 JOIN files f ON s.file_id = f.id
@@ -133,6 +143,7 @@ type GetFilesSharedByUserRow struct {
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
 	OwnerID              uuid.UUID      `json:"owner_id"`
+	StorageMapping       uuid.UUID      `json:"storage_mapping"`
 	ID_2                 int32          `json:"id_2"`
 	SharedBy             sql.NullString `json:"shared_by"`
 	SharedFor            sql.NullString `json:"shared_for"`
@@ -160,6 +171,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 			&i.Md5Checksum,
 			&i.PrivateDownloadToken,
 			&i.OwnerID,
+			&i.StorageMapping,
 			&i.ID_2,
 			&i.SharedBy,
 			&i.SharedFor,
@@ -184,7 +196,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 
 const getFilesSharedWithUser = `-- name: GetFilesSharedWithUser :many
 SELECT
-    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id,
+    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping,
     s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at
 FROM shares s
 JOIN files f ON s.file_id = f.id
@@ -199,6 +211,7 @@ type GetFilesSharedWithUserRow struct {
 	Md5Checksum          string         `json:"md5_checksum"`
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
 	OwnerID              uuid.UUID      `json:"owner_id"`
+	StorageMapping       uuid.UUID      `json:"storage_mapping"`
 	ID_2                 int32          `json:"id_2"`
 	SharedBy             sql.NullString `json:"shared_by"`
 	SharedFor            sql.NullString `json:"shared_for"`
@@ -226,6 +239,7 @@ func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.Null
 			&i.Md5Checksum,
 			&i.PrivateDownloadToken,
 			&i.OwnerID,
+			&i.StorageMapping,
 			&i.ID_2,
 			&i.SharedBy,
 			&i.SharedFor,
