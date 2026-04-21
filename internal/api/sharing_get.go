@@ -6,7 +6,9 @@ import (
 	"errors"
 	"io"
 	"log"
+	"mime"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -171,7 +173,7 @@ func (s *APIServer) resolveDownloadURL(ctx context.Context, bucket, object, file
 
 	var contentDisposition string
 	if mode == "download" {
-		contentDisposition = "attachment; filename=\"" + filename + "\""
+		contentDisposition = buildAttachmentContentDisposition(filename)
 	}
 
 	return s.bucketHandler.GenerateSignedURL(ctx, bucket, object, expiresAt, contentDisposition)
@@ -200,7 +202,7 @@ func (s *APIServer) proxyDownload(w http.ResponseWriter, signedUrl, filename str
 		return
 	}
 
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	w.Header().Set("Content-Disposition", buildAttachmentContentDisposition(filename))
 	if ct := resp.Header.Get("Content-Type"); ct != "" {
 		w.Header().Set("Content-Type", ct)
 	}
@@ -209,6 +211,26 @@ func (s *APIServer) proxyDownload(w http.ResponseWriter, signedUrl, filename str
 	}
 
 	io.Copy(w, resp.Body)
+}
+
+func buildAttachmentContentDisposition(filename string) string {
+	safeFilename := sanitizeDownloadFilename(filename)
+	headerValue := mime.FormatMediaType("attachment", map[string]string{"filename": safeFilename})
+	if headerValue == "" {
+		return "attachment"
+	}
+	return headerValue
+}
+
+func sanitizeDownloadFilename(filename string) string {
+	name := strings.TrimSpace(filename)
+	name = strings.ReplaceAll(name, "\r", "")
+	name = strings.ReplaceAll(name, "\n", "")
+	name = strings.ReplaceAll(name, "\x00", "")
+	if name == "" {
+		return "download"
+	}
+	return name
 }
 
 func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {

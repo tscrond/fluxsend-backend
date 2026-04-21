@@ -1,10 +1,13 @@
 package api
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
@@ -35,12 +38,17 @@ func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
-
 	parsedUUID, err := uuid.Parse(authUserData.InternalID)
 	if err != nil {
 		log.Println("cannot parse authorized user internal ID: ", err)
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
+		return
+	}
+
+	bucket, err := s.resolveUserBucketName(ctx, parsedUUID, authUserData.InternalID)
+	if err != nil {
+		log.Println("cannot resolve user bucket name: ", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
 
@@ -49,7 +57,12 @@ func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
 		FileName: object,
 	})
 	if err != nil {
-		pkg.WriteJSONResponse(w, http.StatusNotFound, "file_not_found", nil)
+		if err == sql.ErrNoRows {
+			pkg.WriteJSONResponse(w, http.StatusNotFound, "file_not_found", nil)
+			return
+		}
+		log.Println("error fetching file by owner and name: ", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
 
@@ -105,12 +118,17 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
-
 	parsedUUIDBatch, err := uuid.Parse(authUserData.InternalID)
 	if err != nil {
 		log.Printf("invalid authorized user internal ID %q: %v", authUserData.InternalID, err)
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
+		return
+	}
+
+	bucket, err := s.resolveUserBucketName(ctx, parsedUUIDBatch, authUserData.InternalID)
+	if err != nil {
+		log.Println("cannot resolve user bucket name: ", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
 
@@ -169,6 +187,20 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 		"files_deleted": deletedFiles,
 		"files_failed":  failedFiles,
 	})
+}
+
+func (s *APIServer) resolveUserBucketName(ctx context.Context, userUUID uuid.UUID, internalID string) (string, error) {
+	storedBucketName, err := s.repository.Queries.GetUserBucketById(ctx, userUUID)
+	if err != nil {
+		return "", err
+	}
+
+	bucketName := strings.TrimSpace(storedBucketName.String)
+	if storedBucketName.Valid && bucketName != "" {
+		return bucketName, nil
+	}
+
+	return fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), internalID), nil
 }
 
 func (s *APIServer) deleteAccount(w http.ResponseWriter, r *http.Request) {

@@ -208,7 +208,12 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := pkg.GetUserBucketName(s.bucketHandler.GetBucketBaseName(), authUserData.InternalID)
+	bucket, err := s.resolveUserBucketName(r.Context(), userUUID, authUserData.InternalID)
+	if err != nil {
+		log.Println("cannot resolve user bucket name:", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
 	deletedCount := 0
 	for _, f := range toDelete {
 		if err := s.bucketHandler.DeleteObjectFromBucket(r.Context(), f.StorageMapping.String(), bucket); err != nil {
