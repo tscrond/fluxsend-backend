@@ -47,7 +47,7 @@ func (gp *GithubAuthProvider) HandleCallback(ctx context.Context, r *http.Reques
 
 	token, err := gp.oauthConfig.Exchange(ctx, code)
 	if err != nil {
-		return nil, fmt.Errorf("oauth token exchange failed")
+		return nil, fmt.Errorf("oauth token exchange failed: %w", err)
 	}
 
 	client := gp.oauthConfig.Client(ctx, token)
