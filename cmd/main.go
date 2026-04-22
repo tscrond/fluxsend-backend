@@ -21,6 +21,7 @@ import (
 	mailfactory "github.com/tscrond/fluxsend-backend/internal/mailservice/factory"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
+	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
 )
 
 func main() {
@@ -32,6 +33,7 @@ func main() {
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	githubClientId := os.Getenv("GITHUB_OAUTH_CLIENT_ID")
 	githubClientSecret := os.Getenv("GITHUB_OAUTH_CLIENT_SECRET")
+	tokenEncryptionKey := os.Getenv("TOKEN_ENCRYPTION_KEY")
 	frontendEndpoint := os.Getenv("FRONTEND_ENDPOINT")
 	backendEndpoint := os.Getenv("BACKEND_ENDPOINT")
 	mailFrom := os.Getenv("MAIL_FROM")
@@ -128,6 +130,7 @@ func main() {
 			RedirectURL:  fmt.Sprintf("%s/auth/github/callback", backendEndpoint),
 			Scopes:       []string{"user:email", "read:user"},
 		},
+		TokenEncryptionKey: tokenEncryptionKey,
 	}
 
 	authProviders, err := InitAuth(authConfig)
@@ -135,7 +138,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, authProviders)
+	tokenEncryptor, err := tokencrypto.New(tokenEncryptionKey)
+	if err != nil {
+		log.Fatalf("failed to initialize token encryptor: %v (set TOKEN_ENCRYPTION_KEY env var)", err)
+	}
+
+	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, authProviders, tokenEncryptor)
 
 	s.Start()
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
@@ -104,11 +105,20 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	sessionID := uuid.New()
+	encryptedToken := sql.NullString{Valid: false}
+	if result.AccessToken != "" {
+		enc, err := s.tokenEncryptor.Encrypt(result.AccessToken)
+		if err != nil {
+			log.Printf("warning: failed to encrypt provider access token: %v", err)
+		} else {
+			encryptedToken = sql.NullString{String: enc, Valid: true}
+		}
+	}
 	if _, err := s.repository.Queries.CreateSession(ctx, sqlc.CreateSessionParams{
 		ID:                  sessionID,
 		UserID:              userID,
 		Provider:            providerName,
-		ProviderAccessToken: sql.NullString{String: result.AccessToken, Valid: result.AccessToken != ""},
+		ProviderAccessToken: encryptedToken,
 		ExpiresAt:           time.Now().Add(sessionDuration),
 	}); err != nil {
 		log.Printf("failed to create session: %v", err)
@@ -165,6 +175,16 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 				Name:           sql.NullString{String: name, Valid: name != ""},
 				AvatarUrl:      sql.NullString{String: avatarURL, Valid: avatarURL != ""},
 			}); err != nil {
+				if isUniqueViolation(err) {
+					// Concurrent request already linked this identity; re-read to get the right user.
+					existing, rerr := s.repository.Queries.GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
+						Provider: provider, ProviderUserID: providerUserID,
+					})
+					if rerr != nil {
+						return uuid.UUID{}, fmt.Errorf("re-reading identity after race: %w", rerr)
+					}
+					return existing.UserID, nil
+				}
 				return uuid.UUID{}, fmt.Errorf("linking identity to existing user: %w", err)
 			}
 			if err := tx.Commit(); err != nil {
@@ -209,6 +229,16 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 		Name:           sql.NullString{String: name, Valid: name != ""},
 		AvatarUrl:      sql.NullString{String: avatarURL, Valid: avatarURL != ""},
 	}); err != nil {
+		if isUniqueViolation(err) {
+			// Concurrent request already created this identity; re-read to converge.
+			existing, rerr := s.repository.Queries.GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
+				Provider: provider, ProviderUserID: providerUserID,
+			})
+			if rerr != nil {
+				return uuid.UUID{}, fmt.Errorf("re-reading identity after race: %w", rerr)
+			}
+			return existing.UserID, nil
+		}
 		return uuid.UUID{}, fmt.Errorf("creating identity: %w", err)
 	}
 
@@ -294,7 +324,10 @@ func (s *APIServer) logout(w http.ResponseWriter, r *http.Request) {
 	session, err := s.repository.Queries.GetSession(ctx, sessionID)
 	if err == nil {
 		if provider, exists := s.authProviders[session.Provider]; exists && session.ProviderAccessToken.Valid {
-			if revokeErr := provider.Logout(ctx, session.ProviderAccessToken.String); revokeErr != nil {
+			plainToken, decErr := s.tokenEncryptor.Decrypt(session.ProviderAccessToken.String)
+			if decErr != nil {
+				log.Printf("warning: failed to decrypt provider access token: %v", decErr)
+			} else if revokeErr := provider.Logout(ctx, plainToken); revokeErr != nil {
 				log.Printf("warning: failed to revoke provider token: %v", revokeErr)
 			}
 		}
@@ -364,17 +397,12 @@ func (s *APIServer) isValid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	emailVerified := "false"
-	if identity.EmailVerified.Valid && identity.EmailVerified.Bool {
-		emailVerified = "true"
-	}
-
 	pkg.WriteJSONResponse(w, http.StatusOK, "access_granted", map[string]any{
 		"authenticated": true,
 		"user_info": map[string]any{
 			"sub":            identity.ProviderUserID,
 			"email":          identity.Email.String,
-			"email_verified": emailVerified,
+			"email_verified": identity.EmailVerified.Valid && identity.EmailVerified.Bool,
 			"name":           identity.Name.String,
 			"picture":        identity.AvatarUrl.String,
 		},
@@ -395,4 +423,9 @@ func firstWord(s string) string {
 		return s[:idx]
 	}
 	return s
+}
+
+func isUniqueViolation(err error) bool {
+	pqErr, ok := err.(*pq.Error)
+	return ok && pqErr.Code == "23505"
 }

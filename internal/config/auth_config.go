@@ -1,8 +1,9 @@
 package config
 
 type AuthConfig struct {
-	GoogleOAuthConfig GoogleOAuthConfig
-	GithubOAuthConfig GithubOAuthConfig
+	GoogleOAuthConfig  GoogleOAuthConfig
+	GithubOAuthConfig  GithubOAuthConfig
+	TokenEncryptionKey string
 }
 
 type GoogleOAuthConfig struct {
