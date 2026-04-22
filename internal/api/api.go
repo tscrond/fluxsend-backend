@@ -7,12 +7,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
+	"github.com/tscrond/fluxsend-backend/internal/auth"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
-	"golang.org/x/oauth2"
+	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
 )
 
 type APIServer struct {
@@ -21,17 +22,20 @@ type APIServer struct {
 	cloudFrontSigner *cdn.CloudFrontURLSigner
 	emailSender      mailtypes.EmailSender
 	repository       *repo.Repository
-	OAuthConfig      *oauth2.Config
+	authProviders    map[string]auth.AuthProvider
+	tokenEncryptor   *tokencrypto.Encryptor
 }
 
-func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, bh storagetypes.ObjectStorage, cloudFrontSigner *cdn.CloudFrontURLSigner, repository *repo.Repository, oauth2conf *oauth2.Config) *APIServer {
+func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, bh storagetypes.ObjectStorage, cloudFrontSigner *cdn.CloudFrontURLSigner, repository *repo.Repository, authProviders map[string]auth.AuthProvider, tokenEncryptor *tokencrypto.Encryptor) *APIServer {
+
 	return &APIServer{
 		backendConfig:    backendConfig,
 		bucketHandler:    bh,
 		cloudFrontSigner: cloudFrontSigner,
 		emailSender:      es,
 		repository:       repository,
-		OAuthConfig:      oauth2conf,
+		authProviders:    authProviders,
+		tokenEncryptor:   tokenEncryptor,
 	}
 }
 
@@ -50,8 +54,8 @@ func (s *APIServer) Start() {
 	r.Use(c.Handler)
 
 	// auth
-	r.Handle("/auth/callback", http.HandlerFunc(s.authCallback))
-	r.Handle("/auth/oauth", http.HandlerFunc(s.oauthHandler))
+	r.Handle("/auth/{provider}/login", http.HandlerFunc(s.oauthLoginHandler))
+	r.Handle("/auth/{provider}/callback", http.HandlerFunc(s.authCallbackHandler))
 	r.Handle("/auth/is_valid", http.HandlerFunc(s.isValid))
 	r.Handle("/auth/logout", http.HandlerFunc(s.logout))
 

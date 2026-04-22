@@ -80,7 +80,7 @@ func (q *Queries) GetBucketObjectAndOwnerFromPrivateToken(ctx context.Context, p
 }
 
 const getExistingPublicShare = `-- name: GetExistingPublicShare :one
-SELECT id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at FROM shares
+SELECT id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id FROM shares
 WHERE shared_by = $1 AND shared_for IS NULL AND file_id = $2 AND expires_at > NOW()
 LIMIT 1
 `
@@ -102,6 +102,7 @@ func (q *Queries) GetExistingPublicShare(ctx context.Context, arg GetExistingPub
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
+		&i.SharedByUserID,
 	)
 	return i, err
 }
@@ -129,7 +130,7 @@ func (q *Queries) GetFileFromPrivateToken(ctx context.Context, privateDownloadTo
 const getFilesSharedByUser = `-- name: GetFilesSharedByUser :many
 SELECT
     f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping,
-    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at
+    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id
 FROM shares s
 JOIN files f ON s.file_id = f.id
 WHERE s.shared_by = $1
@@ -152,6 +153,7 @@ type GetFilesSharedByUserRow struct {
 	CreatedAt            sql.NullTime   `json:"created_at"`
 	ExpiresAt            time.Time      `json:"expires_at"`
 	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
+	SharedByUserID       uuid.NullUUID  `json:"shared_by_user_id"`
 }
 
 func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullString) ([]GetFilesSharedByUserRow, error) {
@@ -180,6 +182,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 			&i.CreatedAt,
 			&i.ExpiresAt,
 			&i.ReceivedSeenAt,
+			&i.SharedByUserID,
 		); err != nil {
 			return nil, err
 		}
@@ -197,7 +200,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 const getFilesSharedWithUser = `-- name: GetFilesSharedWithUser :many
 SELECT
     f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping,
-    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at
+    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id
 FROM shares s
 JOIN files f ON s.file_id = f.id
 WHERE s.shared_for = $1
@@ -220,6 +223,7 @@ type GetFilesSharedWithUserRow struct {
 	CreatedAt            sql.NullTime   `json:"created_at"`
 	ExpiresAt            time.Time      `json:"expires_at"`
 	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
+	SharedByUserID       uuid.NullUUID  `json:"shared_by_user_id"`
 }
 
 func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.NullString) ([]GetFilesSharedWithUserRow, error) {
@@ -248,6 +252,7 @@ func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.Null
 			&i.CreatedAt,
 			&i.ExpiresAt,
 			&i.ReceivedSeenAt,
+			&i.SharedByUserID,
 		); err != nil {
 			return nil, err
 		}
@@ -289,7 +294,7 @@ INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, NULL, $2, $3, $4)
 ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL 
 DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token
-RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id
 `
 
 type InsertPublicShareParams struct {
@@ -316,6 +321,7 @@ func (q *Queries) InsertPublicShare(ctx context.Context, arg InsertPublicSharePa
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
+		&i.SharedByUserID,
 	)
 	return i, err
 }
@@ -325,7 +331,7 @@ INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
 SET expires_at = EXCLUDED.expires_at
-RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id
 `
 
 type InsertShareParams struct {
@@ -354,6 +360,7 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) (Share
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
+		&i.SharedByUserID,
 	)
 	return i, err
 }
@@ -361,7 +368,7 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) (Share
 const markShareSeen = `-- name: MarkShareSeen :one
 UPDATE shares SET received_seen_at = NOW()
 WHERE sharing_token = $1 AND shared_for = $2 AND received_seen_at IS NULL
-RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id
 `
 
 type MarkShareSeenParams struct {
@@ -381,6 +388,7 @@ func (q *Queries) MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (S
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
+		&i.SharedByUserID,
 	)
 	return i, err
 }

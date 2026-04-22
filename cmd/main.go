@@ -13,6 +13,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/tscrond/fluxsend-backend/internal/api"
+	"github.com/tscrond/fluxsend-backend/internal/auth"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagefactory "github.com/tscrond/fluxsend-backend/internal/cloud_storage/factory"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
@@ -20,8 +21,7 @@ import (
 	mailfactory "github.com/tscrond/fluxsend-backend/internal/mailservice/factory"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
 )
 
 func main() {
@@ -31,6 +31,9 @@ func main() {
 	}
 	clientId := os.Getenv("GOOGLE_CLIENT_ID")
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	githubClientId := os.Getenv("GITHUB_OAUTH_CLIENT_ID")
+	githubClientSecret := os.Getenv("GITHUB_OAUTH_CLIENT_SECRET")
+	tokenEncryptionKey := os.Getenv("TOKEN_ENCRYPTION_KEY")
 	frontendEndpoint := os.Getenv("FRONTEND_ENDPOINT")
 	backendEndpoint := os.Getenv("BACKEND_ENDPOINT")
 	mailFrom := os.Getenv("MAIL_FROM")
@@ -114,13 +117,33 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, &oauth2.Config{
-		ClientID:     clientId,
-		ClientSecret: clientSecret,
-		RedirectURL:  fmt.Sprintf("%s/auth/callback", backendEndpoint),
-		Scopes:       []string{"email", "profile"},
-		Endpoint:     google.Endpoint,
-	})
+	authConfig := config.AuthConfig{
+		GoogleOAuthConfig: config.GoogleOAuthConfig{
+			ClientID:     clientId,
+			ClientSecret: clientSecret,
+			RedirectURL:  fmt.Sprintf("%s/auth/google/callback", backendEndpoint),
+			Scopes:       []string{"email", "profile"},
+		},
+		GithubOAuthConfig: config.GithubOAuthConfig{
+			ClientID:     githubClientId,
+			ClientSecret: githubClientSecret,
+			RedirectURL:  fmt.Sprintf("%s/auth/github/callback", backendEndpoint),
+			Scopes:       []string{"user:email", "read:user"},
+		},
+		TokenEncryptionKey: tokenEncryptionKey,
+	}
+
+	authProviders, err := InitAuth(authConfig)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	tokenEncryptor, err := tokencrypto.New(tokenEncryptionKey)
+	if err != nil {
+		log.Fatalf("failed to initialize token encryptor: %v (set TOKEN_ENCRYPTION_KEY env var)", err)
+	}
+
+	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, authProviders, tokenEncryptor)
 
 	s.Start()
 }
@@ -163,4 +186,12 @@ func getEnvBool(name string, defaultValue bool) (bool, error) {
 	}
 
 	return parsedValue, nil
+}
+
+func InitAuth(authConfig config.AuthConfig) (map[string]auth.AuthProvider, error) {
+	initializedProviders, err := auth.InitAuthProviders(authConfig, "google", "github")
+	if err != nil {
+		return nil, fmt.Errorf("error initializing auth providers: %w", err)
+	}
+	return initializedProviders, nil
 }

@@ -13,50 +13,35 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (google_id, user_name, user_email, user_bucket)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (google_id) DO UPDATE SET user_bucket = EXCLUDED.user_bucket
-RETURNING google_id, user_name, user_email, user_bucket, id
+INSERT INTO users (user_email)
+VALUES ($1)
+RETURNING id, user_bucket, user_email, created_at
 `
 
-type CreateUserParams struct {
-	GoogleID   string         `json:"google_id"`
-	UserName   sql.NullString `json:"user_name"`
-	UserEmail  string         `json:"user_email"`
-	UserBucket sql.NullString `json:"user_bucket"`
-}
-
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
-		arg.GoogleID,
-		arg.UserName,
-		arg.UserEmail,
-		arg.UserBucket,
-	)
+func (q *Queries) CreateUser(ctx context.Context, userEmail string) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser, userEmail)
 	var i User
 	err := row.Scan(
-		&i.GoogleID,
-		&i.UserName,
-		&i.UserEmail,
-		&i.UserBucket,
 		&i.ID,
+		&i.UserBucket,
+		&i.UserEmail,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const deleteAccount = `-- name: DeleteAccount :one
-DELETE FROM users WHERE id = $1 RETURNING google_id, user_name, user_email, user_bucket, id
+DELETE FROM users WHERE id = $1 RETURNING id, user_bucket, user_email, created_at
 `
 
 func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRowContext(ctx, deleteAccount, id)
 	var i User
 	err := row.Scan(
-		&i.GoogleID,
-		&i.UserName,
-		&i.UserEmail,
-		&i.UserBucket,
 		&i.ID,
+		&i.UserBucket,
+		&i.UserEmail,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -73,52 +58,33 @@ func (q *Queries) GetUserBucketById(ctx context.Context, id uuid.UUID) (sql.Null
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT google_id, user_name, user_email, user_bucket, id FROM users WHERE user_email = $1
+SELECT id, user_bucket, user_email, created_at FROM users WHERE user_email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, userEmail string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, userEmail)
 	var i User
 	err := row.Scan(
-		&i.GoogleID,
-		&i.UserName,
-		&i.UserEmail,
-		&i.UserBucket,
 		&i.ID,
-	)
-	return i, err
-}
-
-const getUserByGoogleID = `-- name: GetUserByGoogleID :one
-SELECT google_id, user_name, user_email, user_bucket, id FROM users WHERE google_id = $1
-`
-
-func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByGoogleID, googleID)
-	var i User
-	err := row.Scan(
-		&i.GoogleID,
-		&i.UserName,
-		&i.UserEmail,
 		&i.UserBucket,
-		&i.ID,
+		&i.UserEmail,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT google_id, user_name, user_email, user_bucket, id FROM users WHERE id = $1
+SELECT id, user_bucket, user_email, created_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserById, id)
 	var i User
 	err := row.Scan(
-		&i.GoogleID,
-		&i.UserName,
-		&i.UserEmail,
-		&i.UserBucket,
 		&i.ID,
+		&i.UserBucket,
+		&i.UserEmail,
+		&i.CreatedAt,
 	)
 	return i, err
 }
