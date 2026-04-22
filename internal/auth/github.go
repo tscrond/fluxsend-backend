@@ -31,12 +31,7 @@ func (gp *GithubAuthProvider) Name() string {
 }
 
 func (gp *GithubAuthProvider) GetAuthURL(state string) string {
-	return fmt.Sprintf(
-		"%s?scope=user:email&client_id=%s&state=%s",
-		gp.oauthConfig.Endpoint.AuthURL,
-		gp.oauthConfig.ClientID,
-		state,
-	)
+	return gp.oauthConfig.AuthCodeURL(state)
 }
 
 func (gp *GithubAuthProvider) HandleCallback(ctx context.Context, r *http.Request) (*AuthResult, error) {
