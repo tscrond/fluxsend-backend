@@ -22,7 +22,7 @@ type AuthResult struct {
 	Provider       string
 	ProviderUserID string
 	Email          string
-	EmailVerified  string
+	EmailVerified  bool
 	Name           string
 	AvatarURL      string
 	AccessToken    string
@@ -40,8 +40,8 @@ func InitAuthProviders(authConfig config.AuthConfig, providers ...string) (map[s
 				return nil, err
 			}
 			authProviders[provider] = googleAuthProvider
-		// case "github":
-		// 	authProviders[provider] = NewGithubAuthProvider(authConfig.GithubOAuthConfig)
+		case "github":
+			authProviders[provider] = NewGithubAuthProvider(authConfig.GithubOAuthConfig)
 		default:
 			return nil, errors.New("unknown_provider")
 		}

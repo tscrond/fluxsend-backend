@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	IsProd            = true
-	sessionCookieName = "session_id"
-	sessionDuration   = 24 * time.Hour
+	IsProd               = true
+	sessionCookieName    = "session_id"
+	oauthStateCookieName = "oauth_state"
+	sessionDuration      = 24 * time.Hour
 )
 
 func (s *APIServer) oauthLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +40,16 @@ func (s *APIServer) oauthLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     oauthStateCookieName,
+		Value:    state,
+		HttpOnly: true,
+		Secure:   IsProd,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   300, // 5 minutes
+	})
+
 	http.Redirect(w, r, provider.GetAuthURL(state), http.StatusTemporaryRedirect)
 }
 
@@ -49,6 +60,28 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 	provider, ok := s.authProviders[providerName]
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "unknown_provider", nil)
+		return
+	}
+
+	// Validate OAuth state to prevent CSRF
+	stateCookie, err := r.Cookie(oauthStateCookieName)
+	if err != nil || stateCookie.Value == "" {
+		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=invalid_state", http.StatusTemporaryRedirect)
+		return
+	}
+	// Clear the state cookie immediately
+	http.SetCookie(w, &http.Cookie{
+		Name:     oauthStateCookieName,
+		Value:    "",
+		HttpOnly: true,
+		Secure:   IsProd,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
+	returnedState := r.URL.Query().Get("state")
+	if returnedState == "" || returnedState != stateCookie.Value {
+		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=invalid_state", http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -97,7 +130,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // findOrCreateUserFromResult looks up a user by their provider identity, creating one if they don't exist yet.
-func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provider, providerUserID, emailVerified, name, avatarURL string) (uuid.UUID, error) {
+func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provider, providerUserID string, emailVerified bool, name, avatarURL string) (uuid.UUID, error) {
 	// Look up by provider identity first
 	identity, err := s.repository.Queries.GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
 		Provider:       provider,
@@ -110,15 +143,56 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 		return uuid.UUID{}, fmt.Errorf("looking up identity: %w", err)
 	}
 
-	// No identity found — create user then identity
-	user, err := s.repository.Queries.CreateUser(ctx, email)
+	// No identity found — check if a user with this email already exists (cross-provider dedup)
+	// Only link by email when the provider has verified the address.
+	if emailVerified && email != "" {
+		existingUser, err := s.repository.Queries.GetUserByEmail(ctx, email)
+		if err == nil {
+			// User exists under a different provider — attach this identity to them.
+			tx, err := s.repository.BeginTx(ctx)
+			if err != nil {
+				return uuid.UUID{}, fmt.Errorf("beginning transaction: %w", err)
+			}
+			defer tx.Rollback() //nolint:errcheck
+
+			txq := s.repository.Queries.WithTx(tx)
+			if _, err := txq.CreateIdentity(ctx, sqlc.CreateIdentityParams{
+				UserID:         existingUser.ID,
+				Provider:       provider,
+				ProviderUserID: providerUserID,
+				Email:          sql.NullString{String: email, Valid: true},
+				EmailVerified:  sql.NullBool{Bool: true, Valid: true},
+				Name:           sql.NullString{String: name, Valid: name != ""},
+				AvatarUrl:      sql.NullString{String: avatarURL, Valid: avatarURL != ""},
+			}); err != nil {
+				return uuid.UUID{}, fmt.Errorf("linking identity to existing user: %w", err)
+			}
+			if err := tx.Commit(); err != nil {
+				return uuid.UUID{}, fmt.Errorf("committing transaction: %w", err)
+			}
+			return existingUser.ID, nil
+		} else if err != sql.ErrNoRows {
+			return uuid.UUID{}, fmt.Errorf("looking up user by email: %w", err)
+		}
+	}
+
+	// No existing user — create user + identity atomically to avoid orphan rows
+	tx, err := s.repository.BeginTx(ctx)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	txq := s.repository.Queries.WithTx(tx)
+
+	user, err := txq.CreateUser(ctx, email)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("creating user: %w", err)
 	}
 
 	// Set bucket name using the new UUID
 	bucketName := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), user.ID.String())
-	if err := s.repository.Queries.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
+	if err := txq.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
 		UserBucket: sql.NullString{String: bucketName, Valid: true},
 		ID:         user.ID,
 	}); err != nil {
@@ -126,17 +200,20 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 	}
 
 	// Create identity
-	verified := emailVerified == "true"
-	if _, err := s.repository.Queries.CreateIdentity(ctx, sqlc.CreateIdentityParams{
+	if _, err := txq.CreateIdentity(ctx, sqlc.CreateIdentityParams{
 		UserID:         user.ID,
 		Provider:       provider,
 		ProviderUserID: providerUserID,
 		Email:          sql.NullString{String: email, Valid: email != ""},
-		EmailVerified:  sql.NullBool{Bool: verified, Valid: true},
+		EmailVerified:  sql.NullBool{Bool: emailVerified, Valid: true},
 		Name:           sql.NullString{String: name, Valid: name != ""},
 		AvatarUrl:      sql.NullString{String: avatarURL, Valid: avatarURL != ""},
 	}); err != nil {
 		return uuid.UUID{}, fmt.Errorf("creating identity: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return uuid.UUID{}, fmt.Errorf("committing transaction: %w", err)
 	}
 
 	return user.ID, nil
@@ -183,6 +260,7 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 			Name:       identity.Name.String,
 			GivenName:  firstWord(identity.Name.String),
 			Picture:    identity.AvatarUrl.String,
+			Provider:   session.Provider,
 		}
 
 		ctx := context.WithValue(r.Context(), userdata.AuthorizedUserContextKey, authorizedUser)
@@ -230,6 +308,8 @@ func (s *APIServer) logout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   IsProd,
+		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Unix(0, 0),
 		MaxAge:   -1,
 	})

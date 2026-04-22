@@ -35,7 +35,7 @@ WHERE google_id IS NOT NULL;
 CREATE TABLE users_new (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_bucket TEXT UNIQUE,
-  user_email TEXT NOT NULL,
+  user_email TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
@@ -63,7 +63,7 @@ WHERE s.shared_by = u.user_email;
 
 ALTER TABLE shares
 ADD CONSTRAINT fk_shared_by_user
-FOREIGN KEY (shared_by_user_id) REFERENCES users(id);
+FOREIGN KEY (shared_by_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
 CREATE INDEX idx_shares_shared_by_user_id ON shares(shared_by_user_id);
 

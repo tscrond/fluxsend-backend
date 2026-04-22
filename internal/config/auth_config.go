@@ -2,6 +2,7 @@ package config
 
 type AuthConfig struct {
 	GoogleOAuthConfig GoogleOAuthConfig
+	GithubOAuthConfig GithubOAuthConfig
 }
 
 type GoogleOAuthConfig struct {
@@ -9,13 +10,11 @@ type GoogleOAuthConfig struct {
 	ClientSecret string
 	RedirectURL  string
 	Scopes       []string
-	Endpoint     string
 }
 
-// 	ClientID:      clientId,
-// 	ClientSecret:  clientSecret,
-// 	RedirectURL:   fmt.Sprintf("%s/auth/callback", backendEndpoint),
-// 	Scopes:        []string{"email", "profile"},
-// 	Endpoint:      google.Endpoint,
-// 	AuthProviders: authProviders,
-// }
+type GithubOAuthConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	Scopes       []string
+}

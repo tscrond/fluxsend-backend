@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"os"
@@ -62,4 +63,8 @@ func (repo *Repository) Close() error {
 		return repo.db.Close()
 	}
 	return nil
+}
+
+func (repo *Repository) BeginTx(ctx context.Context) (*sql.Tx, error) {
+	return repo.db.BeginTx(ctx, nil)
 }

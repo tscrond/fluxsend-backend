@@ -75,16 +75,11 @@ func (gp *GoogleAuthProvider) HandleCallback(ctx context.Context, r *http.Reques
 		return nil, fmt.Errorf("decoding userinfo: %w", err)
 	}
 
-	emailVerified := "false"
-	if userInfo.EmailVerified {
-		emailVerified = "true"
-	}
-
 	return &AuthResult{
 		Provider:       "google",
 		ProviderUserID: userInfo.ID,
 		Email:          userInfo.Email,
-		EmailVerified:  emailVerified,
+		EmailVerified:  userInfo.EmailVerified,
 		Name:           userInfo.Name,
 		AvatarURL:      userInfo.Picture,
 		AccessToken:    token.AccessToken,

@@ -30,6 +30,8 @@ func main() {
 	}
 	clientId := os.Getenv("GOOGLE_CLIENT_ID")
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	githubClientId := os.Getenv("GITHUB_OAUTH_CLIENT_ID")
+	githubClientSecret := os.Getenv("GITHUB_OAUTH_CLIENT_SECRET")
 	frontendEndpoint := os.Getenv("FRONTEND_ENDPOINT")
 	backendEndpoint := os.Getenv("BACKEND_ENDPOINT")
 	mailFrom := os.Getenv("MAIL_FROM")
@@ -120,6 +122,12 @@ func main() {
 			RedirectURL:  fmt.Sprintf("%s/auth/google/callback", backendEndpoint),
 			Scopes:       []string{"email", "profile"},
 		},
+		GithubOAuthConfig: config.GithubOAuthConfig{
+			ClientID:     githubClientId,
+			ClientSecret: githubClientSecret,
+			RedirectURL:  fmt.Sprintf("%s/auth/github/callback", backendEndpoint),
+			Scopes:       []string{"user:email", "read:user"},
+		},
 	}
 
 	authProviders, err := InitAuth(authConfig)
@@ -173,7 +181,7 @@ func getEnvBool(name string, defaultValue bool) (bool, error) {
 }
 
 func InitAuth(authConfig config.AuthConfig) (map[string]auth.AuthProvider, error) {
-	initializedProviders, err := auth.InitAuthProviders(authConfig, "google")
+	initializedProviders, err := auth.InitAuthProviders(authConfig, "google", "github")
 	if err != nil {
 		return nil, fmt.Errorf("error initializing auth providers: %w", err)
 	}
