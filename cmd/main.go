@@ -21,6 +21,7 @@ import (
 	mailfactory "github.com/tscrond/fluxsend-backend/internal/mailservice/factory"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
+	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
 )
 
@@ -112,7 +113,7 @@ func main() {
 	}
 
 	provider := "standard"
-	emailSender, err := InitMailSender(provider, repository)
+	emailSender, err := InitMailSender(provider)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -143,23 +144,27 @@ func main() {
 		log.Fatalf("failed to initialize token encryptor: %v (set TOKEN_ENCRYPTION_KEY env var)", err)
 	}
 
-	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, authProviders, tokenEncryptor)
+	fileSvc := service.NewFileService(repository.Queries(), bucketHandler, htmlSanitizationPolicy)
+	shareSvc := service.NewShareService(repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, backendEndpoint, mailFrom)
+	userSvc := service.NewUserService(repository.Queries(), bucketHandler)
+
+	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, authProviders, tokenEncryptor, fileSvc, shareSvc, userSvc)
 
 	s.Start()
 }
 
-func InitMailSender(provider string, repository *repo.Repository) (mailtypes.EmailSender, error) {
-	return mailfactory.NewEmailService(provider, repository)
+func InitMailSender(provider string) (mailtypes.EmailSender, error) {
+	return mailfactory.NewEmailService(provider)
 }
 
-func InitObjectStorage(backendEndpoint, storageProvider string, repository *repo.Repository) (storagetypes.ObjectStorage, error) {
+func InitObjectStorage(backendEndpoint, storageProvider string, repository repo.Repository) (storagetypes.ObjectStorage, error) {
 
 	log.Printf("%s", fmt.Sprintf("%s/auth/callback", backendEndpoint))
 
 	return storagefactory.NewStorageProvider(storageProvider, repository)
 }
 
-func InitRepository(connString string) (*repo.Repository, error) {
+func InitRepository(connString string) (*repo.PostgresRepository, error) {
 	if connString == "" {
 		panic("no conn string provided")
 	}
@@ -171,7 +176,7 @@ func InitRepository(connString string) (*repo.Repository, error) {
 		return nil, err
 	}
 
-	return repo.NewRepository(db)
+	return repo.NewPostgresRepository(db)
 }
 
 func getEnvBool(name string, defaultValue bool) (bool, error) {

@@ -25,19 +25,18 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
-	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 type S3BucketHandler struct {
-	repository     *repo.Repository
+	repository     repo.Repository
 	Client         *s3.Client
 	PresignClient  *s3.PresignClient
 	BaseBucketName string
 	Region         string
 }
 
-func NewS3BucketHandler(bucketName, region string, repository *repo.Repository) (types.ObjectStorage, error) {
+func NewS3BucketHandler(bucketName, region string, repository repo.Repository) (types.ObjectStorage, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithRegion(region))
 	if err != nil {
 		log.Println("Error loading AWS config:", err)
@@ -67,15 +66,13 @@ func (b *S3BucketHandler) extractUserIdFromBucket(bucket string) string {
 }
 
 func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.FileData) error {
-	authorizedUserData := ctx.Value(userdata.AuthorizedUserContextKey)
-	authUserData, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
-	if !ok {
-		log.Println("cannot read authorized user data")
+	if data == nil {
+		log.Println("Data for bucket operation is empty")
 		return types.ErrUploadFailed
 	}
 
-	if data == nil {
-		log.Println("Data for bucket operation is empty")
+	if data.OwnerID == uuid.Nil {
+		log.Println("OwnerID not set in FileData")
 		return types.ErrUploadFailed
 	}
 
@@ -86,9 +83,8 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 		fileName = data.Folder + "/" + fileName
 	}
 
-	authorizedUserId := uuid.MustParse(authUserData.InternalID)
-	_, err := b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  authorizedUserId,
+	_, err := b.repository.Queries().GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  data.OwnerID,
 		FileName: fileName,
 	})
 	if err == nil {
@@ -99,8 +95,8 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 		return types.ErrUploadFailed
 	}
 
-	// get or set user bucket name in DB (same pattern as GCS driver)
-	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, authorizedUserId)
+	// get or set user bucket name in DB
+	userBucketName, err := b.repository.Queries().GetUserBucketById(ctx, data.OwnerID)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -108,15 +104,11 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 
 	newUserBucketName := userBucketName.String
 	if !userBucketName.Valid || userBucketName.String == "" {
-		retrievedBucketName, err := b.GetUserBucketName(ctx)
-		if err != nil {
-			log.Println("Cannot find users bucket!", err)
-			return err
-		}
+		retrievedBucketName := b.getUserBucketName(data.OwnerInternalID)
 
-		if err := b.repository.Queries.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
+		if err := b.repository.Queries().UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
 			UserBucket: sql.NullString{String: retrievedBucketName, Valid: true},
-			ID:         uuid.MustParse(authUserData.InternalID),
+			ID:         data.OwnerID,
 		}); err != nil {
 			log.Println(err)
 			return err
@@ -183,7 +175,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 	}
 
 	insertArgs := sqlc.InsertFileParams{
-		OwnerID:              authorizedUserId,
+		OwnerID:              data.OwnerID,
 		FileName:             fileName,
 		FileType:             sql.NullString{Valid: true, String: contentType},
 		Size:                 sql.NullInt64{Valid: true, Int64: objSize},
@@ -192,7 +184,7 @@ func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.F
 		StorageMapping:       storageMapping,
 	}
 
-	file, err := b.repository.Queries.InsertFile(ctx, insertArgs)
+	file, err := b.repository.Queries().InsertFile(ctx, insertArgs)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("file already exists: %s\n", err)
@@ -309,17 +301,8 @@ func (b *S3BucketHandler) GetUserBucketData(ctx context.Context, id string) (any
 	return bucketData, nil
 }
 
-func (b *S3BucketHandler) GetUserBucketName(ctx context.Context) (string, error) {
-	authorizedUserData := ctx.Value(userdata.AuthorizedUserContextKey)
-	authUserData, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
-	if !ok {
-		log.Println("cannot read authorized user data")
-		return "", errors.New("cannot read authorized user data")
-	}
-
-	// return the same "<base>-<userId>" format for DB compatibility
-	bucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.InternalID)
-	return bucketName, nil
+func (b *S3BucketHandler) getUserBucketName(userInternalID string) string {
+	return pkg.GetUserBucketName(b.BaseBucketName, userInternalID)
 }
 
 func (b *S3BucketHandler) GetBucketBaseName() string {

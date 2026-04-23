@@ -17,12 +17,8 @@ FOREIGN KEY (user_id)
 REFERENCES users(id)
 ON DELETE CASCADE;
 
+-- shares.shared_by is legacy/denormalized email text; cascade is handled by shared_by_user_id (UUID FK from migration 000012)
 ALTER TABLE shares
 DROP CONSTRAINT IF EXISTS shares_shared_by_fkey;
 
-ALTER TABLE shares
-ADD CONSTRAINT shares_shared_by_fkey
-FOREIGN KEY (shared_by)
-REFERENCES users(user_email)
-ON DELETE CASCADE;
 COMMIT;

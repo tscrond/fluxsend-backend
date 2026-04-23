@@ -24,22 +24,20 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
-	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	"github.com/tscrond/fluxsend-backend/pkg"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
-// TODO create named buckets <bucket_name>-<user_id> + restrict access by ID and token verification
 type GCSBucketHandler struct {
-	repository            *repo.Repository
+	repository            repo.Repository
 	Client                *storage.Client
 	ServiceAccountKeyPath string
 	BaseBucketName        string
 	GoogleProjectID       string
 }
 
-func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository *repo.Repository) (types.ObjectStorage, error) {
+func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository repo.Repository) (types.ObjectStorage, error) {
 	if strings.TrimSpace(svcaccountPath) == "" {
 		return nil, errors.New("GOOGLE_APPLICATION_CREDENTIALS is empty for STORAGE_PROVIDER=gcs")
 	}
@@ -75,17 +73,13 @@ func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository *
 
 // Handler that processes a single file per request
 func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.FileData) error {
-
-	authorizedUserData := ctx.Value(userdata.AuthorizedUserContextKey)
-
-	authUserData, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
-	if !ok {
-		log.Println("cannot read authorized user data")
+	if data == nil {
+		log.Println("Data for bucket operation is empty")
 		return types.ErrUploadFailed
 	}
 
-	if data == nil {
-		log.Println("Data for bucket operation is empty")
+	if data.OwnerID == uuid.Nil {
+		log.Println("OwnerID not set in FileData")
 		return types.ErrUploadFailed
 	}
 
@@ -96,14 +90,8 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		fileName = data.Folder + "/" + fileName
 	}
 
-	userUuid, err := uuid.Parse(authUserData.InternalID)
-	if err != nil {
-		log.Printf("error converting string to UUID: %v", err)
-		return types.ErrTypeConversion
-	}
-
-	_, err = b.repository.Queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  userUuid,
+	_, err := b.repository.Queries().GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  data.OwnerID,
 		FileName: fileName,
 	})
 	if err == nil {
@@ -114,25 +102,19 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		return types.ErrUploadFailed
 	}
 
-	// userBucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.Id)
-	userBucketName, err := b.repository.Queries.GetUserBucketById(ctx, userUuid)
+	userBucketName, err := b.repository.Queries().GetUserBucketById(ctx, data.OwnerID)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	// try to get users bucket name, if not existing - retrieve the ID from authorized context and update the database
 	newUserBucketName := userBucketName.String
 	if !userBucketName.Valid || userBucketName.String == "" {
-		retrievedBucketName, err := b.GetUserBucketName(ctx)
-		if err != nil {
-			log.Println("Cannot find users bucket!", err)
-			return err
-		}
+		retrievedBucketName := b.getUserBucketName(data.OwnerInternalID)
 
-		if err := b.repository.Queries.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
+		if err := b.repository.Queries().UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
 			UserBucket: sql.NullString{String: retrievedBucketName, Valid: true},
-			ID:         userUuid,
+			ID:         data.OwnerID,
 		}); err != nil {
 			log.Println(err)
 			return err
@@ -183,7 +165,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 		return err
 	}
 	insertArgs := sqlc.InsertFileParams{
-		OwnerID:              userUuid,
+		OwnerID:              data.OwnerID,
 		FileName:             fileName,
 		FileType:             sql.NullString{Valid: true, String: objAttrs.ContentType},
 		Size:                 sql.NullInt64{Valid: true, Int64: objAttrs.Size},
@@ -193,7 +175,7 @@ func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.
 	}
 
 	// ensure the object data is saved to DB if it does not exist
-	file, err := b.repository.Queries.InsertFile(ctx, insertArgs)
+	file, err := b.repository.Queries().InsertFile(ctx, insertArgs)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("file already exists: %s\n", err)
@@ -342,18 +324,8 @@ func (b *GCSBucketHandler) GetUserBucketData(ctx context.Context, id string) (an
 	return bucketData, nil
 }
 
-func (b *GCSBucketHandler) GetUserBucketName(ctx context.Context) (string, error) {
-	authorizedUserData := ctx.Value(userdata.AuthorizedUserContextKey)
-
-	authUserData, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
-	if !ok {
-		log.Println("cannot read authorized user data")
-		return "", errors.New("cannot read authorized user data")
-	}
-
-	bucketName := pkg.GetUserBucketName(b.BaseBucketName, authUserData.InternalID)
-
-	return bucketName, nil
+func (b *GCSBucketHandler) getUserBucketName(userInternalID string) string {
+	return pkg.GetUserBucketName(b.BaseBucketName, userInternalID)
 }
 
 func (b *GCSBucketHandler) CreateBucket(ctx context.Context, fullBucketName, projectID string) error {
