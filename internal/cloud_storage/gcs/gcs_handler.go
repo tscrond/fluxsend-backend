@@ -29,7 +29,6 @@ import (
 	"google.golang.org/api/option"
 )
 
-// TODO create named buckets <bucket_name>-<user_id> + restrict access by ID and token verification
 type GCSBucketHandler struct {
 	repository            *repo.PostgresRepository
 	Client                *storage.Client
