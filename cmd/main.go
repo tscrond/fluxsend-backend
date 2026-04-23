@@ -113,7 +113,7 @@ func main() {
 	}
 
 	provider := "standard"
-	emailSender, err := InitMailSender(provider, repository)
+	emailSender, err := InitMailSender(provider)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -153,11 +153,11 @@ func main() {
 	s.Start()
 }
 
-func InitMailSender(provider string, repository *repo.PostgresRepository) (mailtypes.EmailSender, error) {
-	return mailfactory.NewEmailService(provider, repository)
+func InitMailSender(provider string) (mailtypes.EmailSender, error) {
+	return mailfactory.NewEmailService(provider)
 }
 
-func InitObjectStorage(backendEndpoint, storageProvider string, repository *repo.PostgresRepository) (storagetypes.ObjectStorage, error) {
+func InitObjectStorage(backendEndpoint, storageProvider string, repository repo.Repository) (storagetypes.ObjectStorage, error) {
 
 	log.Printf("%s", fmt.Sprintf("%s/auth/callback", backendEndpoint))
 

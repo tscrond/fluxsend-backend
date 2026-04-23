@@ -29,14 +29,14 @@ import (
 )
 
 type S3BucketHandler struct {
-	repository     *repo.PostgresRepository
+	repository     repo.Repository
 	Client         *s3.Client
 	PresignClient  *s3.PresignClient
 	BaseBucketName string
 	Region         string
 }
 
-func NewS3BucketHandler(bucketName, region string, repository *repo.PostgresRepository) (types.ObjectStorage, error) {
+func NewS3BucketHandler(bucketName, region string, repository repo.Repository) (types.ObjectStorage, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithRegion(region))
 	if err != nil {
 		log.Println("Error loading AWS config:", err)

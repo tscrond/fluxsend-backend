@@ -9,10 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	mailservice "github.com/tscrond/fluxsend-backend/internal/mailservice/mail"
 	"github.com/tscrond/fluxsend-backend/internal/mailservice/types"
-	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
-func NewEmailService(provider string, repository *repo.PostgresRepository) (types.EmailSender, error) {
+func NewEmailService(provider string) (types.EmailSender, error) {
 	switch provider {
 	case "ses":
 		awsRegion := os.Getenv("AWS_REGION")
@@ -26,7 +25,7 @@ func NewEmailService(provider string, repository *repo.PostgresRepository) (type
 			return nil, err
 		}
 
-		return mailservice.NewSESEmailService(cfg, repository)
+		return mailservice.NewSESEmailService(cfg)
 	case "standard":
 		// config here
 		smtpHost := os.Getenv("SMTP_HOST")
@@ -41,7 +40,7 @@ func NewEmailService(provider string, repository *repo.PostgresRepository) (type
 			SmtpPassword: smtpPassword,
 		}
 
-		return mailservice.NewStandardMailService(cfg, repository)
+		return mailservice.NewStandardMailService(cfg)
 	case "other":
 		return nil, errors.New("not implemented")
 

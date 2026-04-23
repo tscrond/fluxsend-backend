@@ -17,7 +17,7 @@ import (
 // OR
 // - use a single bucket with per-user prefixing
 
-func NewStorageProvider(provider string, repository *repo.PostgresRepository) (types.ObjectStorage, error) {
+func NewStorageProvider(provider string, repository repo.Repository) (types.ObjectStorage, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 
 	switch provider {

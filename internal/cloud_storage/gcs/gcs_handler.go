@@ -30,14 +30,14 @@ import (
 )
 
 type GCSBucketHandler struct {
-	repository            *repo.PostgresRepository
+	repository            repo.Repository
 	Client                *storage.Client
 	ServiceAccountKeyPath string
 	BaseBucketName        string
 	GoogleProjectID       string
 }
 
-func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository *repo.PostgresRepository) (types.ObjectStorage, error) {
+func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository repo.Repository) (types.ObjectStorage, error) {
 	if strings.TrimSpace(svcaccountPath) == "" {
 		return nil, errors.New("GOOGLE_APPLICATION_CREDENTIALS is empty for STORAGE_PROVIDER=gcs")
 	}

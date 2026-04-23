@@ -7,18 +7,15 @@ import (
 	"strings"
 
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
-	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
 type StandardEmailService struct {
-	config     *mailtypes.StandardSenderConfig
-	repository *repo.PostgresRepository
+	config *mailtypes.StandardSenderConfig
 }
 
-func NewStandardMailService(cfg *mailtypes.StandardSenderConfig, r *repo.PostgresRepository) (*StandardEmailService, error) {
+func NewStandardMailService(cfg *mailtypes.StandardSenderConfig) (*StandardEmailService, error) {
 	return &StandardEmailService{
-		config:     cfg,
-		repository: r,
+		config: cfg,
 	}, nil
 }
 
