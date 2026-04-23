@@ -8,7 +8,6 @@ import (
 
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
-	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
@@ -18,7 +17,7 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, ok := r.Context().Value(userdata.AuthorizedUserContextKey).(*userdata.AuthorizedUserInfo)
+	authUser, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "failed_to_retrieve_user_data", "")
 		return
@@ -42,8 +41,10 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "invalid_file_data", "")
 		return
 	}
+	fileData.OwnerID = userUUID
+	fileData.OwnerInternalID = authUser.InternalID
 
-	if err := s.bucketHandler.SendFileToBucket(r.Context(), fileData); err != nil {
+	if err := s.files.Upload(r.Context(), fileData); err != nil {
 		switch {
 		case errors.Is(err, storagetypes.ErrFileAlreadyExists):
 			pkg.WriteJSONResponse(w, http.StatusConflict, "File already exists", "")

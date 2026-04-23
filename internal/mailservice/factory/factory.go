@@ -12,7 +12,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
-func NewEmailService(provider string, repository *repo.Repository) (types.EmailSender, error) {
+func NewEmailService(provider string, repository *repo.PostgresRepository) (types.EmailSender, error) {
 	switch provider {
 	case "ses":
 		awsRegion := os.Getenv("AWS_REGION")

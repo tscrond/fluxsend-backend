@@ -12,10 +12,10 @@ import (
 
 type SESEmailService struct {
 	Client     *ses.Client
-	repository *repo.Repository
+	repository *repo.PostgresRepository
 }
 
-func NewSESEmailService(cfg aws.Config, repository *repo.Repository) (*SESEmailService, error) {
+func NewSESEmailService(cfg aws.Config, repository *repo.PostgresRepository) (*SESEmailService, error) {
 
 	client := ses.NewFromConfig(cfg)
 

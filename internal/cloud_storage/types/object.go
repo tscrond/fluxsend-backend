@@ -12,7 +12,6 @@ type ObjectStorage interface {
 	BucketExists(ctx context.Context, fullBucketName string) (bool, error)
 	CreateBucketIfNotExists(ctx context.Context, userId string) error
 	GetUserBucketData(ctx context.Context, id string) (any, error)
-	GetUserBucketName(ctx context.Context) (string, error)
 	GetBucketBaseName() string
 	GenerateSignedURL(ctx context.Context, bucket, object string, expiresAt time.Time, contentDisposition string) (string, error)
 	DeleteObjectFromBucket(ctx context.Context, object, bucket string) error

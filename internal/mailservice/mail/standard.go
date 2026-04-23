@@ -12,10 +12,10 @@ import (
 
 type StandardEmailService struct {
 	config     *mailtypes.StandardSenderConfig
-	repository *repo.Repository
+	repository *repo.PostgresRepository
 }
 
-func NewStandardMailService(cfg *mailtypes.StandardSenderConfig, r *repo.Repository) (*StandardEmailService, error) {
+func NewStandardMailService(cfg *mailtypes.StandardSenderConfig, r *repo.PostgresRepository) (*StandardEmailService, error) {
 	return &StandardEmailService{
 		config:     cfg,
 		repository: r,

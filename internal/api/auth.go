@@ -114,7 +114,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 			encryptedToken = sql.NullString{String: enc, Valid: true}
 		}
 	}
-	if _, err := s.repository.Queries.CreateSession(ctx, sqlc.CreateSessionParams{
+	if _, err := s.repository.Queries().CreateSession(ctx, sqlc.CreateSessionParams{
 		ID:                  sessionID,
 		UserID:              userID,
 		Provider:            providerName,
@@ -142,7 +142,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 // findOrCreateUserFromResult looks up a user by their provider identity, creating one if they don't exist yet.
 func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provider, providerUserID string, emailVerified bool, name, avatarURL string) (uuid.UUID, error) {
 	// Look up by provider identity first
-	identity, err := s.repository.Queries.GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
+	identity, err := s.repository.Queries().GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
 		Provider:       provider,
 		ProviderUserID: providerUserID,
 	})
@@ -156,16 +156,16 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 	// No identity found — check if a user with this email already exists (cross-provider dedup)
 	// Only link by email when the provider has verified the address.
 	if emailVerified && email != "" {
-		existingUser, err := s.repository.Queries.GetUserByEmail(ctx, email)
+		existingUser, err := s.repository.Queries().GetUserByEmail(ctx, email)
 		if err == nil {
 			// User exists under a different provider — attach this identity to them.
-			tx, err := s.repository.BeginTx(ctx)
+			tx, err := s.repository.BeginTx(ctx, nil)
 			if err != nil {
 				return uuid.UUID{}, fmt.Errorf("beginning transaction: %w", err)
 			}
 			defer tx.Rollback() //nolint:errcheck
 
-			txq := s.repository.Queries.WithTx(tx)
+			txq := s.repository.Queries().WithTx(tx)
 			if _, err := txq.CreateIdentity(ctx, sqlc.CreateIdentityParams{
 				UserID:         existingUser.ID,
 				Provider:       provider,
@@ -177,7 +177,7 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 			}); err != nil {
 				if isUniqueViolation(err) {
 					// Concurrent request already linked this identity; re-read to get the right user.
-					existing, rerr := s.repository.Queries.GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
+					existing, rerr := s.repository.Queries().GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
 						Provider: provider, ProviderUserID: providerUserID,
 					})
 					if rerr != nil {
@@ -197,13 +197,13 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 	}
 
 	// No existing user — create user + identity atomically to avoid orphan rows
-	tx, err := s.repository.BeginTx(ctx)
+	tx, err := s.repository.BeginTx(ctx, nil)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	txq := s.repository.Queries.WithTx(tx)
+	txq := s.repository.Queries().WithTx(tx)
 
 	user, err := txq.CreateUser(ctx, email)
 	if err != nil {
@@ -231,7 +231,7 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 	}); err != nil {
 		if isUniqueViolation(err) {
 			// Concurrent request already created this identity; re-read to converge.
-			existing, rerr := s.repository.Queries.GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
+			existing, rerr := s.repository.Queries().GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
 				Provider: provider, ProviderUserID: providerUserID,
 			})
 			if rerr != nil {
@@ -263,20 +263,20 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		session, err := s.repository.Queries.GetSession(r.Context(), sessionID)
+		session, err := s.repository.Queries().GetSession(r.Context(), sessionID)
 		if err != nil {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "Unauthorized (invalid or expired session)")
 			return
 		}
 
-		user, err := s.repository.Queries.GetUserById(r.Context(), session.UserID)
+		user, err := s.repository.Queries().GetUserById(r.Context(), session.UserID)
 		if err != nil {
 			log.Printf("cannot find user %s: %v", session.UserID, err)
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User not found")
 			return
 		}
 
-		identity, err := s.repository.Queries.GetIdentityByUserID(r.Context(), session.UserID)
+		identity, err := s.repository.Queries().GetIdentityByUserID(r.Context(), session.UserID)
 		if err != nil {
 			log.Printf("cannot find identity for user %s: %v", session.UserID, err)
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User identity not found")
@@ -321,7 +321,7 @@ func (s *APIServer) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	session, err := s.repository.Queries.GetSession(ctx, sessionID)
+	session, err := s.repository.Queries().GetSession(ctx, sessionID)
 	if err == nil {
 		if provider, exists := s.authProviders[session.Provider]; exists && session.ProviderAccessToken.Valid {
 			plainToken, decErr := s.tokenEncryptor.Decrypt(session.ProviderAccessToken.String)
@@ -331,7 +331,7 @@ func (s *APIServer) logout(w http.ResponseWriter, r *http.Request) {
 				log.Printf("warning: failed to revoke provider token: %v", revokeErr)
 			}
 		}
-		if deleteErr := s.repository.Queries.DeleteSession(ctx, sessionID); deleteErr != nil {
+		if deleteErr := s.repository.Queries().DeleteSession(ctx, sessionID); deleteErr != nil {
 			log.Printf("warning: failed to delete session: %v", deleteErr)
 		}
 	}
@@ -379,7 +379,7 @@ func (s *APIServer) isValid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := s.repository.Queries.GetSession(r.Context(), sessionID)
+	session, err := s.repository.Queries().GetSession(r.Context(), sessionID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", map[string]any{
 			"authenticated": false,
@@ -388,7 +388,7 @@ func (s *APIServer) isValid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identity, err := s.repository.Queries.GetIdentityByUserID(r.Context(), session.UserID)
+	identity, err := s.repository.Queries().GetIdentityByUserID(r.Context(), session.UserID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", map[string]any{
 			"authenticated": false,

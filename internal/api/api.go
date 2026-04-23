@@ -13,6 +13,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
+	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
 )
 
@@ -21,12 +22,16 @@ type APIServer struct {
 	bucketHandler    storagetypes.ObjectStorage
 	cloudFrontSigner *cdn.CloudFrontURLSigner
 	emailSender      mailtypes.EmailSender
-	repository       *repo.Repository
+	repository       repo.Repository
 	authProviders    map[string]auth.AuthProvider
 	tokenEncryptor   *tokencrypto.Encryptor
+
+	files  service.FileService
+	shares service.ShareService
+	users  service.UserService
 }
 
-func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, bh storagetypes.ObjectStorage, cloudFrontSigner *cdn.CloudFrontURLSigner, repository *repo.Repository, authProviders map[string]auth.AuthProvider, tokenEncryptor *tokencrypto.Encryptor) *APIServer {
+func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, bh storagetypes.ObjectStorage, cloudFrontSigner *cdn.CloudFrontURLSigner, repository *repo.PostgresRepository, authProviders map[string]auth.AuthProvider, tokenEncryptor *tokencrypto.Encryptor, files service.FileService, shares service.ShareService, users service.UserService) *APIServer {
 
 	return &APIServer{
 		backendConfig:    backendConfig,
@@ -36,6 +41,9 @@ func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, 
 		repository:       repository,
 		authProviders:    authProviders,
 		tokenEncryptor:   tokenEncryptor,
+		files:            files,
+		shares:           shares,
+		users:            users,
 	}
 }
 
