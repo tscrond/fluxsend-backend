@@ -374,7 +374,7 @@ const insertPublicShare = `-- name: InsertPublicShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, NULL, $2, $3, $4)
 ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL
-DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = NULL, failed_attempts = 0
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = NULL
 RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
 `
 
@@ -454,7 +454,7 @@ const insertShare = `-- name: InsertShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
-SET expires_at = EXCLUDED.expires_at, password_hash = NULL, failed_attempts = 0
+SET expires_at = EXCLUDED.expires_at, password_hash = NULL
 RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
 `
 
