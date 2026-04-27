@@ -102,8 +102,11 @@ func (s *APIServer) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Password string `json:"password"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
 	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_json", "")
+		return
+	}
 
 	result, err := s.shares.ResolvePublicDownload(r.Context(), token, mode, body.Password)
 	if err != nil {
