@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
@@ -53,6 +54,10 @@ func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
 
 	shares, notificationStatus, err := s.shares.ShareWith(r.Context(), authUser.Email, userUUID, req.ForUser, req.Objects, req.Duration, req.Password, req.SendEmail)
 	if err != nil {
+		if errors.Is(err, service.ErrPasswordTooLong) {
+			pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "password_too_long")
+			return
+		}
 		log.Println("shareWith error:", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "sharing_error")
 		return

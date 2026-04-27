@@ -124,6 +124,9 @@ func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, owne
 
 	var hashedPassword string
 	if password != "" {
+		if len([]byte(password)) > maxPasswordBytes {
+			return nil, "", ErrPasswordTooLong
+		}
 		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			return nil, "", fmt.Errorf("hashing password: %w", err)
@@ -226,6 +229,9 @@ func (s *shareService) QuickShare(ctx context.Context, sharedByEmail string, own
 
 	var share sqlc.Share
 	if password != "" {
+		if len([]byte(password)) > maxPasswordBytes {
+			return nil, ErrPasswordTooLong
+		}
 		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			return nil, fmt.Errorf("hashing password: %w", err)
@@ -321,6 +327,10 @@ func (s *shareService) MarkSeen(ctx context.Context, email, token string) error 
 
 var ErrPasswordRequired = errors.New("share is password-protected")
 var ErrWrongPassword = errors.New("wrong share password")
+var ErrShareNotFound = errors.New("share not found or not owned by user")
+var ErrPasswordTooLong = errors.New("password exceeds maximum length of 72 bytes")
+
+const maxPasswordBytes = 72
 
 func (s *shareService) shareBaseURL() string {
 	if s.frontendEndpoint != "" {
@@ -390,7 +400,7 @@ func (s *shareService) ResolvePublicDownload(ctx context.Context, token, mode, p
 				log.Printf("incrementing failed attempts for token %q: %v", token, incErr)
 			}
 			if newCount >= maxShareFailedAttempts {
-				if delErr := s.queries.DeleteShareByToken(ctx, sqlc.DeleteShareByTokenParams{
+				if _, delErr := s.queries.DeleteShareByToken(ctx, sqlc.DeleteShareByTokenParams{
 					SharingToken: token,
 					SharedBy:     row.SharedBy,
 				}); delErr != nil {
@@ -477,10 +487,17 @@ func (s *shareService) sendSharingNotification(sharedByEmail, emailTo, expiryDat
 }
 
 func (s *shareService) RevokeShare(ctx context.Context, token, ownerEmail string) error {
-	return s.queries.DeleteShareByToken(ctx, sqlc.DeleteShareByTokenParams{
+	n, err := s.queries.DeleteShareByToken(ctx, sqlc.DeleteShareByTokenParams{
 		SharingToken: token,
 		SharedBy:     sql.NullString{Valid: true, String: ownerEmail},
 	})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrShareNotFound
+	}
+	return nil
 }
 
 func buildContentDisposition(filename string) string {

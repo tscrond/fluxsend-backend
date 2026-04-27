@@ -25,7 +25,7 @@ func (q *Queries) CountUnseenShares(ctx context.Context, sharedFor sql.NullStrin
 	return count, err
 }
 
-const deleteShareByToken = `-- name: DeleteShareByToken :exec
+const deleteShareByToken = `-- name: DeleteShareByToken :execrows
 DELETE FROM shares WHERE sharing_token = $1 AND shared_by = $2
 `
 
@@ -34,9 +34,12 @@ type DeleteShareByTokenParams struct {
 	SharedBy     sql.NullString `json:"shared_by"`
 }
 
-func (q *Queries) DeleteShareByToken(ctx context.Context, arg DeleteShareByTokenParams) error {
-	_, err := q.db.ExecContext(ctx, deleteShareByToken, arg.SharingToken, arg.SharedBy)
-	return err
+func (q *Queries) DeleteShareByToken(ctx context.Context, arg DeleteShareByTokenParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteShareByToken, arg.SharingToken, arg.SharedBy)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getBucketAndObjectFromToken = `-- name: GetBucketAndObjectFromToken :one
@@ -413,7 +416,7 @@ const insertPublicSharePasswordProtected = `-- name: InsertPublicSharePasswordPr
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
 VALUES ($1, NULL, $2, $3, $4, $5)
 ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL
-DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = EXCLUDED.password_hash
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = EXCLUDED.password_hash, failed_attempts = 0
 RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
 `
 
@@ -495,7 +498,7 @@ const insertShareWithPassword = `-- name: InsertShareWithPassword :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
-SET expires_at = EXCLUDED.expires_at, password_hash = EXCLUDED.password_hash
+SET expires_at = EXCLUDED.expires_at, password_hash = EXCLUDED.password_hash, failed_attempts = 0
 RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
 `
 

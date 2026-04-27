@@ -9,7 +9,7 @@ RETURNING *;
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
-SET expires_at = EXCLUDED.expires_at, password_hash = EXCLUDED.password_hash
+SET expires_at = EXCLUDED.expires_at, password_hash = EXCLUDED.password_hash, failed_attempts = 0
 RETURNING *;
 
 -- name: GetSharedFileIdFromToken :one
@@ -76,7 +76,7 @@ RETURNING *;
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
 VALUES ($1, NULL, $2, $3, $4, $5)
 ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL
-DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = EXCLUDED.password_hash
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = EXCLUDED.password_hash, failed_attempts = 0
 RETURNING *;
 
 -- name: GetPublicShareMetadata :one
@@ -90,7 +90,7 @@ UPDATE shares SET failed_attempts = failed_attempts + 1
 WHERE sharing_token = $1
 RETURNING failed_attempts;
 
--- name: DeleteShareByToken :exec
+-- name: DeleteShareByToken :execrows
 DELETE FROM shares WHERE sharing_token = $1 AND shared_by = $2;
 
 -- name: CountUnseenShares :one
