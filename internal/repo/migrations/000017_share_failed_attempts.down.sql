@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE shares
+DROP COLUMN IF EXISTS failed_attempts;
+COMMIT;

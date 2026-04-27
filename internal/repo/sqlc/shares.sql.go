@@ -25,11 +25,31 @@ func (q *Queries) CountUnseenShares(ctx context.Context, sharedFor sql.NullStrin
 	return count, err
 }
 
+const deleteShareByToken = `-- name: DeleteShareByToken :execrows
+DELETE FROM shares WHERE sharing_token = $1 AND shared_by = $2
+`
+
+type DeleteShareByTokenParams struct {
+	SharingToken string         `json:"sharing_token"`
+	SharedBy     sql.NullString `json:"shared_by"`
+}
+
+func (q *Queries) DeleteShareByToken(ctx context.Context, arg DeleteShareByTokenParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteShareByToken, arg.SharingToken, arg.SharedBy)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getBucketAndObjectFromToken = `-- name: GetBucketAndObjectFromToken :one
 SELECT
 u.user_bucket,
 f.storage_mapping,
-f.file_name
+f.file_name,
+s.password_hash,
+s.failed_attempts,
+s.shared_by
 FROM shares s
 JOIN files f ON s.file_id = f.id
 JOIN users u ON f.owner_id = u.id
@@ -40,12 +60,22 @@ type GetBucketAndObjectFromTokenRow struct {
 	UserBucket     sql.NullString `json:"user_bucket"`
 	StorageMapping uuid.UUID      `json:"storage_mapping"`
 	FileName       string         `json:"file_name"`
+	PasswordHash   sql.NullString `json:"password_hash"`
+	FailedAttempts int32          `json:"failed_attempts"`
+	SharedBy       sql.NullString `json:"shared_by"`
 }
 
 func (q *Queries) GetBucketAndObjectFromToken(ctx context.Context, sharingToken string) (GetBucketAndObjectFromTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, getBucketAndObjectFromToken, sharingToken)
 	var i GetBucketAndObjectFromTokenRow
-	err := row.Scan(&i.UserBucket, &i.StorageMapping, &i.FileName)
+	err := row.Scan(
+		&i.UserBucket,
+		&i.StorageMapping,
+		&i.FileName,
+		&i.PasswordHash,
+		&i.FailedAttempts,
+		&i.SharedBy,
+	)
 	return i, err
 }
 
@@ -80,7 +110,7 @@ func (q *Queries) GetBucketObjectAndOwnerFromPrivateToken(ctx context.Context, p
 }
 
 const getExistingPublicShare = `-- name: GetExistingPublicShare :one
-SELECT id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id FROM shares
+SELECT id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts FROM shares
 WHERE shared_by = $1 AND shared_for IS NULL AND file_id = $2 AND expires_at > NOW()
 LIMIT 1
 `
@@ -103,6 +133,8 @@ func (q *Queries) GetExistingPublicShare(ctx context.Context, arg GetExistingPub
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
 		&i.SharedByUserID,
+		&i.PasswordHash,
+		&i.FailedAttempts,
 	)
 	return i, err
 }
@@ -131,7 +163,7 @@ func (q *Queries) GetFileFromPrivateToken(ctx context.Context, privateDownloadTo
 const getFilesSharedByUser = `-- name: GetFilesSharedByUser :many
 SELECT
     f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping, f.created_at,
-    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id
+    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id, s.password_hash, s.failed_attempts
 FROM shares s
 JOIN files f ON s.file_id = f.id
 WHERE s.shared_by = $1
@@ -156,6 +188,8 @@ type GetFilesSharedByUserRow struct {
 	ExpiresAt            time.Time      `json:"expires_at"`
 	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
 	SharedByUserID       uuid.NullUUID  `json:"shared_by_user_id"`
+	PasswordHash         sql.NullString `json:"password_hash"`
+	FailedAttempts       int32          `json:"failed_attempts"`
 }
 
 func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullString) ([]GetFilesSharedByUserRow, error) {
@@ -186,6 +220,8 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 			&i.ExpiresAt,
 			&i.ReceivedSeenAt,
 			&i.SharedByUserID,
+			&i.PasswordHash,
+			&i.FailedAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -203,7 +239,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 const getFilesSharedWithUser = `-- name: GetFilesSharedWithUser :many
 SELECT
     f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping, f.created_at,
-    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id
+    s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id, s.password_hash, s.failed_attempts
 FROM shares s
 JOIN files f ON s.file_id = f.id
 WHERE s.shared_for = $1
@@ -228,6 +264,8 @@ type GetFilesSharedWithUserRow struct {
 	ExpiresAt            time.Time      `json:"expires_at"`
 	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
 	SharedByUserID       uuid.NullUUID  `json:"shared_by_user_id"`
+	PasswordHash         sql.NullString `json:"password_hash"`
+	FailedAttempts       int32          `json:"failed_attempts"`
 }
 
 func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.NullString) ([]GetFilesSharedWithUserRow, error) {
@@ -258,6 +296,8 @@ func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.Null
 			&i.ExpiresAt,
 			&i.ReceivedSeenAt,
 			&i.SharedByUserID,
+			&i.PasswordHash,
+			&i.FailedAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -270,6 +310,32 @@ func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.Null
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPublicShareMetadata = `-- name: GetPublicShareMetadata :one
+SELECT f.file_name, s.expires_at, s.password_hash, s.failed_attempts
+FROM shares s
+JOIN files f ON s.file_id = f.id
+WHERE s.sharing_token = $1
+`
+
+type GetPublicShareMetadataRow struct {
+	FileName       string         `json:"file_name"`
+	ExpiresAt      time.Time      `json:"expires_at"`
+	PasswordHash   sql.NullString `json:"password_hash"`
+	FailedAttempts int32          `json:"failed_attempts"`
+}
+
+func (q *Queries) GetPublicShareMetadata(ctx context.Context, sharingToken string) (GetPublicShareMetadataRow, error) {
+	row := q.db.QueryRowContext(ctx, getPublicShareMetadata, sharingToken)
+	var i GetPublicShareMetadataRow
+	err := row.Scan(
+		&i.FileName,
+		&i.ExpiresAt,
+		&i.PasswordHash,
+		&i.FailedAttempts,
+	)
+	return i, err
 }
 
 const getSharedFileIdFromToken = `-- name: GetSharedFileIdFromToken :one
@@ -294,12 +360,25 @@ func (q *Queries) GetTokenExpirationTime(ctx context.Context, sharingToken strin
 	return expires_at, err
 }
 
+const incrementShareFailedAttempts = `-- name: IncrementShareFailedAttempts :one
+UPDATE shares SET failed_attempts = failed_attempts + 1
+WHERE sharing_token = $1
+RETURNING failed_attempts
+`
+
+func (q *Queries) IncrementShareFailedAttempts(ctx context.Context, sharingToken string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, incrementShareFailedAttempts, sharingToken)
+	var failed_attempts int32
+	err := row.Scan(&failed_attempts)
+	return failed_attempts, err
+}
+
 const insertPublicShare = `-- name: InsertPublicShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, NULL, $2, $3, $4)
-ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL 
-DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token
-RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id
+ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = NULL
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
 `
 
 type InsertPublicShareParams struct {
@@ -327,6 +406,49 @@ func (q *Queries) InsertPublicShare(ctx context.Context, arg InsertPublicSharePa
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
 		&i.SharedByUserID,
+		&i.PasswordHash,
+		&i.FailedAttempts,
+	)
+	return i, err
+}
+
+const insertPublicSharePasswordProtected = `-- name: InsertPublicSharePasswordProtected :one
+INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
+VALUES ($1, NULL, $2, $3, $4, $5)
+ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = EXCLUDED.password_hash, failed_attempts = 0
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
+`
+
+type InsertPublicSharePasswordProtectedParams struct {
+	SharedBy     sql.NullString `json:"shared_by"`
+	FileID       sql.NullInt32  `json:"file_id"`
+	ExpiresAt    time.Time      `json:"expires_at"`
+	SharingToken string         `json:"sharing_token"`
+	PasswordHash sql.NullString `json:"password_hash"`
+}
+
+func (q *Queries) InsertPublicSharePasswordProtected(ctx context.Context, arg InsertPublicSharePasswordProtectedParams) (Share, error) {
+	row := q.db.QueryRowContext(ctx, insertPublicSharePasswordProtected,
+		arg.SharedBy,
+		arg.FileID,
+		arg.ExpiresAt,
+		arg.SharingToken,
+		arg.PasswordHash,
+	)
+	var i Share
+	err := row.Scan(
+		&i.ID,
+		&i.SharedBy,
+		&i.SharedFor,
+		&i.SharingToken,
+		&i.FileID,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.ReceivedSeenAt,
+		&i.SharedByUserID,
+		&i.PasswordHash,
+		&i.FailedAttempts,
 	)
 	return i, err
 }
@@ -335,8 +457,8 @@ const insertShare = `-- name: InsertShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
-SET expires_at = EXCLUDED.expires_at
-RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id
+SET expires_at = EXCLUDED.expires_at, password_hash = NULL
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
 `
 
 type InsertShareParams struct {
@@ -366,6 +488,51 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) (Share
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
 		&i.SharedByUserID,
+		&i.PasswordHash,
+		&i.FailedAttempts,
+	)
+	return i, err
+}
+
+const insertShareWithPassword = `-- name: InsertShareWithPassword :one
+INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
+SET expires_at = EXCLUDED.expires_at, password_hash = EXCLUDED.password_hash, failed_attempts = 0
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
+`
+
+type InsertShareWithPasswordParams struct {
+	SharedBy     sql.NullString `json:"shared_by"`
+	SharedFor    sql.NullString `json:"shared_for"`
+	FileID       sql.NullInt32  `json:"file_id"`
+	ExpiresAt    time.Time      `json:"expires_at"`
+	SharingToken string         `json:"sharing_token"`
+	PasswordHash sql.NullString `json:"password_hash"`
+}
+
+func (q *Queries) InsertShareWithPassword(ctx context.Context, arg InsertShareWithPasswordParams) (Share, error) {
+	row := q.db.QueryRowContext(ctx, insertShareWithPassword,
+		arg.SharedBy,
+		arg.SharedFor,
+		arg.FileID,
+		arg.ExpiresAt,
+		arg.SharingToken,
+		arg.PasswordHash,
+	)
+	var i Share
+	err := row.Scan(
+		&i.ID,
+		&i.SharedBy,
+		&i.SharedFor,
+		&i.SharingToken,
+		&i.FileID,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.ReceivedSeenAt,
+		&i.SharedByUserID,
+		&i.PasswordHash,
+		&i.FailedAttempts,
 	)
 	return i, err
 }
@@ -373,7 +540,7 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) (Share
 const markShareSeen = `-- name: MarkShareSeen :one
 UPDATE shares SET received_seen_at = NOW()
 WHERE sharing_token = $1 AND shared_for = $2 AND received_seen_at IS NULL
-RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id
+RETURNING id, shared_by, shared_for, sharing_token, file_id, created_at, expires_at, received_seen_at, shared_by_user_id, password_hash, failed_attempts
 `
 
 type MarkShareSeenParams struct {
@@ -394,6 +561,8 @@ func (q *Queries) MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (S
 		&i.ExpiresAt,
 		&i.ReceivedSeenAt,
 		&i.SharedByUserID,
+		&i.PasswordHash,
+		&i.FailedAttempts,
 	)
 	return i, err
 }

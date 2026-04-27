@@ -17,6 +17,7 @@ import (
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/pkg"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ShareResult describes one share entry created by ShareWith.
@@ -39,18 +40,28 @@ type QuickShareResult struct {
 
 // SharedFileInfo is a file shared with or by a user, flattened for API responses.
 type SharedFileInfo struct {
-	FileID       int32     `json:"file_id"`
-	OwnerID      string    `json:"owner_id"`
-	FileName     string    `json:"file_name"`
-	FileType     string    `json:"file_type"`
-	MD5Checksum  string    `json:"md5_checksum"`
-	SharedBy     string    `json:"shared_by"`
-	SharedFor    string    `json:"shared_for"`
-	SharingToken string    `json:"sharing_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
-	Size         int64     `json:"size"`
-	Seen         bool      `json:"seen,omitempty"`
+	FileID            int32     `json:"file_id"`
+	OwnerID           string    `json:"owner_id"`
+	FileName          string    `json:"file_name"`
+	FileType          string    `json:"file_type"`
+	MD5Checksum       string    `json:"md5_checksum"`
+	SharedBy          string    `json:"shared_by"`
+	SharedFor         string    `json:"shared_for"`
+	SharingToken      string    `json:"sharing_token"`
+	ExpiresAt         time.Time `json:"expires_at"`
+	Size              int64     `json:"size"`
+	Seen              bool      `json:"seen,omitempty"`
+	PasswordProtected bool      `json:"password_protected"`
 }
+
+// ShareInfo is the public metadata about a share link, returned before authentication.
+type ShareInfo struct {
+	FileName          string    `json:"file_name"`
+	ExpiresAt         time.Time `json:"expires_at"`
+	PasswordProtected bool      `json:"password_protected"`
+}
+
+const maxShareFailedAttempts = 5
 
 // DownloadResult carries everything the handler needs to respond to a download request.
 type DownloadResult struct {
@@ -61,14 +72,16 @@ type DownloadResult struct {
 
 // ShareService encapsulates all business logic for file sharing and downloads.
 type ShareService interface {
-	ShareWith(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, forUser string, objects []string, duration string, sendEmail bool) (shares []ShareResult, notificationStatus string, err error)
-	QuickShare(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, object, duration string) (*QuickShareResult, error)
+	ShareWith(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, forUser string, objects []string, duration, password string, sendEmail bool) (shares []ShareResult, notificationStatus string, err error)
+	QuickShare(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, object, duration, password string) (*QuickShareResult, error)
 	GetSharedForUser(ctx context.Context, email string) ([]SharedFileInfo, error)
 	GetSharedByUser(ctx context.Context, email string) ([]SharedFileInfo, error)
 	CountUnseen(ctx context.Context, email string) (int64, error)
 	MarkSeen(ctx context.Context, email, token string) error
-	ResolvePublicDownload(ctx context.Context, token, mode string) (*DownloadResult, error)
+	GetPublicShareInfo(ctx context.Context, token string) (*ShareInfo, error)
+	ResolvePublicDownload(ctx context.Context, token, mode, password string) (*DownloadResult, error)
 	ResolvePersonalDownload(ctx context.Context, ownerID uuid.UUID, token, mode string) (*DownloadResult, error)
+	RevokeShare(ctx context.Context, token, ownerEmail string) error
 }
 
 type shareService struct {
@@ -77,6 +90,7 @@ type shareService struct {
 	cloudFrontSigner *cdn.CloudFrontURLSigner
 	emailSender      mailtypes.EmailSender
 	backendEndpoint  string
+	frontendEndpoint string
 	mailFrom         string
 }
 
@@ -85,7 +99,7 @@ func NewShareService(
 	storage storagetypes.ObjectStorage,
 	cloudFrontSigner *cdn.CloudFrontURLSigner,
 	emailSender mailtypes.EmailSender,
-	backendEndpoint, mailFrom string,
+	backendEndpoint, frontendEndpoint, mailFrom string,
 ) ShareService {
 	if mailFrom == "" {
 		mailFrom = "noreply@fluxsend.com"
@@ -96,16 +110,29 @@ func NewShareService(
 		cloudFrontSigner: cloudFrontSigner,
 		emailSender:      emailSender,
 		backendEndpoint:  backendEndpoint,
+		frontendEndpoint: frontendEndpoint,
 		mailFrom:         mailFrom,
 	}
 }
 
-func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, forUser string, objects []string, duration string, sendEmail bool) ([]ShareResult, string, error) {
+func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, forUser string, objects []string, duration, password string, sendEmail bool) ([]ShareResult, string, error) {
 	expiryDuration, err := pkg.CustomParseDuration(duration)
 	if err != nil {
 		return nil, "", fmt.Errorf("invalid duration %q: %w", duration, err)
 	}
 	expiresAt := time.Now().Add(expiryDuration)
+
+	var hashedPassword string
+	if password != "" {
+		if len([]byte(password)) > maxPasswordBytes {
+			return nil, "", ErrPasswordTooLong
+		}
+		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, "", fmt.Errorf("hashing password: %w", err)
+		}
+		hashedPassword = string(hashed)
+	}
 
 	results := make([]ShareResult, 0, len(objects))
 	filesForMail := make([]mailtypes.FileInfo, 0, len(objects))
@@ -126,18 +153,30 @@ func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, owne
 			continue
 		}
 
-		share, err := s.queries.InsertShare(ctx, sqlc.InsertShareParams{
-			SharedBy:     sql.NullString{Valid: true, String: sharedByEmail},
-			SharedFor:    sql.NullString{Valid: true, String: forUser},
-			FileID:       sql.NullInt32{Valid: true, Int32: fileData.ID},
-			ExpiresAt:    expiresAt,
-			SharingToken: token,
-		})
+		var share sqlc.Share
+		if hashedPassword != "" {
+			share, err = s.queries.InsertShareWithPassword(ctx, sqlc.InsertShareWithPasswordParams{
+				SharedBy:     sql.NullString{Valid: true, String: sharedByEmail},
+				SharedFor:    sql.NullString{Valid: true, String: forUser},
+				FileID:       sql.NullInt32{Valid: true, Int32: fileData.ID},
+				ExpiresAt:    expiresAt,
+				SharingToken: token,
+				PasswordHash: sql.NullString{Valid: true, String: hashedPassword},
+			})
+		} else {
+			share, err = s.queries.InsertShare(ctx, sqlc.InsertShareParams{
+				SharedBy:     sql.NullString{Valid: true, String: sharedByEmail},
+				SharedFor:    sql.NullString{Valid: true, String: forUser},
+				FileID:       sql.NullInt32{Valid: true, Int32: fileData.ID},
+				ExpiresAt:    expiresAt,
+				SharingToken: token,
+			})
+		}
 		if err != nil {
 			return nil, "", fmt.Errorf("inserting share for %q: %w", objectName, err)
 		}
 
-		link := fmt.Sprintf("%s/d/%s", s.backendEndpoint, share.SharingToken)
+		link := fmt.Sprintf("%s/share/%s", s.shareBaseURL(), share.SharingToken)
 		results = append(results, ShareResult{
 			File:         objectName,
 			SharedFor:    share.SharedFor.String,
@@ -149,7 +188,7 @@ func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, owne
 		})
 		filesForMail = append(filesForMail, mailtypes.FileInfo{
 			FileName:    objectName,
-			DownloadURL: fmt.Sprintf("%s/d/%s?mode=inline", s.backendEndpoint, share.SharingToken),
+			DownloadURL: fmt.Sprintf("%s/share/%s", s.shareBaseURL(), share.SharingToken),
 		})
 	}
 
@@ -165,7 +204,7 @@ func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, owne
 	return results, "sent", nil
 }
 
-func (s *shareService) QuickShare(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, object, duration string) (*QuickShareResult, error) {
+func (s *shareService) QuickShare(ctx context.Context, sharedByEmail string, ownerID uuid.UUID, object, duration, password string) (*QuickShareResult, error) {
 	if duration == "" {
 		duration = "24h"
 	}
@@ -182,41 +221,47 @@ func (s *shareService) QuickShare(ctx context.Context, sharedByEmail string, own
 		return nil, err
 	}
 
-	existing, err := s.queries.GetExistingPublicShare(ctx, sqlc.GetExistingPublicShareParams{
-		SharedBy: sql.NullString{Valid: true, String: sharedByEmail},
-		FileID:   sql.NullInt32{Valid: true, Int32: fileData.ID},
-	})
-	if err == nil {
-		return &QuickShareResult{
-			SharingToken: existing.SharingToken,
-			ExpiresAt:    existing.ExpiresAt,
-			SharingLink:  fmt.Sprintf("%s/d/%s", s.backendEndpoint, existing.SharingToken),
-		}, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("checking existing public share: %w", err)
-	}
-
 	token, err := pkg.RandToken(32)
 	if err != nil {
 		return nil, fmt.Errorf("generating token: %w", err)
 	}
 	expiresAt := time.Now().Add(expiryDuration)
 
-	share, err := s.queries.InsertPublicShare(ctx, sqlc.InsertPublicShareParams{
-		SharedBy:     sql.NullString{Valid: true, String: sharedByEmail},
-		FileID:       sql.NullInt32{Valid: true, Int32: fileData.ID},
-		ExpiresAt:    expiresAt,
-		SharingToken: token,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("inserting public share: %w", err)
+	var share sqlc.Share
+	if password != "" {
+		if len([]byte(password)) > maxPasswordBytes {
+			return nil, ErrPasswordTooLong
+		}
+		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("hashing password: %w", err)
+		}
+		share, err = s.queries.InsertPublicSharePasswordProtected(ctx, sqlc.InsertPublicSharePasswordProtectedParams{
+			SharedBy:     sql.NullString{Valid: true, String: sharedByEmail},
+			FileID:       sql.NullInt32{Valid: true, Int32: fileData.ID},
+			ExpiresAt:    expiresAt,
+			SharingToken: token,
+			PasswordHash: sql.NullString{Valid: true, String: string(hashed)},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("inserting password-protected public share: %w", err)
+		}
+	} else {
+		share, err = s.queries.InsertPublicShare(ctx, sqlc.InsertPublicShareParams{
+			SharedBy:     sql.NullString{Valid: true, String: sharedByEmail},
+			FileID:       sql.NullInt32{Valid: true, Int32: fileData.ID},
+			ExpiresAt:    expiresAt,
+			SharingToken: token,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("inserting public share: %w", err)
+		}
 	}
 
 	return &QuickShareResult{
 		SharingToken: share.SharingToken,
 		ExpiresAt:    share.ExpiresAt,
-		SharingLink:  fmt.Sprintf("%s/d/%s", s.backendEndpoint, share.SharingToken),
+		SharingLink:  fmt.Sprintf("%s/share/%s", s.shareBaseURL(), share.SharingToken),
 	}, nil
 }
 
@@ -228,17 +273,18 @@ func (s *shareService) GetSharedForUser(ctx context.Context, email string) ([]Sh
 	result := make([]SharedFileInfo, 0, len(rows))
 	for _, r := range rows {
 		result = append(result, SharedFileInfo{
-			FileID:       r.FileID.Int32,
-			OwnerID:      r.OwnerID.String(),
-			FileName:     r.FileName,
-			FileType:     r.FileType.String,
-			MD5Checksum:  r.Md5Checksum,
-			SharedBy:     r.SharedBy.String,
-			SharedFor:    r.SharedFor.String,
-			SharingToken: r.SharingToken,
-			ExpiresAt:    r.ExpiresAt,
-			Size:         r.Size.Int64,
-			Seen:         r.ReceivedSeenAt.Valid,
+			FileID:            r.FileID.Int32,
+			OwnerID:           r.OwnerID.String(),
+			FileName:          r.FileName,
+			FileType:          r.FileType.String,
+			MD5Checksum:       r.Md5Checksum,
+			SharedBy:          r.SharedBy.String,
+			SharedFor:         r.SharedFor.String,
+			SharingToken:      r.SharingToken,
+			ExpiresAt:         r.ExpiresAt,
+			Size:              r.Size.Int64,
+			Seen:              r.ReceivedSeenAt.Valid,
+			PasswordProtected: r.PasswordHash.Valid && r.PasswordHash.String != "",
 		})
 	}
 	return result, nil
@@ -279,7 +325,52 @@ func (s *shareService) MarkSeen(ctx context.Context, email, token string) error 
 	return err
 }
 
-func (s *shareService) ResolvePublicDownload(ctx context.Context, token, mode string) (*DownloadResult, error) {
+var ErrPasswordRequired = errors.New("share is password-protected")
+var ErrWrongPassword = errors.New("wrong share password")
+var ErrShareNotFound = errors.New("share not found or not owned by user")
+var ErrPasswordTooLong = errors.New("password exceeds maximum length of 72 bytes")
+
+const maxPasswordBytes = 72
+
+func (s *shareService) shareBaseURL() string {
+	if s.frontendEndpoint != "" {
+		return s.frontendEndpoint
+	}
+	return s.backendEndpoint
+}
+
+func (s *shareService) GetPublicShareInfo(ctx context.Context, token string) (*ShareInfo, error) {
+	row, err := s.queries.GetPublicShareMetadata(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	if row.ExpiresAt.Before(time.Now()) {
+		return nil, ErrTokenExpired
+	}
+	if row.FailedAttempts >= maxShareFailedAttempts {
+		return nil, ErrShareBlocked
+	}
+	return &ShareInfo{
+		FileName:          row.FileName,
+		ExpiresAt:         row.ExpiresAt,
+		PasswordProtected: row.PasswordHash.String != "",
+	}, nil
+}
+
+func verifySharePassword(provided, stored string) error {
+	if stored == "" {
+		return nil // not protected
+	}
+	if provided == "" {
+		return ErrPasswordRequired
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(stored), []byte(provided)); err != nil {
+		return ErrWrongPassword
+	}
+	return nil
+}
+
+func (s *shareService) ResolvePublicDownload(ctx context.Context, token, mode, password string) (*DownloadResult, error) {
 	expiresAt, err := s.queries.GetTokenExpirationTime(ctx, token)
 	if err != nil {
 		return nil, fmt.Errorf("checking token expiration: %w", err)
@@ -296,6 +387,29 @@ func (s *shareService) ResolvePublicDownload(ctx context.Context, token, mode st
 	row, err := s.queries.GetBucketAndObjectFromToken(ctx, token)
 	if err != nil {
 		return nil, fmt.Errorf("getting bucket/object for token: %w", err)
+	}
+
+	if row.FailedAttempts >= maxShareFailedAttempts {
+		return nil, ErrShareBlocked
+	}
+
+	if err := verifySharePassword(password, row.PasswordHash.String); err != nil {
+		if errors.Is(err, ErrWrongPassword) {
+			newCount, incErr := s.queries.IncrementShareFailedAttempts(ctx, token)
+			if incErr != nil {
+				log.Printf("incrementing failed attempts for token %q: %v", token, incErr)
+			}
+			if newCount >= maxShareFailedAttempts {
+				if _, delErr := s.queries.DeleteShareByToken(ctx, sqlc.DeleteShareByTokenParams{
+					SharingToken: token,
+					SharedBy:     row.SharedBy,
+				}); delErr != nil {
+					log.Printf("deleting blocked share %q: %v", token, delErr)
+				}
+				return nil, ErrShareBlocked
+			}
+		}
+		return nil, err
 	}
 
 	url, err := s.buildDownloadURL(ctx, row.UserBucket.String, row.StorageMapping.String(), row.FileName, mode, time.Now().Add(time.Minute))
@@ -370,6 +484,20 @@ func (s *shareService) sendSharingNotification(sharedByEmail, emailTo, expiryDat
 		Body:    htmlBody,
 	})
 	return err
+}
+
+func (s *shareService) RevokeShare(ctx context.Context, token, ownerEmail string) error {
+	n, err := s.queries.DeleteShareByToken(ctx, sqlc.DeleteShareByTokenParams{
+		SharingToken: token,
+		SharedBy:     sql.NullString{Valid: true, String: ownerEmail},
+	})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrShareNotFound
+	}
+	return nil
 }
 
 func buildContentDisposition(filename string) string {

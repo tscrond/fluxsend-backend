@@ -7,4 +7,5 @@ var (
 	ErrNoteTooLong       = errors.New("note exceeds 500 character limit")
 	ErrTokenExpired      = errors.New("sharing token has expired")
 	ErrAccessDenied      = errors.New("access denied")
+	ErrShareBlocked      = errors.New("share blocked: too many failed password attempts")
 )

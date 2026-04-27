@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
@@ -32,6 +33,7 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 	type QuickShareRequest struct {
 		Object   string `json:"object"`
 		Duration string `json:"duration"`
+		Password string `json:"password"`
 	}
 	var req QuickShareRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -53,10 +55,14 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := s.shares.QuickShare(r.Context(), authUser.Email, userUUID, req.Object, req.Duration)
+	result, err := s.shares.QuickShare(r.Context(), authUser.Email, userUUID, req.Object, req.Duration, req.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "", "file_not_found")
+			return
+		}
+		if errors.Is(err, service.ErrPasswordTooLong) {
+			pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "password_too_long")
 			return
 		}
 		log.Println("quickShare error:", err)

@@ -99,6 +99,10 @@ func (s *APIServer) Start() {
 	r.Handle("/d/private/{token}", s.authMiddleware(http.HandlerFunc(s.downloadThroughProxyPersonal)))
 	r.Handle("/d/{token}", http.HandlerFunc(s.downloadThroughProxy))
 
+	r.Handle("/share/info/{token}", http.HandlerFunc(s.publicShareInfo))
+	r.Handle("/share/resolve/{token}", http.HandlerFunc(s.resolvePublicShare))
+	r.Handle("/share/revoke/{token}", s.authMiddleware(http.HandlerFunc(s.revokeShare)))
+
 	r.Handle("/user/data", s.authMiddleware(http.HandlerFunc(s.getUserData)))
 	r.Handle("/user/bucket", s.authMiddleware(http.HandlerFunc(s.getUserBucketData)))
 	r.Handle("/user/private/download_token", s.authMiddleware(http.HandlerFunc(s.getUserPrivateFileByName)))

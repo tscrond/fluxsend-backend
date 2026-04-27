@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -56,6 +57,98 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 	s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
 }
 
+func (s *APIServer) publicShareInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
+		return
+	}
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "empty_token", "")
+		return
+	}
+
+	info, err := s.shares.GetPublicShareInfo(r.Context(), token)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			pkg.WriteJSONResponse(w, http.StatusNotFound, "token_does_not_exist", "")
+			return
+		}
+		if errors.Is(err, service.ErrTokenExpired) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "past_expiration_time_or_does_not_exist", "")
+			return
+		}
+		if errors.Is(err, service.ErrShareBlocked) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "share_blocked", "")
+			return
+		}
+		log.Println("publicShareInfo error:", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "", info)
+}
+
+func (s *APIServer) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
+		return
+	}
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "empty_token", "")
+		return
+	}
+
+	mode := r.URL.Query().Get("mode")
+	if mode != "inline" && mode != "download" && mode != "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_download_mode", "")
+		return
+	}
+
+	var body struct {
+		Password string `json:"password"`
+	}
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_json", "")
+		return
+	}
+
+	result, err := s.shares.ResolvePublicDownload(r.Context(), token, mode, body.Password)
+	if err != nil {
+		if errors.Is(err, service.ErrTokenExpired) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "past_expiration_time_or_does_not_exist", "")
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			pkg.WriteJSONResponse(w, http.StatusNotFound, "token_does_not_exist", "")
+			return
+		}
+		if errors.Is(err, service.ErrPasswordRequired) {
+			pkg.WriteJSONResponse(w, http.StatusUnauthorized, "password_required", "")
+			return
+		}
+		if errors.Is(err, service.ErrWrongPassword) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "wrong_password", "")
+			return
+		}
+		if errors.Is(err, service.ErrShareBlocked) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "share_blocked", "")
+			return
+		}
+		log.Println("resolvePublicShare error:", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "", map[string]string{
+		"url":       result.URL,
+		"file_name": result.FileName,
+	})
+}
+
 func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
@@ -70,7 +163,15 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 
 	token := chi.URLParam(r, "token")
 
-	result, err := s.shares.ResolvePublicDownload(r.Context(), token, mode)
+	var passwordResult struct {
+		Password string `json:"password"`
+	}
+	// Decode is intentionally lenient: an empty body (non-password-protected share)
+	// returns io.EOF which we ignore; password stays "" and verifySharePassword handles it.
+	_ = json.NewDecoder(r.Body).Decode(&passwordResult)
+	defer r.Body.Close()
+
+	result, err := s.shares.ResolvePublicDownload(r.Context(), token, mode, passwordResult.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrTokenExpired) {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "past_expiration_time_or_does_not_exist", "")
@@ -78,6 +179,18 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 		}
 		if errors.Is(err, sql.ErrNoRows) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "token_does_not_exist", "")
+			return
+		}
+		if errors.Is(err, service.ErrPasswordRequired) {
+			pkg.WriteJSONResponse(w, http.StatusUnauthorized, "password_required", "")
+			return
+		}
+		if errors.Is(err, service.ErrWrongPassword) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "wrong_password", "")
+			return
+		}
+		if errors.Is(err, service.ErrShareBlocked) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "share_blocked", "")
 			return
 		}
 		log.Println("ResolvePublicDownload error:", err)

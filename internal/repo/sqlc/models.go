@@ -77,6 +77,8 @@ type Share struct {
 	ExpiresAt      time.Time      `json:"expires_at"`
 	ReceivedSeenAt sql.NullTime   `json:"received_seen_at"`
 	SharedByUserID uuid.NullUUID  `json:"shared_by_user_id"`
+	PasswordHash   sql.NullString `json:"password_hash"`
+	FailedAttempts int32          `json:"failed_attempts"`
 }
 
 type User struct {
