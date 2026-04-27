@@ -269,10 +269,10 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := s.repository.Queries().GetUserById(r.Context(), session.UserID)
+		user, err := s.repository.Queries().GetUserWithPlan(r.Context(), session.UserID)
 		if err != nil {
 			log.Printf("cannot find user %s: %v", session.UserID, err)
-			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User not found")
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User/plan not found")
 			return
 		}
 
@@ -293,7 +293,24 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 			Provider:   session.Provider,
 		}
 
-		ctx := context.WithValue(r.Context(), userdata.AuthorizedUserContextKey, authorizedUser)
+		userPlan := &userdata.UserPlan{
+			PlanID:               user.PlanID.String(),
+			PlanName:             user.PlanName,
+			MaxFileSizeBytes:     user.MaxFileSizeBytes,
+			MaxTotalStorageBytes: user.MaxTotalStorageBytes,
+			MaxFiles:             user.MaxFiles,
+			MaxFilesSentPerDay:   user.MaxFilesSentPerDay,
+			MaxSharesPerDay:      user.MaxSharesPerDay,
+		}
+
+		ctx := context.WithValue(
+			r.Context(),
+			userdata.AuthorizedUserWithPlanContextKey,
+			&userdata.AuthorizedUserWithPlan{
+				AuthorizedUserInfo: *authorizedUser,
+				UserPlan:           *userPlan,
+			},
+		)
 
 		if err := s.bucketHandler.CreateBucketIfNotExists(ctx, user.ID.String()); err != nil {
 			log.Printf("warning: failed to create bucket in middleware: %v", err)

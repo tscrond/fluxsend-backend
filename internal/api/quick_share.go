@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
@@ -16,9 +17,15 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authUser, userUUID, ok := parseAuthorizedUserUUID(r)
+	authUserWithPlan, ok := parseAuthorizedUserWithPlan(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
+		return
+	}
+	authUser := &authUserWithPlan.AuthorizedUserInfo
+	userUUID, err := uuid.Parse(authUser.InternalID)
+	if err != nil {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", "")
 		return
 	}
 
@@ -33,6 +40,16 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Object == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "object is required")
+		return
+	}
+
+	if exceedInfo, err := s.validateSharePlan(r.Context(), authUser.Email, authUserWithPlan.UserPlan); err != nil {
+		if errors.Is(err, ErrDailyShareLimitExceeded) {
+			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
+		} else {
+			log.Printf("[plan-limit] share quota check failed for user=%s: %v", authUser.Email, err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
+		}
 		return
 	}
 

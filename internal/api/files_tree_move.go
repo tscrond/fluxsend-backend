@@ -24,13 +24,20 @@ func normalizePath(path string) string {
 	return strings.Trim(trimmed, "/")
 }
 
-func parseAuthorizedUser(r *http.Request) (*userdata.AuthorizedUserInfo, bool) {
-	authorizedUserData := r.Context().Value(userdata.AuthorizedUserContextKey)
-	authUserData, ok := authorizedUserData.(*userdata.AuthorizedUserInfo)
+func parseAuthorizedUserWithPlan(r *http.Request) (*userdata.AuthorizedUserWithPlan, bool) {
+	uwp, ok := r.Context().Value(userdata.AuthorizedUserWithPlanContextKey).(*userdata.AuthorizedUserWithPlan)
 	if !ok {
 		return nil, false
 	}
-	return authUserData, true
+	return uwp, true
+}
+
+func parseAuthorizedUser(r *http.Request) (*userdata.AuthorizedUserInfo, bool) {
+	uwp, ok := parseAuthorizedUserWithPlan(r)
+	if !ok {
+		return nil, false
+	}
+	return &uwp.AuthorizedUserInfo, true
 }
 
 func parseAuthorizedUserUUID(r *http.Request) (*userdata.AuthorizedUserInfo, uuid.UUID, bool) {
