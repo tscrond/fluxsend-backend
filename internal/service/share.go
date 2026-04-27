@@ -40,17 +40,18 @@ type QuickShareResult struct {
 
 // SharedFileInfo is a file shared with or by a user, flattened for API responses.
 type SharedFileInfo struct {
-	FileID       int32     `json:"file_id"`
-	OwnerID      string    `json:"owner_id"`
-	FileName     string    `json:"file_name"`
-	FileType     string    `json:"file_type"`
-	MD5Checksum  string    `json:"md5_checksum"`
-	SharedBy     string    `json:"shared_by"`
-	SharedFor    string    `json:"shared_for"`
-	SharingToken string    `json:"sharing_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
-	Size         int64     `json:"size"`
-	Seen         bool      `json:"seen,omitempty"`
+	FileID            int32     `json:"file_id"`
+	OwnerID           string    `json:"owner_id"`
+	FileName          string    `json:"file_name"`
+	FileType          string    `json:"file_type"`
+	MD5Checksum       string    `json:"md5_checksum"`
+	SharedBy          string    `json:"shared_by"`
+	SharedFor         string    `json:"shared_for"`
+	SharingToken      string    `json:"sharing_token"`
+	ExpiresAt         time.Time `json:"expires_at"`
+	Size              int64     `json:"size"`
+	Seen              bool      `json:"seen,omitempty"`
+	PasswordProtected bool      `json:"password_protected"`
 }
 
 // ShareInfo is the public metadata about a share link, returned before authentication.
@@ -266,17 +267,18 @@ func (s *shareService) GetSharedForUser(ctx context.Context, email string) ([]Sh
 	result := make([]SharedFileInfo, 0, len(rows))
 	for _, r := range rows {
 		result = append(result, SharedFileInfo{
-			FileID:       r.FileID.Int32,
-			OwnerID:      r.OwnerID.String(),
-			FileName:     r.FileName,
-			FileType:     r.FileType.String,
-			MD5Checksum:  r.Md5Checksum,
-			SharedBy:     r.SharedBy.String,
-			SharedFor:    r.SharedFor.String,
-			SharingToken: r.SharingToken,
-			ExpiresAt:    r.ExpiresAt,
-			Size:         r.Size.Int64,
-			Seen:         r.ReceivedSeenAt.Valid,
+			FileID:            r.FileID.Int32,
+			OwnerID:           r.OwnerID.String(),
+			FileName:          r.FileName,
+			FileType:          r.FileType.String,
+			MD5Checksum:       r.Md5Checksum,
+			SharedBy:          r.SharedBy.String,
+			SharedFor:         r.SharedFor.String,
+			SharingToken:      r.SharingToken,
+			ExpiresAt:         r.ExpiresAt,
+			Size:              r.Size.Int64,
+			Seen:              r.ReceivedSeenAt.Valid,
+			PasswordProtected: r.PasswordHash.Valid && r.PasswordHash.String != "",
 		})
 	}
 	return result, nil
