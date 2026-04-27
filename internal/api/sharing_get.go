@@ -58,6 +58,10 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 }
 
 func (s *APIServer) publicShareInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
+		return
+	}
 	token := chi.URLParam(r, "token")
 	if token == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "empty_token", "")
