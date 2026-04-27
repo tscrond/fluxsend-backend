@@ -20,6 +20,7 @@ type File struct {
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
 	OwnerID              uuid.UUID      `json:"owner_id"`
 	StorageMapping       uuid.UUID      `json:"storage_mapping"`
+	CreatedAt            time.Time      `json:"created_at"`
 }
 
 type Identity struct {
@@ -49,6 +50,7 @@ type Plan struct {
 	MaxFiles             int32     `json:"max_files"`
 	MaxFilesSentPerDay   int32     `json:"max_files_sent_per_day"`
 	MaxSharesPerDay      int32     `json:"max_shares_per_day"`
+	CreatedAt            time.Time `json:"created_at"`
 }
 
 type PlanFeature struct {

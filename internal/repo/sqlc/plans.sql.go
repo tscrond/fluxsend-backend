@@ -102,7 +102,7 @@ func (q *Queries) DeleteUserPlan(ctx context.Context, id uuid.UUID) error {
 }
 
 const getPlanByName = `-- name: GetPlanByName :one
-SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day FROM plans WHERE name = $1
+SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at FROM plans WHERE name = $1
 `
 
 func (q *Queries) GetPlanByName(ctx context.Context, name string) (Plan, error) {
@@ -116,6 +116,7 @@ func (q *Queries) GetPlanByName(ctx context.Context, name string) (Plan, error) 
 		&i.MaxFiles,
 		&i.MaxFilesSentPerDay,
 		&i.MaxSharesPerDay,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -148,7 +149,7 @@ func (q *Queries) GetPlanFeatures(ctx context.Context, planID uuid.UUID) ([]Plan
 }
 
 const getPlans = `-- name: GetPlans :many
-SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day FROM plans
+SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at FROM plans
 `
 
 func (q *Queries) GetPlans(ctx context.Context) ([]Plan, error) {
@@ -168,6 +169,7 @@ func (q *Queries) GetPlans(ctx context.Context) ([]Plan, error) {
 			&i.MaxFiles,
 			&i.MaxFilesSentPerDay,
 			&i.MaxSharesPerDay,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

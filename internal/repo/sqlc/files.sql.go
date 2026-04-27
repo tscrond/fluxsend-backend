@@ -27,7 +27,7 @@ func (q *Queries) DeleteFileByNameAndId(ctx context.Context, arg DeleteFileByNam
 }
 
 const getFileById = `-- name: GetFileById :one
-SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping FROM files WHERE id = $1
+SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping, created_at FROM files WHERE id = $1
 `
 
 func (q *Queries) GetFileById(ctx context.Context, id int32) (File, error) {
@@ -42,6 +42,7 @@ func (q *Queries) GetFileById(ctx context.Context, id int32) (File, error) {
 		&i.PrivateDownloadToken,
 		&i.OwnerID,
 		&i.StorageMapping,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -100,7 +101,7 @@ func (q *Queries) GetFileIdFromToken(ctx context.Context, privateDownloadToken s
 
 const getFilesByOwner = `-- name: GetFilesByOwner :many
 
-SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping FROM files WHERE owner_id = $1
+SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping, created_at FROM files WHERE owner_id = $1
 `
 
 // -- name: InsertFileReturningID :one
@@ -126,6 +127,7 @@ func (q *Queries) GetFilesByOwner(ctx context.Context, ownerID uuid.UUID) ([]Fil
 			&i.PrivateDownloadToken,
 			&i.OwnerID,
 			&i.StorageMapping,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -143,7 +145,7 @@ func (q *Queries) GetFilesByOwner(ctx context.Context, ownerID uuid.UUID) ([]Fil
 const insertFile = `-- name: InsertFile :one
 INSERT INTO files (owner_id, file_name, file_type, size, md5_checksum, private_download_token, storage_mapping)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping
+RETURNING id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping, created_at
 `
 
 type InsertFileParams struct {
@@ -176,6 +178,7 @@ func (q *Queries) InsertFile(ctx context.Context, arg InsertFileParams) (File, e
 		&i.PrivateDownloadToken,
 		&i.OwnerID,
 		&i.StorageMapping,
+		&i.CreatedAt,
 	)
 	return i, err
 }

@@ -108,7 +108,7 @@ func (q *Queries) GetExistingPublicShare(ctx context.Context, arg GetExistingPub
 }
 
 const getFileFromPrivateToken = `-- name: GetFileFromPrivateToken :one
-SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping FROM files WHERE private_download_token = $1
+SELECT id, file_name, file_type, size, md5_checksum, private_download_token, owner_id, storage_mapping, created_at FROM files WHERE private_download_token = $1
 `
 
 func (q *Queries) GetFileFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (File, error) {
@@ -123,13 +123,14 @@ func (q *Queries) GetFileFromPrivateToken(ctx context.Context, privateDownloadTo
 		&i.PrivateDownloadToken,
 		&i.OwnerID,
 		&i.StorageMapping,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getFilesSharedByUser = `-- name: GetFilesSharedByUser :many
 SELECT
-    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping,
+    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping, f.created_at,
     s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id
 FROM shares s
 JOIN files f ON s.file_id = f.id
@@ -145,12 +146,13 @@ type GetFilesSharedByUserRow struct {
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
 	OwnerID              uuid.UUID      `json:"owner_id"`
 	StorageMapping       uuid.UUID      `json:"storage_mapping"`
+	CreatedAt            time.Time      `json:"created_at"`
 	ID_2                 int32          `json:"id_2"`
 	SharedBy             sql.NullString `json:"shared_by"`
 	SharedFor            sql.NullString `json:"shared_for"`
 	SharingToken         string         `json:"sharing_token"`
 	FileID               sql.NullInt32  `json:"file_id"`
-	CreatedAt            sql.NullTime   `json:"created_at"`
+	CreatedAt_2          sql.NullTime   `json:"created_at_2"`
 	ExpiresAt            time.Time      `json:"expires_at"`
 	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
 	SharedByUserID       uuid.NullUUID  `json:"shared_by_user_id"`
@@ -174,12 +176,13 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 			&i.PrivateDownloadToken,
 			&i.OwnerID,
 			&i.StorageMapping,
+			&i.CreatedAt,
 			&i.ID_2,
 			&i.SharedBy,
 			&i.SharedFor,
 			&i.SharingToken,
 			&i.FileID,
-			&i.CreatedAt,
+			&i.CreatedAt_2,
 			&i.ExpiresAt,
 			&i.ReceivedSeenAt,
 			&i.SharedByUserID,
@@ -199,7 +202,7 @@ func (q *Queries) GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullStr
 
 const getFilesSharedWithUser = `-- name: GetFilesSharedWithUser :many
 SELECT
-    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping,
+    f.id, f.file_name, f.file_type, f.size, f.md5_checksum, f.private_download_token, f.owner_id, f.storage_mapping, f.created_at,
     s.id, s.shared_by, s.shared_for, s.sharing_token, s.file_id, s.created_at, s.expires_at, s.received_seen_at, s.shared_by_user_id
 FROM shares s
 JOIN files f ON s.file_id = f.id
@@ -215,12 +218,13 @@ type GetFilesSharedWithUserRow struct {
 	PrivateDownloadToken sql.NullString `json:"private_download_token"`
 	OwnerID              uuid.UUID      `json:"owner_id"`
 	StorageMapping       uuid.UUID      `json:"storage_mapping"`
+	CreatedAt            time.Time      `json:"created_at"`
 	ID_2                 int32          `json:"id_2"`
 	SharedBy             sql.NullString `json:"shared_by"`
 	SharedFor            sql.NullString `json:"shared_for"`
 	SharingToken         string         `json:"sharing_token"`
 	FileID               sql.NullInt32  `json:"file_id"`
-	CreatedAt            sql.NullTime   `json:"created_at"`
+	CreatedAt_2          sql.NullTime   `json:"created_at_2"`
 	ExpiresAt            time.Time      `json:"expires_at"`
 	ReceivedSeenAt       sql.NullTime   `json:"received_seen_at"`
 	SharedByUserID       uuid.NullUUID  `json:"shared_by_user_id"`
@@ -244,12 +248,13 @@ func (q *Queries) GetFilesSharedWithUser(ctx context.Context, sharedFor sql.Null
 			&i.PrivateDownloadToken,
 			&i.OwnerID,
 			&i.StorageMapping,
+			&i.CreatedAt,
 			&i.ID_2,
 			&i.SharedBy,
 			&i.SharedFor,
 			&i.SharingToken,
 			&i.FileID,
-			&i.CreatedAt,
+			&i.CreatedAt_2,
 			&i.ExpiresAt,
 			&i.ReceivedSeenAt,
 			&i.SharedByUserID,
