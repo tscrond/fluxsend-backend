@@ -31,7 +31,18 @@ type APIServer struct {
 	users  service.UserService
 }
 
-func NewAPIServer(backendConfig config.BackendConfig, es mailtypes.EmailSender, bh storagetypes.ObjectStorage, cloudFrontSigner *cdn.CloudFrontURLSigner, repository repo.Repository, authProviders map[string]auth.AuthProvider, tokenEncryptor *tokencrypto.Encryptor, files service.FileService, shares service.ShareService, users service.UserService) *APIServer {
+func NewAPIServer(
+	backendConfig config.BackendConfig,
+	es mailtypes.EmailSender,
+	bh storagetypes.ObjectStorage,
+	cloudFrontSigner *cdn.CloudFrontURLSigner,
+	repository repo.Repository,
+	authProviders map[string]auth.AuthProvider,
+	tokenEncryptor *tokencrypto.Encryptor,
+	files service.FileService,
+	shares service.ShareService,
+	users service.UserService,
+) *APIServer {
 
 	return &APIServer{
 		backendConfig:    backendConfig,

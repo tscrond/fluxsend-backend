@@ -41,6 +41,21 @@ type Note struct {
 	UserID  uuid.UUID     `json:"user_id"`
 }
 
+type Plan struct {
+	ID                   uuid.UUID `json:"id"`
+	Name                 string    `json:"name"`
+	MaxTotalStorageBytes int64     `json:"max_total_storage_bytes"`
+	MaxFileSizeBytes     int64     `json:"max_file_size_bytes"`
+	MaxFiles             int32     `json:"max_files"`
+	MaxFilesSentPerDay   int32     `json:"max_files_sent_per_day"`
+	MaxSharesPerDay      int32     `json:"max_shares_per_day"`
+}
+
+type PlanFeature struct {
+	PlanID  uuid.UUID `json:"plan_id"`
+	Feature string    `json:"feature"`
+}
+
 type Session struct {
 	ID                  uuid.UUID      `json:"id"`
 	UserID              uuid.UUID      `json:"user_id"`
@@ -67,6 +82,7 @@ type User struct {
 	UserBucket sql.NullString `json:"user_bucket"`
 	UserEmail  string         `json:"user_email"`
 	CreatedAt  time.Time      `json:"created_at"`
+	PlanID     uuid.NullUUID  `json:"plan_id"`
 }
 
 type UsersOld struct {

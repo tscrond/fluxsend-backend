@@ -1,9 +1,27 @@
 package userdata
 
-type ContextKey string
+type planContextKey struct{}
+type authorizedUserContextKey struct{}
+type verifiedUserContextKey struct{}
 
-const VerifiedUserContextKey ContextKey = "verified_user"
-const AuthorizedUserContextKey ContextKey = "authorized_user"
+var VerifiedUserContextKey = verifiedUserContextKey{}
+var AuthorizedUserContextKey = authorizedUserContextKey{}
+var AuthorizedUserWithPlanContextKey = planContextKey{}
+
+type AuthorizedUserWithPlan struct {
+	AuthorizedUserInfo
+	UserPlan
+}
+
+type UserPlan struct {
+	PlanID               string `json:"plan_id"`
+	PlanName             string `json:"plan_name"`
+	MaxFileSizeBytes     int64  `json:"max_file_size_bytes"`
+	MaxTotalStorageBytes int64  `json:"max_total_storage_bytes"`
+	MaxFiles             int32  `json:"max_files"`
+	MaxFilesSentPerDay   int32  `json:"max_files_sent_per_day"`
+	MaxSharesPerDay      int32  `json:"max_shares_per_day"`
+}
 
 // Info gathered after successful oauth2 callback
 type AuthorizedUserInfo struct {

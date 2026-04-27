@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (user_email)
 VALUES ($1)
-RETURNING id, user_bucket, user_email, created_at
+RETURNING id, user_bucket, user_email, created_at, plan_id
 `
 
 func (q *Queries) CreateUser(ctx context.Context, userEmail string) (User, error) {
@@ -26,12 +26,13 @@ func (q *Queries) CreateUser(ctx context.Context, userEmail string) (User, error
 		&i.UserBucket,
 		&i.UserEmail,
 		&i.CreatedAt,
+		&i.PlanID,
 	)
 	return i, err
 }
 
 const deleteAccount = `-- name: DeleteAccount :one
-DELETE FROM users WHERE id = $1 RETURNING id, user_bucket, user_email, created_at
+DELETE FROM users WHERE id = $1 RETURNING id, user_bucket, user_email, created_at, plan_id
 `
 
 func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) (User, error) {
@@ -42,6 +43,7 @@ func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) (User, error)
 		&i.UserBucket,
 		&i.UserEmail,
 		&i.CreatedAt,
+		&i.PlanID,
 	)
 	return i, err
 }
@@ -58,7 +60,7 @@ func (q *Queries) GetUserBucketById(ctx context.Context, id uuid.UUID) (sql.Null
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, user_bucket, user_email, created_at FROM users WHERE user_email = $1
+SELECT id, user_bucket, user_email, created_at, plan_id FROM users WHERE user_email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, userEmail string) (User, error) {
@@ -69,12 +71,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, userEmail string) (User, e
 		&i.UserBucket,
 		&i.UserEmail,
 		&i.CreatedAt,
+		&i.PlanID,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, user_bucket, user_email, created_at FROM users WHERE id = $1
+SELECT id, user_bucket, user_email, created_at, plan_id FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
@@ -85,6 +88,7 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.UserBucket,
 		&i.UserEmail,
 		&i.CreatedAt,
+		&i.PlanID,
 	)
 	return i, err
 }

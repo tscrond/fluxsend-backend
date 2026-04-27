@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 
-	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
@@ -13,7 +12,7 @@ func (s *APIServer) getUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userData, ok := r.Context().Value(userdata.AuthorizedUserContextKey).(*userdata.AuthorizedUserInfo)
+	uwp, ok := parseAuthorizedUserWithPlan(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "Access Denied", map[string]any{
 			"user_data": nil,
@@ -22,7 +21,7 @@ func (s *APIServer) getUserData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "", map[string]any{
-		"user_data": userData,
+		"user_data": uwp,
 	})
 }
 

@@ -148,7 +148,18 @@ func main() {
 	shareSvc := service.NewShareService(repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, backendEndpoint, mailFrom)
 	userSvc := service.NewUserService(repository.Queries(), bucketHandler)
 
-	s := api.NewAPIServer(backendConfig, emailSender, bucketHandler, cloudFrontSigner, repository, authProviders, tokenEncryptor, fileSvc, shareSvc, userSvc)
+	s := api.NewAPIServer(
+		backendConfig,
+		emailSender,
+		bucketHandler,
+		cloudFrontSigner,
+		repository,
+		authProviders,
+		tokenEncryptor,
+		fileSvc,
+		shareSvc,
+		userSvc,
+	)
 
 	s.Start()
 }

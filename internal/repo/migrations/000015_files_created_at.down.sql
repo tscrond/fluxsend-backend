@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE files
+DROP COLUMN IF EXISTS created_at;
+
+COMMIT;
