@@ -2,7 +2,14 @@
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
-SET expires_at = EXCLUDED.expires_at
+SET expires_at = EXCLUDED.expires_at, password_hash = NULL
+RETURNING *;
+
+-- name: InsertShareWithPassword :one
+INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (shared_by, shared_for, file_id) DO UPDATE
+SET expires_at = EXCLUDED.expires_at, password_hash = EXCLUDED.password_hash
 RETURNING *;
 
 -- name: GetSharedFileIdFromToken :one
@@ -28,7 +35,10 @@ WHERE s.shared_by = $1;
 SELECT
 u.user_bucket,
 f.storage_mapping,
-f.file_name
+f.file_name,
+s.password_hash,
+s.failed_attempts,
+s.shared_by
 FROM shares s
 JOIN files f ON s.file_id = f.id
 JOIN users u ON f.owner_id = u.id
@@ -58,9 +68,30 @@ LIMIT 1;
 -- name: InsertPublicShare :one
 INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token)
 VALUES ($1, NULL, $2, $3, $4)
-ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL 
-DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token
+ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = NULL
 RETURNING *;
+
+-- name: InsertPublicSharePasswordProtected :one
+INSERT INTO shares (shared_by, shared_for, file_id, expires_at, sharing_token, password_hash)
+VALUES ($1, NULL, $2, $3, $4, $5)
+ON CONFLICT (shared_by, file_id) WHERE shared_for IS NULL
+DO UPDATE SET expires_at = EXCLUDED.expires_at, sharing_token = EXCLUDED.sharing_token, password_hash = EXCLUDED.password_hash
+RETURNING *;
+
+-- name: GetPublicShareMetadata :one
+SELECT f.file_name, s.expires_at, s.password_hash, s.failed_attempts
+FROM shares s
+JOIN files f ON s.file_id = f.id
+WHERE s.sharing_token = $1;
+
+-- name: IncrementShareFailedAttempts :one
+UPDATE shares SET failed_attempts = failed_attempts + 1
+WHERE sharing_token = $1
+RETURNING failed_attempts;
+
+-- name: DeleteShareByToken :exec
+DELETE FROM shares WHERE sharing_token = $1 AND shared_by = $2;
 
 -- name: CountUnseenShares :one
 SELECT COUNT(*) FROM shares

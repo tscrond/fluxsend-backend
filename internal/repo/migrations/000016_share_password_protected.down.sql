@@ -1,0 +1,5 @@
+BEGIN;
+ALTER TABLE shares
+DROP COLUMN IF EXISTS password_hash;
+
+COMMIT;
