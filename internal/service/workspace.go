@@ -80,14 +80,14 @@ func (w *workspaceService) GetUserWorkspaces(ctx context.Context, userID uuid.UU
 	}
 
 	result := make([]WorkspaceResult, 0, len(workspaces))
-	for _, w := range workspaces {
+	for _, ws := range workspaces {
 		result = append(result, WorkspaceResult{
-			WorkspaceID: w.ID,
-			Name:        w.Name,
-			Slug:        w.Slug,
-			OwnerID:     w.OwnerID,
-			CreatedAt:   w.CreatedAt.String(),
-			Role:        w.Role,
+			WorkspaceID: ws.ID,
+			Name:        ws.Name,
+			Slug:        ws.Slug,
+			OwnerID:     ws.OwnerID,
+			CreatedAt:   ws.CreatedAt.String(),
+			Role:        ws.Role,
 		})
 	}
 	return result, nil
