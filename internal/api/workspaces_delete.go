@@ -109,12 +109,11 @@ func (s *APIServer) removeWorkspaceMember(w http.ResponseWriter, r *http.Request
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
 	}
-	authUser, requesterUUID, ok := parseAuthorizedUserUUID(r)
+	_, requesterUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
 		return
 	}
-	_ = authUser
 
 	workspaceIDStr := r.URL.Query().Get("workspace_id")
 	workspaceID, err := uuid.Parse(workspaceIDStr)
