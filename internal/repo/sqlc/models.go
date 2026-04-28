@@ -96,3 +96,27 @@ type UsersOld struct {
 	UserBucket sql.NullString `json:"user_bucket"`
 	ID         uuid.UUID      `json:"id"`
 }
+
+type Workspace struct {
+	ID        uuid.UUID `json:"id"`
+	Slug      string    `json:"slug"`
+	Name      string    `json:"name"`
+	OwnerID   uuid.UUID `json:"owner_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type WorkspaceInvite struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	Email       string    `json:"email"`
+	Token       string    `json:"token"`
+	Role        string    `json:"role"`
+	ExpiresAt   time.Time `json:"expires_at"`
+}
+
+type WorkspaceMember struct {
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	UserID      uuid.UUID `json:"user_id"`
+	Role        string    `json:"role"`
+	JoinedAt    time.Time `json:"joined_at"`
+}

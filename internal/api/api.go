@@ -26,9 +26,10 @@ type APIServer struct {
 	authProviders    map[string]auth.AuthProvider
 	tokenEncryptor   *tokencrypto.Encryptor
 
-	files  service.FileService
-	shares service.ShareService
-	users  service.UserService
+	files      service.FileService
+	shares     service.ShareService
+	users      service.UserService
+	workspaces service.WorkspaceService
 }
 
 func NewAPIServer(
@@ -42,6 +43,7 @@ func NewAPIServer(
 	files service.FileService,
 	shares service.ShareService,
 	users service.UserService,
+	workspaces service.WorkspaceService,
 ) *APIServer {
 
 	return &APIServer{
@@ -55,6 +57,7 @@ func NewAPIServer(
 		files:            files,
 		shares:           shares,
 		users:            users,
+		workspaces:       workspaces,
 	}
 }
 
@@ -107,6 +110,19 @@ func (s *APIServer) Start() {
 	r.Handle("/user/bucket", s.authMiddleware(http.HandlerFunc(s.getUserBucketData)))
 	r.Handle("/user/private/download_token", s.authMiddleware(http.HandlerFunc(s.getUserPrivateFileByName)))
 	r.Handle("/user/account/delete", s.authMiddleware(http.HandlerFunc(s.deleteAccount)))
+
+	r.Handle("/workspaces/create", s.authMiddleware(http.HandlerFunc(s.createWorkspace)))
+	r.Handle("/workspaces/list", s.authMiddleware(http.HandlerFunc(s.listWorkspaces)))
+	r.Handle("/workspaces/members", s.authMiddleware(http.HandlerFunc(s.getWorkspaceMembers)))
+	r.Handle("/workspaces/members/remove", s.authMiddleware(http.HandlerFunc(s.removeWorkspaceMember)))
+	r.Handle("/workspaces/invites", s.authMiddleware(http.HandlerFunc(s.getWorkspaceInvites)))
+	r.Handle("/workspaces/invites/mine", s.authMiddleware(http.HandlerFunc(s.getMyWorkspaceInvites)))
+	r.Handle("/workspaces/invites/create", s.authMiddleware(http.HandlerFunc(s.createWorkspaceInvite)))
+	r.Handle("/workspaces/invites/accept", s.authMiddleware(http.HandlerFunc(s.acceptWorkspaceInvite)))
+	r.Handle("/workspaces/invites/reject", s.authMiddleware(http.HandlerFunc(s.rejectWorkspaceInvite)))
+	r.Handle("/workspaces/invites/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceInvite)))
+	r.Handle("/workspaces/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspace)))
+	r.Handle("/workspaces/rename", s.authMiddleware(http.HandlerFunc(s.renameWorkspace)))
 
 	log.Printf("Listening on %s\n", s.backendConfig.ListenPort)
 	http.ListenAndServe("0.0.0.0"+s.backendConfig.ListenPort, r)
