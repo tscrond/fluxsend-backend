@@ -115,7 +115,7 @@ func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request
 
 	invite, err := s.workspaces.CreateWorkspaceInvite(r.Context(), workspaceID, req.Email, token, req.Role)
 	if err != nil {
-		if errors.Is(err, errors.New("already_a_member")) || err.Error() == "already_a_member" {
+		if err.Error() == "already_a_member" {
 			pkg.WriteJSONResponse(w, http.StatusConflict, "", "already_a_member")
 			return
 		}
