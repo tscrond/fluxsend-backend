@@ -301,6 +301,9 @@ func (w *workspaceService) AcceptWorkspaceInvite(ctx context.Context, token stri
 		_ = w.queries.DeleteWorkspaceInviteByToken(ctx, token)
 		return errors.New("already_a_member")
 	}
+	if !errors.Is(memberErr, sql.ErrNoRows) {
+		return memberErr
+	}
 	if _, err := w.queries.CreateWorkspaceMember(ctx, sqlc.CreateWorkspaceMemberParams{
 		WorkspaceID: invite.WorkspaceID,
 		UserID:      userID,
