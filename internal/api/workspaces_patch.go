@@ -16,7 +16,7 @@ func (s *APIServer) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
 		return
@@ -41,6 +41,12 @@ func (s *APIServer) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 	workspaceID, err := uuid.Parse(body.WorkspaceID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_workspace_id")
+		return
+	}
+
+	role, err := s.workspaces.GetUserWorkspaceRole(r.Context(), userUUID, workspaceID)
+	if err != nil || (role != "owner" && role != "admin") {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "forbidden")
 		return
 	}
 

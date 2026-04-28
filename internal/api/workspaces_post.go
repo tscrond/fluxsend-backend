@@ -90,11 +90,6 @@ func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := s.checkIfCanSendInvites(r.Context(), userUUID, uuid.MustParse(req.WorkspaceID)); err != nil {
-		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "unauthorized_to_invite")
-		return
-	}
-
 	if req.Email == "" || (req.Role != "admin" && req.Role != "editor" && req.Role != "viewer") {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "email_and_valid_role_required")
 		return
@@ -103,6 +98,15 @@ func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request
 	workspaceID, err := uuid.Parse(req.WorkspaceID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_workspace_id")
+		return
+	}
+
+	if err := s.checkIfCanSendInvites(r.Context(), userUUID, workspaceID); err != nil {
+		if err.Error() == "unauthorized_to_invite" {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "unauthorized_to_invite")
+		} else {
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
+		}
 		return
 	}
 

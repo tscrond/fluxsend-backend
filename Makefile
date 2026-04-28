@@ -7,8 +7,9 @@ db-down:
 	docker compose stop dev-postgres && docker compose rm -f dev-postgres
 
 .PHONY: build
+FRONTEND_DIR ?= ../fluxsend-frontend
 build:
-	cd /home/tskr/projects/fluxsend-frontend &&\
+	cd $(FRONTEND_DIR) &&\
 	docker build -t fluxsend-frontend:dev . &&\
 	cd - &&\
 	docker build -t fluxsend-backend:dev .

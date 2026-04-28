@@ -34,7 +34,7 @@ func (s *APIServer) getWorkspaceMembers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	_, _, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
 		return
@@ -44,6 +44,11 @@ func (s *APIServer) getWorkspaceMembers(w http.ResponseWriter, r *http.Request) 
 	workspaceID, err := uuid.Parse(workspaceIDStr)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_workspace_id")
+		return
+	}
+
+	if _, err := s.workspaces.GetUserWorkspaceRole(r.Context(), userUUID, workspaceID); err != nil {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "forbidden")
 		return
 	}
 
@@ -62,7 +67,7 @@ func (s *APIServer) getWorkspaceInvites(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	_, _, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
 		return
@@ -72,6 +77,12 @@ func (s *APIServer) getWorkspaceInvites(w http.ResponseWriter, r *http.Request) 
 	workspaceID, err := uuid.Parse(workspaceIDStr)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_workspace_id")
+		return
+	}
+
+	role, err := s.workspaces.GetUserWorkspaceRole(r.Context(), userUUID, workspaceID)
+	if err != nil || (role != "owner" && role != "admin") {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "forbidden")
 		return
 	}
 

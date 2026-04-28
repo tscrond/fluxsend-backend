@@ -147,7 +147,7 @@ func main() {
 	fileSvc := service.NewFileService(repository.Queries(), bucketHandler, htmlSanitizationPolicy)
 	shareSvc := service.NewShareService(repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, backendEndpoint, frontendEndpoint, mailFrom)
 	userSvc := service.NewUserService(repository.Queries(), bucketHandler)
-	workspaceSvc := service.NewWorkspaceService(repository.Queries())
+	workspaceSvc := service.NewWorkspaceService(repository.Queries(), repository)
 
 	s := api.NewAPIServer(
 		backendConfig,

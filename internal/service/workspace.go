@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
 
@@ -64,11 +66,13 @@ type WorkspaceService interface {
 
 type workspaceService struct {
 	queries *sqlc.Queries
+	repo    repo.Repository
 }
 
-func NewWorkspaceService(queries *sqlc.Queries) WorkspaceService {
+func NewWorkspaceService(queries *sqlc.Queries, r repo.Repository) WorkspaceService {
 	return &workspaceService{
 		queries: queries,
+		repo:    r,
 	}
 }
 
@@ -86,7 +90,7 @@ func (w *workspaceService) GetUserWorkspaces(ctx context.Context, userID uuid.UU
 			Name:        ws.Name,
 			Slug:        ws.Slug,
 			OwnerID:     ws.OwnerID,
-			CreatedAt:   ws.CreatedAt.String(),
+			CreatedAt:   ws.CreatedAt.Format(time.RFC3339),
 			Role:        ws.Role,
 		})
 	}
@@ -106,28 +110,36 @@ func (w *workspaceService) GetUserWorkspaceRole(ctx context.Context, userId uuid
 }
 
 func (w *workspaceService) CreateWorkspace(ctx context.Context, userID uuid.UUID, name, slug string) error {
-	workspace, err := w.queries.CreateWorkspace(ctx, sqlc.CreateWorkspaceParams{
+	tx, err := w.repo.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("error beginning transaction for CreateWorkspace: %v", err)
+		return err
+	}
+	txq := w.queries.WithTx(tx)
+
+	workspace, err := txq.CreateWorkspace(ctx, sqlc.CreateWorkspaceParams{
 		Slug:    slug,
 		Name:    name,
 		OwnerID: userID,
 	})
 	if err != nil {
+		_ = tx.Rollback()
 		log.Printf("error creating workspace: %v", err)
 		return err
 	}
 
-	_, err = w.queries.CreateWorkspaceMember(ctx, sqlc.CreateWorkspaceMemberParams{
+	_, err = txq.CreateWorkspaceMember(ctx, sqlc.CreateWorkspaceMemberParams{
 		WorkspaceID: workspace.ID,
 		UserID:      userID,
 		Role:        "owner",
 	})
 	if err != nil {
-		log.Printf("error adding owner to workspace members, rolling back workspace: %v", err)
-		_, _ = w.queries.DeleteWorkspace(ctx, workspace.ID)
+		_ = tx.Rollback()
+		log.Printf("error adding owner to workspace members: %v", err)
 		return err
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (w *workspaceService) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
@@ -154,7 +166,7 @@ func (w *workspaceService) RenameWorkspace(ctx context.Context, workspaceID uuid
 		Name:        updated.Name,
 		Slug:        updated.Slug,
 		OwnerID:     updated.OwnerID,
-		CreatedAt:   updated.CreatedAt.String(),
+		CreatedAt:   updated.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -171,7 +183,7 @@ func (w *workspaceService) GetWorkspaceMembers(ctx context.Context, workspaceID 
 			UserID:   member.ID,
 			Email:    member.UserEmail,
 			Role:     member.Role,
-			JoinedAt: member.JoinedAt.String(),
+			JoinedAt: member.JoinedAt.Format(time.RFC3339),
 		})
 	}
 	return membersResult, nil
@@ -191,7 +203,7 @@ func (w *workspaceService) GetWorkspaceInvites(ctx context.Context, workspaceID 
 			WorkspaceID: inv.WorkspaceID,
 			Role:        inv.Role,
 			Email:       inv.Email,
-			ExpiresAt:   inv.ExpiresAt.String(),
+			ExpiresAt:   inv.ExpiresAt.Format(time.RFC3339),
 		})
 	}
 	return invitesResult, nil
@@ -232,7 +244,7 @@ func (w *workspaceService) CreateWorkspaceInvite(ctx context.Context, workspaceI
 		WorkspaceID: inv.WorkspaceID,
 		Email:       inv.Email,
 		Role:        inv.Role,
-		ExpiresAt:   inv.ExpiresAt.String(),
+		ExpiresAt:   inv.ExpiresAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -271,7 +283,7 @@ func (w *workspaceService) GetUserInvites(ctx context.Context, email string) ([]
 			Email:         r.Email,
 			Token:         r.Token,
 			Role:          r.Role,
-			ExpiresAt:     r.ExpiresAt.String(),
+			ExpiresAt:     r.ExpiresAt.Format(time.RFC3339),
 		})
 	}
 	return result, nil
@@ -288,7 +300,7 @@ func (w *workspaceService) AcceptWorkspaceInvite(ctx context.Context, token stri
 	if invite.ExpiresAt.Before(time.Now()) {
 		return errors.New("invite_expired")
 	}
-	if invite.Email != userEmail {
+	if !strings.EqualFold(invite.Email, userEmail) {
 		return errors.New("invite_not_for_you")
 	}
 	// Already a member?
@@ -323,7 +335,7 @@ func (w *workspaceService) RejectWorkspaceInvite(ctx context.Context, token stri
 		}
 		return err
 	}
-	if invite.Email != userEmail {
+	if !strings.EqualFold(invite.Email, userEmail) {
 		return errors.New("invite_not_for_you")
 	}
 	return w.queries.DeleteWorkspaceInviteByToken(ctx, token)

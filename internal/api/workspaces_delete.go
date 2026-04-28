@@ -15,7 +15,7 @@ func (s *APIServer) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
 		return
@@ -25,6 +25,12 @@ func (s *APIServer) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	workspaceID, err := uuid.Parse(workspaceIDStr)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_workspace_id")
+		return
+	}
+
+	role, err := s.workspaces.GetUserWorkspaceRole(r.Context(), userUUID, workspaceID)
+	if err != nil || role != "owner" {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "forbidden")
 		return
 	}
 
@@ -48,7 +54,7 @@ func (s *APIServer) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	_, _, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
 		return
@@ -58,6 +64,19 @@ func (s *APIServer) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Request
 	inviteID, err := uuid.Parse(inviteIDStr)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_invite_id")
+		return
+	}
+
+	workspaceIDStr := r.URL.Query().Get("workspace_id")
+	workspaceID, err := uuid.Parse(workspaceIDStr)
+	if err != nil {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_workspace_id")
+		return
+	}
+
+	role, err := s.workspaces.GetUserWorkspaceRole(r.Context(), userUUID, workspaceID)
+	if err != nil || (role != "owner" && role != "admin") {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "forbidden")
 		return
 	}
 

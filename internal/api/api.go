@@ -68,7 +68,7 @@ func (s *APIServer) Start() {
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.backendConfig.FrontendEndpoint},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
