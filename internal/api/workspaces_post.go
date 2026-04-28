@@ -15,7 +15,7 @@ import (
 
 func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
 	}
 
