@@ -207,6 +207,9 @@ func (w *workspaceService) CreateWorkspaceInvite(ctx context.Context, workspaceI
 		})
 		if memberErr == nil {
 			return nil, errors.New("already_a_member")
+		} else if !errors.Is(memberErr, sql.ErrNoRows) {
+			log.Printf("error looking up workspace member: %v", memberErr)
+			return nil, memberErr
 		}
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		log.Printf("error looking up user by email: %v", err)
