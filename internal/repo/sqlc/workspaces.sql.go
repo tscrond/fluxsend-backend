@@ -443,6 +443,32 @@ func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams
 	return i, err
 }
 
+const renameWorkspaceWithSlug = `-- name: RenameWorkspaceWithSlug :one
+UPDATE workspaces
+SET name = $2, slug = $3
+WHERE id = $1
+RETURNING id, slug, name, owner_id, created_at
+`
+
+type RenameWorkspaceWithSlugParams struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Slug string    `json:"slug"`
+}
+
+func (q *Queries) RenameWorkspaceWithSlug(ctx context.Context, arg RenameWorkspaceWithSlugParams) (Workspace, error) {
+	row := q.db.QueryRowContext(ctx, renameWorkspaceWithSlug, arg.ID, arg.Name, arg.Slug)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Name,
+		&i.OwnerID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateWorkspaceMemberRole = `-- name: UpdateWorkspaceMemberRole :exec
 UPDATE workspace_members
 SET role = $1

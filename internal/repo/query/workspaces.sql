@@ -29,6 +29,12 @@ SET name = $2
 WHERE id = $1
 RETURNING *;
 
+-- name: RenameWorkspaceWithSlug :one
+UPDATE workspaces
+SET name = $2, slug = $3
+WHERE id = $1
+RETURNING *;
+
 -- name: GetUserWorkspaces :many
 SELECT workspaces.id, workspaces.slug, workspaces.name, workspaces.owner_id, workspaces.created_at, workspace_members.role
 FROM workspaces

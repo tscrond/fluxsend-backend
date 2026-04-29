@@ -48,6 +48,16 @@ func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len([]rune(workspaceResponse.Name)) > 64 {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "name_too_long")
+		return
+	}
+
+	if len([]rune(workspaceResponse.Slug)) > 48 {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "slug_too_long")
+		return
+	}
+
 	if err := s.workspaces.CreateWorkspace(
 		r.Context(),
 		userUUID,
