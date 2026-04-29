@@ -123,6 +123,7 @@ func (s *APIServer) Start() {
 	r.Handle("/workspaces/invites/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceInvite)))
 	r.Handle("/workspaces/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspace)))
 	r.Handle("/workspaces/rename", s.authMiddleware(http.HandlerFunc(s.renameWorkspace)))
+	r.Handle("/workspaces/members/role", s.authMiddleware(http.HandlerFunc(s.changeMemberRole)))
 
 	log.Printf("Listening on %s\n", s.backendConfig.ListenPort)
 	http.ListenAndServe("0.0.0.0"+s.backendConfig.ListenPort, r)

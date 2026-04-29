@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
@@ -52,7 +53,7 @@ type WorkspaceService interface {
 	GetUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]WorkspaceResult, error)
 	CreateWorkspace(ctx context.Context, userID uuid.UUID, name, slug string) error
 	DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID) error
-	RenameWorkspace(ctx context.Context, workspaceID uuid.UUID, newName string) (*WorkspaceResult, error)
+	RenameWorkspace(ctx context.Context, workspaceID uuid.UUID, newName, newSlug string) (*WorkspaceResult, error)
 	GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMemberResult, error)
 	GetWorkspaceInvites(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceInviteResult, error)
 	CreateWorkspaceInvite(ctx context.Context, workspaceID uuid.UUID, email, token, role string) (*WorkspaceInviteResult, error)
@@ -62,6 +63,7 @@ type WorkspaceService interface {
 	RejectWorkspaceInvite(ctx context.Context, token string, userEmail string) error
 	GetUserWorkspaceRole(ctx context.Context, userId uuid.UUID, workspaceId uuid.UUID) (string, error)
 	RemoveWorkspaceMember(ctx context.Context, workspaceID uuid.UUID, userID uuid.UUID) error
+	UpdateMemberRole(ctx context.Context, workspaceID uuid.UUID, targetUserID uuid.UUID, newRole string) error
 }
 
 type workspaceService struct {
@@ -152,14 +154,38 @@ func (w *workspaceService) DeleteWorkspace(ctx context.Context, workspaceID uuid
 	return nil
 }
 
-func (w *workspaceService) RenameWorkspace(ctx context.Context, workspaceID uuid.UUID, newName string) (*WorkspaceResult, error) {
-	updated, err := w.queries.RenameWorkspace(ctx, sqlc.RenameWorkspaceParams{
-		ID:   workspaceID,
-		Name: newName,
-	})
-	if err != nil {
-		log.Printf("error renaming workspace %v: %v", workspaceID, err)
-		return nil, err
+func (w *workspaceService) RenameWorkspace(ctx context.Context, workspaceID uuid.UUID, newName, newSlug string) (*WorkspaceResult, error) {
+	if newName == "" {
+		return nil, errors.New("name_required")
+	}
+
+	var renameErr error
+	var updated sqlc.Workspace
+
+	if utf8.RuneCountInString(newName) > 64 {
+		return nil, errors.New("name_too_long")
+	}
+
+	if newSlug != "" && utf8.RuneCountInString(newSlug) > 64 {
+		return nil, errors.New("slug_too_long")
+	}
+
+	if newSlug != "" {
+		updated, renameErr = w.queries.RenameWorkspaceWithSlug(ctx, sqlc.RenameWorkspaceWithSlugParams{
+			ID:   workspaceID,
+			Name: newName,
+			Slug: newSlug,
+		})
+	} else {
+		updated, renameErr = w.queries.RenameWorkspace(ctx, sqlc.RenameWorkspaceParams{
+			ID:   workspaceID,
+			Name: newName,
+		})
+	}
+
+	if renameErr != nil {
+		log.Printf("error renaming workspace %v: %v", workspaceID, renameErr)
+		return nil, renameErr
 	}
 	return &WorkspaceResult{
 		WorkspaceID: updated.ID,
@@ -254,6 +280,18 @@ func (w *workspaceService) RemoveWorkspaceMember(ctx context.Context, workspaceI
 		UserID:      userID,
 	}); err != nil {
 		log.Printf("error removing workspace member %v from %v: %v", userID, workspaceID, err)
+		return err
+	}
+	return nil
+}
+
+func (w *workspaceService) UpdateMemberRole(ctx context.Context, workspaceID uuid.UUID, targetUserID uuid.UUID, newRole string) error {
+	if err := w.queries.UpdateWorkspaceMemberRole(ctx, sqlc.UpdateWorkspaceMemberRoleParams{
+		WorkspaceID: workspaceID,
+		UserID:      targetUserID,
+		Role:        newRole,
+	}); err != nil {
+		log.Printf("error updating role for member %v in workspace %v: %v", targetUserID, workspaceID, err)
 		return err
 	}
 	return nil
