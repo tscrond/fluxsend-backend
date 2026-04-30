@@ -126,7 +126,7 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 	})
 	if err != nil {
 		log.Println("error inserting file to DB, removing object from storage:", err)
-		if delErr := s.storage.DeleteObjectFromBucket(ctx, storageMapping.String(), bucket); delErr != nil {
+		if delErr := s.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
 			log.Printf("error deleting object %s: %v\n", objectKey, delErr)
 		}
 		if errors.Is(err, sql.ErrNoRows) {
