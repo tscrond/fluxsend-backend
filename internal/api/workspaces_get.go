@@ -160,13 +160,13 @@ func (s *APIServer) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", map[string]any{
-		"file_count":              row.FileCount,
-		"total_bytes":             totalBytes,
-		"folder_count":            row.FolderCount,
-		"member_count":            row.MemberCount,
-		"max_files_workspace":     row.MaxFilesWorkspace,
-		"max_total_storage_bytes": row.MaxTotalStorageBytesWorkspace,
-		"max_users_workspace":     row.MaxUsersWorkspace,
-		"max_workspace_folders":   row.MaxWorkspaceFolders,
+		"file_count":                        row.FileCount,
+		"total_bytes":                       totalBytes,
+		"folder_count":                      row.FolderCount,
+		"member_count":                      row.MemberCount,
+		"max_files_workspace":               row.MaxFilesWorkspace,
+		"max_total_storage_bytes_workspace": row.MaxTotalStorageBytesWorkspace,
+		"max_users_workspace":               row.MaxUsersWorkspace,
+		"max_workspace_folders":             row.MaxWorkspaceFolders,
 	})
 }
