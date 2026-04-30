@@ -1,3 +1,3 @@
 BEGIN;
-DELETE TABLE IF EXISTS workspace_files;
+DROP TABLE IF EXISTS workspace_files;
 COMMIT;
