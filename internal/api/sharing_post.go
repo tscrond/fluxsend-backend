@@ -42,7 +42,7 @@ func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if exceedInfo, err := s.validateSharePlan(r.Context(), authUser.Email, authUserWithPlan.UserPlan); err != nil {
+	if exceedInfo, err := s.validateClassicSharePlan(r.Context(), authUser.Email, authUserWithPlan.UserPlan); err != nil {
 		if errors.Is(err, ErrDailyShareLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {

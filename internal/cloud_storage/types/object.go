@@ -2,13 +2,18 @@ package types
 
 import (
 	"context"
+	"io"
 	"time"
-
-	"github.com/tscrond/fluxsend-backend/internal/filedata"
 )
 
+type PutObjectResult struct {
+	MD5         string
+	Size        int64
+	ContentType string
+}
+
 type ObjectStorage interface {
-	SendFileToBucket(ctx context.Context, data *filedata.FileData) error
+	PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*PutObjectResult, error)
 	BucketExists(ctx context.Context, fullBucketName string) (bool, error)
 	CreateBucketIfNotExists(ctx context.Context, userId string) error
 	GetUserBucketData(ctx context.Context, id string) (any, error)

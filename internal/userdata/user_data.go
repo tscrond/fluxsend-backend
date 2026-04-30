@@ -14,13 +14,18 @@ type AuthorizedUserWithPlan struct {
 }
 
 type UserPlan struct {
-	PlanID               string `json:"plan_id"`
-	PlanName             string `json:"plan_name"`
-	MaxFileSizeBytes     int64  `json:"max_file_size_bytes"`
-	MaxTotalStorageBytes int64  `json:"max_total_storage_bytes"`
-	MaxFiles             int32  `json:"max_files"`
-	MaxFilesSentPerDay   int32  `json:"max_files_sent_per_day"`
-	MaxSharesPerDay      int32  `json:"max_shares_per_day"`
+	PlanID                        string `json:"plan_id"`
+	PlanName                      string `json:"plan_name"`
+	MaxFileSizeBytes              int64  `json:"max_file_size_bytes"`
+	MaxTotalStorageBytes          int64  `json:"max_total_storage_bytes"`
+	MaxFiles                      int32  `json:"max_files"`
+	MaxFilesSentPerDay            int32  `json:"max_files_sent_per_day"`
+	MaxSharesPerDay               int32  `json:"max_shares_per_day"`
+	MaxFilesWorkspace             int32  `json:"max_files_per_workspace"`
+	MaxUserWorkspaces             int32  `json:"max_user_workspaces"`
+	MaxWorkspaceFolders           int32  `json:"max_workspace_folders"`
+	MaxUsersPerWorkspace          int32  `json:"max_users_workspace"`
+	MaxTotalStorageBytesWorkspace int64  `json:"max_total_storage_bytes_workspace"`
 }
 
 // Info gathered after successful oauth2 callback

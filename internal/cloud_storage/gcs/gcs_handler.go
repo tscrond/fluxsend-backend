@@ -2,15 +2,12 @@ package gcs
 
 import (
 	"context"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"html"
 	"io"
 	"log"
-	"math/rand"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -18,26 +15,21 @@ import (
 
 	"cloud.google.com/go/storage"
 
-	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
-	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
-	"github.com/tscrond/fluxsend-backend/internal/repo"
-	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/pkg"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
 type GCSBucketHandler struct {
-	repository            repo.Repository
 	Client                *storage.Client
 	ServiceAccountKeyPath string
 	BaseBucketName        string
 	GoogleProjectID       string
 }
 
-func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository repo.Repository) (types.ObjectStorage, error) {
+func NewGCSBucketHandler(svcaccountPath, bucketName, projId string) (types.ObjectStorage, error) {
 	if strings.TrimSpace(svcaccountPath) == "" {
 		return nil, errors.New("GOOGLE_APPLICATION_CREDENTIALS is empty for STORAGE_PROVIDER=gcs")
 	}
@@ -63,7 +55,6 @@ func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository r
 	}
 
 	return &GCSBucketHandler{
-		repository:            repository,
 		Client:                client,
 		ServiceAccountKeyPath: svcaccountPath,
 		BaseBucketName:        bucketName,
@@ -71,126 +62,30 @@ func NewGCSBucketHandler(svcaccountPath, bucketName, projId string, repository r
 	}, nil
 }
 
-// Handler that processes a single file per request
-func (b *GCSBucketHandler) SendFileToBucket(ctx context.Context, data *filedata.FileData) error {
-	if data == nil {
-		log.Println("Data for bucket operation is empty")
-		return types.ErrUploadFailed
-	}
-
-	if data.OwnerID == uuid.Nil {
-		log.Println("OwnerID not set in FileData")
-		return types.ErrUploadFailed
-	}
-
-	fileName := data.RequestHeaders.Filename
-
-	// Prepend folder to filename if provided
-	if data.Folder != "" {
-		fileName = data.Folder + "/" + fileName
-	}
-
-	_, err := b.repository.Queries().GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  data.OwnerID,
-		FileName: fileName,
-	})
-	if err == nil {
-		return types.ErrFileAlreadyExists
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		log.Println("error checking existing file:", err)
-		return types.ErrUploadFailed
-	}
-
-	userBucketName, err := b.repository.Queries().GetUserBucketById(ctx, data.OwnerID)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	newUserBucketName := userBucketName.String
-	if !userBucketName.Valid || userBucketName.String == "" {
-		retrievedBucketName := b.getUserBucketName(data.OwnerInternalID)
-
-		if err := b.repository.Queries().UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
-			UserBucket: sql.NullString{String: retrievedBucketName, Valid: true},
-			ID:         data.OwnerID,
-		}); err != nil {
-			log.Println(err)
-			return err
-		}
-		newUserBucketName = retrievedBucketName
-	}
-
-	// write new object to the bucket
-	storageMapping := uuid.New()
-	writer := b.Client.Bucket(newUserBucketName).Object(storageMapping.String()).NewWriter(ctx)
-	contentType := data.RequestHeaders.Header.Get("Content-Type")
-	if contentType == "" {
-		// Fallback to detection if header missing
-		buffer := make([]byte, 512)
-		_, err := data.MultipartFile.Read(buffer)
-		if err != nil && err != io.EOF {
-			log.Println("failed to read file for content type detection:", err)
-			return err
-		}
-		data.MultipartFile.Seek(0, io.SeekStart) // rewind for actual upload
-		contentType = http.DetectContentType(buffer)
-	}
+func (b *GCSBucketHandler) PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*types.PutObjectResult, error) {
+	writer := b.Client.Bucket(bucket).Object(key).NewWriter(ctx)
 	writer.ContentType = contentType
-	log.Println(contentType)
-	if _, err := io.Copy(writer, data.MultipartFile); err != nil {
-		log.Println("error uploading file: ", err)
-		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
+
+	if _, err := io.Copy(writer, r); err != nil {
+		log.Println("error uploading file:", err)
+		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 	if err := writer.Close(); err != nil {
 		log.Println("error closing writer:", err)
-		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
+		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
-	newlyCreatedObj := b.Client.Bucket(newUserBucketName).Object(storageMapping.String())
-
-	objAttrs, err := newlyCreatedObj.Attrs(ctx)
+	attrs, err := b.Client.Bucket(bucket).Object(key).Attrs(ctx)
 	if err != nil {
-		log.Println("err reading obj attrs: ", err)
-		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
+		log.Println("err reading obj attrs:", err)
+		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
-	// temporary fix
-	randInt := rand.Int63()
-
-	privateDownloadToken, err := pkg.GenerateSecureTokenFromID(randInt)
-	if err != nil {
-		log.Println("err generating token: ", err)
-		return err
-	}
-	insertArgs := sqlc.InsertFileParams{
-		OwnerID:              data.OwnerID,
-		FileName:             fileName,
-		FileType:             sql.NullString{Valid: true, String: objAttrs.ContentType},
-		Size:                 sql.NullInt64{Valid: true, Int64: objAttrs.Size},
-		Md5Checksum:          string(hex.EncodeToString(objAttrs.MD5)),
-		PrivateDownloadToken: sql.NullString{Valid: true, String: privateDownloadToken},
-		StorageMapping:       storageMapping,
-	}
-
-	// ensure the object data is saved to DB if it does not exist
-	file, err := b.repository.Queries().InsertFile(ctx, insertArgs)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("file already exists: %s\n", err)
-			return types.ErrFileAlreadyExists
-		} else {
-			log.Println("error inserting file to DB, removing the object from the bucket: ", err)
-			if err := newlyCreatedObj.Delete(ctx); err != nil {
-				log.Printf("error Object(%v).Delete: %v\n", newlyCreatedObj, err)
-				return types.ErrUploadFailed
-			}
-			return types.ErrUploadFailed
-		}
-	}
-	log.Printf("file %s uploaded successfully (checksum: %v)", fileName, file.Md5Checksum)
-	return nil
+	return &types.PutObjectResult{
+		MD5:         hex.EncodeToString(attrs.MD5),
+		Size:        attrs.Size,
+		ContentType: attrs.ContentType,
+	}, nil
 }
 
 func (b *GCSBucketHandler) BucketExists(ctx context.Context, fullBucketName string) (bool, error) {

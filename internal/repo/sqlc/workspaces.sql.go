@@ -12,6 +12,76 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkWorkspaceResourceQuota = `-- name: CheckWorkspaceResourceQuota :one
+WITH plan AS (
+    SELECT
+        p.max_files_workspace,
+        p.max_total_storage_bytes_workspace,
+        p.max_users_workspace,
+        p.max_workspace_folders
+    FROM workspaces w
+    JOIN users u ON u.id = w.owner_id
+    JOIN plans p ON u.plan_id = p.id
+    WHERE w.id = $1
+),
+usage AS (
+    SELECT
+        COUNT(*) FILTER (WHERE file_type != 'inode/directory') AS file_count,
+        COALESCE(SUM(size), 0)                                  AS total_bytes,
+        COUNT(*) FILTER (WHERE file_type = 'inode/directory')  AS folder_count
+    FROM workspace_files
+    WHERE workspace_id = $1
+),
+members AS (
+    SELECT COUNT(*) AS member_count
+    FROM workspace_members
+    WHERE workspace_id = $1
+)
+SELECT
+    (u.file_count   >= pl.max_files_workspace)               AS files_exceeded,
+    (u.total_bytes  >= pl.max_total_storage_bytes_workspace) AS storage_exceeded,
+    (u.folder_count >= pl.max_workspace_folders)             AS folders_exceeded,
+    (m.member_count >= pl.max_users_workspace)               AS users_exceeded
+FROM usage u, plan pl, members m
+`
+
+type CheckWorkspaceResourceQuotaRow struct {
+	FilesExceeded   bool `json:"files_exceeded"`
+	StorageExceeded bool `json:"storage_exceeded"`
+	FoldersExceeded bool `json:"folders_exceeded"`
+	UsersExceeded   bool `json:"users_exceeded"`
+}
+
+func (q *Queries) CheckWorkspaceResourceQuota(ctx context.Context, id uuid.UUID) (CheckWorkspaceResourceQuotaRow, error) {
+	row := q.db.QueryRowContext(ctx, checkWorkspaceResourceQuota, id)
+	var i CheckWorkspaceResourceQuotaRow
+	err := row.Scan(
+		&i.FilesExceeded,
+		&i.StorageExceeded,
+		&i.FoldersExceeded,
+		&i.UsersExceeded,
+	)
+	return i, err
+}
+
+const checkWorkspacesPerUserQuota = `-- name: CheckWorkspacesPerUserQuota :one
+SELECT (
+    SELECT COUNT(*)
+    FROM workspaces
+    WHERE owner_id = $1
+) >= p.max_user_workspaces AS workspaces_exceeded
+FROM users u
+JOIN plans p ON u.plan_id = p.id
+WHERE u.id = $1
+`
+
+func (q *Queries) CheckWorkspacesPerUserQuota(ctx context.Context, ownerID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkWorkspacesPerUserQuota, ownerID)
+	var workspaces_exceeded bool
+	err := row.Scan(&workspaces_exceeded)
+	return workspaces_exceeded, err
+}
+
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces
 (slug, name, owner_id)
@@ -416,6 +486,70 @@ func (q *Queries) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID
 		return nil, err
 	}
 	return items, nil
+}
+
+const getWorkspaceQuotaDetails = `-- name: GetWorkspaceQuotaDetails :one
+WITH plan AS (
+    SELECT
+        p.max_files_workspace,
+        p.max_total_storage_bytes_workspace,
+        p.max_users_workspace,
+        p.max_workspace_folders
+    FROM workspaces w
+    JOIN users u ON u.id = w.owner_id
+    JOIN plans p ON u.plan_id = p.id
+    WHERE w.id = $1
+),
+usage AS (
+    SELECT
+        COUNT(*) FILTER (WHERE file_type != 'inode/directory') AS file_count,
+        COALESCE(SUM(size), 0)                                  AS total_bytes,
+        COUNT(*) FILTER (WHERE file_type = 'inode/directory')  AS folder_count
+    FROM workspace_files
+    WHERE workspace_id = $1
+),
+members AS (
+    SELECT COUNT(*) AS member_count
+    FROM workspace_members
+    WHERE workspace_id = $1
+)
+SELECT
+    u.file_count,
+    u.total_bytes,
+    u.folder_count,
+    m.member_count,
+    pl.max_files_workspace,
+    pl.max_total_storage_bytes_workspace,
+    pl.max_users_workspace,
+    pl.max_workspace_folders
+FROM usage u, plan pl, members m
+`
+
+type GetWorkspaceQuotaDetailsRow struct {
+	FileCount                     int64       `json:"file_count"`
+	TotalBytes                    interface{} `json:"total_bytes"`
+	FolderCount                   int64       `json:"folder_count"`
+	MemberCount                   int64       `json:"member_count"`
+	MaxFilesWorkspace             int64       `json:"max_files_workspace"`
+	MaxTotalStorageBytesWorkspace int64       `json:"max_total_storage_bytes_workspace"`
+	MaxUsersWorkspace             int64       `json:"max_users_workspace"`
+	MaxWorkspaceFolders           int64       `json:"max_workspace_folders"`
+}
+
+func (q *Queries) GetWorkspaceQuotaDetails(ctx context.Context, id uuid.UUID) (GetWorkspaceQuotaDetailsRow, error) {
+	row := q.db.QueryRowContext(ctx, getWorkspaceQuotaDetails, id)
+	var i GetWorkspaceQuotaDetailsRow
+	err := row.Scan(
+		&i.FileCount,
+		&i.TotalBytes,
+		&i.FolderCount,
+		&i.MemberCount,
+		&i.MaxFilesWorkspace,
+		&i.MaxTotalStorageBytesWorkspace,
+		&i.MaxUsersWorkspace,
+		&i.MaxWorkspaceFolders,
+	)
+	return i, err
 }
 
 const renameWorkspace = `-- name: RenameWorkspace :one

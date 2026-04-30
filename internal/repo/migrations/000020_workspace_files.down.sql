@@ -1,0 +1,3 @@
+BEGIN;
+DELETE TABLE IF EXISTS workspace_files;
+COMMIT;
