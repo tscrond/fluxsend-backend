@@ -97,7 +97,6 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 		fd.MultipartFile.Seek(0, io.SeekStart)
 		contentType = http.DetectContentType(buffer)
 	}
-	log.Println(contentType)
 
 	storageMapping := uuid.New()
 
