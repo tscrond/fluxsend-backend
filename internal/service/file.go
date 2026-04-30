@@ -100,10 +100,8 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 	log.Println(contentType)
 
 	storageMapping := uuid.New()
-	userId := pkg.ExtractUserIdFromBucketName(s.storage.GetBucketBaseName(), bucket)
-	objectKey := userId + "/" + storageMapping.String()
 
-	result, err := s.storage.PutObject(ctx, bucket, objectKey, fd.MultipartFile, fd.RequestHeaders.Size, contentType)
+	result, err := s.storage.PutObject(ctx, bucket, storageMapping.String(), fd.MultipartFile, fd.RequestHeaders.Size, contentType)
 	if err != nil {
 		log.Println("error uploading file:", err)
 		return err
