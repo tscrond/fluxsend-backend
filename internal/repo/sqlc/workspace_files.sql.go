@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -230,6 +231,68 @@ func (q *Queries) GetWorkspaceFiles(ctx context.Context, workspaceID uuid.UUID) 
 	return items, nil
 }
 
+const getWorkspaceFilesAtPathWithUploaders = `-- name: GetWorkspaceFilesAtPathWithUploaders :many
+SELECT wf.id, wf.workspace_id, wf.uploaded_by, wf.file_name, wf.file_type,
+       wf.size, wf.md5_checksum, wf.path, wf.created_at,
+       COALESCE(u.user_email, '') AS uploader_email
+FROM workspace_files wf
+LEFT JOIN users u ON u.id = wf.uploaded_by
+WHERE wf.workspace_id = $1 AND wf.file_type != 'inode/directory'
+  AND (wf.path = $2 OR wf.path LIKE $2 || '/%')
+`
+
+type GetWorkspaceFilesAtPathWithUploadersParams struct {
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	Path        string    `json:"path"`
+}
+
+type GetWorkspaceFilesAtPathWithUploadersRow struct {
+	ID            uuid.UUID      `json:"id"`
+	WorkspaceID   uuid.UUID      `json:"workspace_id"`
+	UploadedBy    uuid.UUID      `json:"uploaded_by"`
+	FileName      string         `json:"file_name"`
+	FileType      sql.NullString `json:"file_type"`
+	Size          int64          `json:"size"`
+	Md5Checksum   sql.NullString `json:"md5_checksum"`
+	Path          string         `json:"path"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UploaderEmail string         `json:"uploader_email"`
+}
+
+func (q *Queries) GetWorkspaceFilesAtPathWithUploaders(ctx context.Context, arg GetWorkspaceFilesAtPathWithUploadersParams) ([]GetWorkspaceFilesAtPathWithUploadersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWorkspaceFilesAtPathWithUploaders, arg.WorkspaceID, arg.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWorkspaceFilesAtPathWithUploadersRow
+	for rows.Next() {
+		var i GetWorkspaceFilesAtPathWithUploadersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.UploadedBy,
+			&i.FileName,
+			&i.FileType,
+			&i.Size,
+			&i.Md5Checksum,
+			&i.Path,
+			&i.CreatedAt,
+			&i.UploaderEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getWorkspaceFilesByPath = `-- name: GetWorkspaceFilesByPath :many
 SELECT id, workspace_id, uploaded_by, file_name, file_type, size, md5_checksum, path, created_at
 FROM workspace_files WHERE workspace_id = $1 AND path = $2
@@ -366,7 +429,7 @@ func (q *Queries) MoveWorkspaceFile(ctx context.Context, arg MoveWorkspaceFilePa
 const moveWorkspaceFilesByPathPrefix = `-- name: MoveWorkspaceFilesByPathPrefix :exec
 UPDATE workspace_files
 SET path = regexp_replace(path, $1, $2)
-WHERE workspace_id = $3 AND path LIKE $4
+WHERE workspace_id = $3 AND (path = $4 OR path LIKE $4 || '/%')
 `
 
 type MoveWorkspaceFilesByPathPrefixParams struct {

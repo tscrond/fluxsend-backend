@@ -21,10 +21,10 @@ type UserPlan struct {
 	MaxFiles                      int32  `json:"max_files"`
 	MaxFilesSentPerDay            int32  `json:"max_files_sent_per_day"`
 	MaxSharesPerDay               int32  `json:"max_shares_per_day"`
-	MaxFilesWorkspace             int32  `json:"max_files_per_workspace"`
-	MaxUserWorkspaces             int32  `json:"max_user_workspaces"`
-	MaxWorkspaceFolders           int32  `json:"max_workspace_folders"`
-	MaxUsersPerWorkspace          int32  `json:"max_users_workspace"`
+	MaxFilesWorkspace             int64  `json:"max_files_workspace"`
+	MaxUserWorkspaces             int64  `json:"max_user_workspaces"`
+	MaxWorkspaceFolders           int64  `json:"max_workspace_folders"`
+	MaxUsersPerWorkspace          int64  `json:"max_users_workspace"`
 	MaxTotalStorageBytesWorkspace int64  `json:"max_total_storage_bytes_workspace"`
 }
 

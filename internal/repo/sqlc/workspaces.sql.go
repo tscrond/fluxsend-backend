@@ -27,7 +27,7 @@ WITH plan AS (
 usage AS (
     SELECT
         COUNT(*) FILTER (WHERE file_type != 'inode/directory') AS file_count,
-        COALESCE(SUM(size), 0)                                  AS total_bytes,
+        COALESCE(SUM(size), 0)::BIGINT                          AS total_bytes,
         COUNT(*) FILTER (WHERE file_type = 'inode/directory')  AS folder_count
     FROM workspace_files
     WHERE workspace_id = $1
@@ -503,7 +503,7 @@ WITH plan AS (
 usage AS (
     SELECT
         COUNT(*) FILTER (WHERE file_type != 'inode/directory') AS file_count,
-        COALESCE(SUM(size), 0)                                  AS total_bytes,
+        COALESCE(SUM(size), 0)::BIGINT                          AS total_bytes,
         COUNT(*) FILTER (WHERE file_type = 'inode/directory')  AS folder_count
     FROM workspace_files
     WHERE workspace_id = $1
@@ -526,14 +526,14 @@ FROM usage u, plan pl, members m
 `
 
 type GetWorkspaceQuotaDetailsRow struct {
-	FileCount                     int64       `json:"file_count"`
-	TotalBytes                    interface{} `json:"total_bytes"`
-	FolderCount                   int64       `json:"folder_count"`
-	MemberCount                   int64       `json:"member_count"`
-	MaxFilesWorkspace             int64       `json:"max_files_workspace"`
-	MaxTotalStorageBytesWorkspace int64       `json:"max_total_storage_bytes_workspace"`
-	MaxUsersWorkspace             int64       `json:"max_users_workspace"`
-	MaxWorkspaceFolders           int64       `json:"max_workspace_folders"`
+	FileCount                     int64 `json:"file_count"`
+	TotalBytes                    int64 `json:"total_bytes"`
+	FolderCount                   int64 `json:"folder_count"`
+	MemberCount                   int64 `json:"member_count"`
+	MaxFilesWorkspace             int64 `json:"max_files_workspace"`
+	MaxTotalStorageBytesWorkspace int64 `json:"max_total_storage_bytes_workspace"`
+	MaxUsersWorkspace             int64 `json:"max_users_workspace"`
+	MaxWorkspaceFolders           int64 `json:"max_workspace_folders"`
 }
 
 func (q *Queries) GetWorkspaceQuotaDetails(ctx context.Context, id uuid.UUID) (GetWorkspaceQuotaDetailsRow, error) {

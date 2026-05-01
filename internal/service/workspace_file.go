@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -204,52 +205,50 @@ func (w *workspaceFileService) GetWorkspaceFiles(ctx context.Context, workspaceI
 func (w *workspaceFileService) GetWorkspaceFilesTree(ctx context.Context, workspaceId uuid.UUID, path string) (WorkspaceFilesTree, error) {
 	path = wsNormPath(path)
 
+	// Load all entries (files+folders) for this workspace to find virtual folders
+	// contributed by deeper paths, and explicitly-created folder placeholders.
 	all, err := w.queries.GetWorkspaceFiles(ctx, workspaceId)
 	if err != nil {
 		return WorkspaceFilesTree{}, err
 	}
 
 	foldersSet := map[string]struct{}{}
-	files := make([]WorkspaceFileTreeEntry, 0)
-
 	for _, entry := range all {
 		if entry.FileType.String == "inode/directory" {
-			// Explicit folder placeholder: appears when its parent == current path.
 			if entry.Path == path {
 				foldersSet[entry.FileName] = struct{}{}
 			}
 			continue
 		}
-
-		if entry.Path == path {
-			// Direct file at this level.
-			files = append(files, WorkspaceFileTreeEntry{
-				ID:          entry.ID,
-				Name:        entry.FileName,
-				FileType:    entry.FileType.String,
-				Size:        entry.Size,
-				MD5Checksum: entry.Md5Checksum.String,
-				UploadedBy:  entry.UploadedBy,
-				CreatedAt:   entry.CreatedAt.Format(time.RFC3339),
-			})
-		} else if child, ok := wsChildFolder(entry.Path, path); ok {
-			// File lives deeper; contribute its immediate ancestor as a virtual folder.
+		if child, ok := wsChildFolder(entry.Path, path); ok {
 			foldersSet[child] = struct{}{}
 		}
 	}
 
-	// Batch-resolve uploader UUIDs → emails (one query per unique UUID).
-	emailCache := map[uuid.UUID]string{}
-	for i := range files {
-		id := files[i].UploadedBy
-		if _, seen := emailCache[id]; !seen {
-			if u, err := w.queries.GetUserById(ctx, id); err == nil {
-				emailCache[id] = u.UserEmail
-			} else {
-				emailCache[id] = "" // leave blank on error
-			}
+	// Fetch files at this path level with uploader emails via a single JOIN query.
+	rows, err := w.queries.GetWorkspaceFilesAtPathWithUploaders(ctx, sqlc.GetWorkspaceFilesAtPathWithUploadersParams{
+		WorkspaceID: workspaceId,
+		Path:        path,
+	})
+	if err != nil {
+		return WorkspaceFilesTree{}, err
+	}
+
+	files := make([]WorkspaceFileTreeEntry, 0, len(rows))
+	for _, entry := range rows {
+		if entry.Path != path {
+			continue
 		}
-		files[i].UploadedByEmail = emailCache[id]
+		files = append(files, WorkspaceFileTreeEntry{
+			ID:              entry.ID,
+			Name:            entry.FileName,
+			FileType:        entry.FileType.String,
+			Size:            entry.Size,
+			MD5Checksum:     entry.Md5Checksum.String,
+			UploadedBy:      entry.UploadedBy,
+			UploadedByEmail: entry.UploaderEmail,
+			CreatedAt:       entry.CreatedAt.String(),
+		})
 	}
 
 	folders := make([]string, 0, len(foldersSet))
@@ -516,19 +515,19 @@ func (w *workspaceFileService) MoveWorkspaceFolder(ctx context.Context, workspac
 	}
 
 	// Use regexp_replace to update all file paths in one query.
-	// Anchor to start of string so "/docs" doesn't match "/adocs".
+	// Pattern requires a path separator after sourcePath so "/docs" doesn't match "/docs2".
 	var pattern string
 	if sourcePath == "/" {
 		pattern = "^/"
 	} else {
-		pattern = "^" + sourcePath
+		pattern = "^" + regexp.QuoteMeta(sourcePath) + "(/|$)"
 	}
 
 	if err := w.queries.MoveWorkspaceFilesByPathPrefix(ctx, sqlc.MoveWorkspaceFilesByPathPrefixParams{
 		RegexpReplace:   pattern,
-		RegexpReplace_2: destPath,
+		RegexpReplace_2: destPath + `\1`,
 		WorkspaceID:     workspaceId,
-		Path:            sourcePath + "%",
+		Path:            sourcePath,
 	}); err != nil {
 		return 0, err
 	}

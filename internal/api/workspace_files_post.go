@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
@@ -43,7 +44,7 @@ func (s *APIServer) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) 
 
 	folder := wsNormalizePathParam(r.FormValue("folder"))
 
-	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID); err != nil {
+	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, header.Size); err != nil {
 		if errors.Is(err, ErrWorkspaceFilesLimitExceeded) || errors.Is(err, ErrWorkspaceStorageLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
@@ -95,8 +96,15 @@ func (s *APIServer) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_request")
 		return
 	}
+	// Reject folder names that are not a single clean path segment.
+	req.FolderName = strings.TrimSpace(req.FolderName)
+	if req.FolderName == "" || req.FolderName == "." || req.FolderName == ".." ||
+		strings.ContainsAny(req.FolderName, "/\x00") {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_folder_name")
+		return
+	}
 
-	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID); err != nil {
+	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, 0); err != nil {
 		if errors.Is(err, ErrWorkspaceFoldersLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {

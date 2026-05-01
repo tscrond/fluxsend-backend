@@ -130,8 +130,11 @@ func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID); err != nil {
-		if errors.Is(err, ErrWorkspaceUsersLimitExceeded) {
+	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, 0); err != nil {
+		if errors.Is(err, ErrWorkspaceUsersLimitExceeded) ||
+			errors.Is(err, ErrWorkspaceFilesLimitExceeded) ||
+			errors.Is(err, ErrWorkspaceStorageLimitExceeded) ||
+			errors.Is(err, ErrWorkspaceFoldersLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
 			log.Printf("[workspace-plan-limit] resource quota check failed for workspace=%s: %v", workspaceID, err)

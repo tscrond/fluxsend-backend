@@ -88,7 +88,7 @@ func (s *APIServer) downloadWorkspaceFile(w http.ResponseWriter, r *http.Request
 	expiresAt := time.Now().Add(time.Minute)
 	var contentDisposition string
 	if mode == "download" {
-		contentDisposition = "attachment; filename=" + info.FileName
+		contentDisposition = buildAttachmentContentDisposition(info.FileName)
 	}
 
 	signedURL, err := s.bucketHandler.GenerateSignedURL(r.Context(), info.Bucket, info.ObjectKey, expiresAt, contentDisposition)

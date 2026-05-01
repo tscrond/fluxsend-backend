@@ -35,31 +35,32 @@ func (s *APIServer) validateWorkspacesPerUserLimit(ctx context.Context, ownerID 
 
 // validateWorkspaceResourceLimits checks whether a specific workspace has hit
 // its plan's per-workspace resource caps (files, storage, folders, members).
+// pendingBytes is the size of the incoming upload (0 for non-upload operations).
 // Call this before adding a file, folder, or member to a workspace.
-func (s *APIServer) validateWorkspaceResourceLimits(ctx context.Context, workspaceID uuid.UUID) (exceedInfo map[string]any, err error) {
-	quota, err := s.repository.Queries().CheckWorkspaceResourceQuota(ctx, workspaceID)
+func (s *APIServer) validateWorkspaceResourceLimits(ctx context.Context, workspaceID uuid.UUID, pendingBytes int64) (exceedInfo map[string]any, err error) {
+	quota, err := s.repository.Queries().GetWorkspaceQuotaDetails(ctx, workspaceID)
 	if err != nil {
 		log.Printf("[plan-limit] DB error checking resource quota for workspace=%s: %v", workspaceID, err)
 		return nil, err
 	}
 
 	switch {
-	case quota.FilesExceeded:
+	case quota.FileCount >= quota.MaxFilesWorkspace:
 		log.Printf("[plan-limit] workspace=%s: files limit exceeded", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of files for your plan",
 		}, ErrWorkspaceFilesLimitExceeded
-	case quota.StorageExceeded:
+	case quota.TotalBytes+pendingBytes > quota.MaxTotalStorageBytesWorkspace:
 		log.Printf("[plan-limit] workspace=%s: storage limit exceeded", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum storage quota for your plan",
 		}, ErrWorkspaceStorageLimitExceeded
-	case quota.FoldersExceeded:
+	case quota.FolderCount >= quota.MaxWorkspaceFolders:
 		log.Printf("[plan-limit] workspace=%s: folders limit exceeded", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of folders for your plan",
 		}, ErrWorkspaceFoldersLimitExceeded
-	case quota.UsersExceeded:
+	case quota.MemberCount >= quota.MaxUsersWorkspace:
 		log.Printf("[plan-limit] workspace=%s: members limit exceeded", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of members for your plan",

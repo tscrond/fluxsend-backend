@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"sort"
 	"strings"
@@ -106,7 +105,7 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 		return err
 	}
 
-	privateDownloadToken, err := pkg.GenerateSecureTokenFromID(rand.Int63())
+	privateDownloadToken, err := pkg.RandToken(32)
 	if err != nil {
 		log.Println("err generating token:", err)
 		return err
@@ -123,8 +122,8 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 	})
 	if err != nil {
 		log.Println("error inserting file to DB, removing object from storage:", err)
-		if delErr := s.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
-			log.Printf("error deleting object %s: %v\n", objectKey, delErr)
+		if delErr := s.storage.DeleteObjectFromBucket(ctx, storageMapping.String(), bucket); delErr != nil {
+			log.Printf("error deleting object %s: %v\n", storageMapping.String(), delErr)
 		}
 		if errors.Is(err, sql.ErrNoRows) {
 			return storagetypes.ErrFileAlreadyExists

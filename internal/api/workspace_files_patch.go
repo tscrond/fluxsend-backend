@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/service"
@@ -103,6 +104,10 @@ func (s *APIServer) moveWorkspaceFolder(w http.ResponseWriter, r *http.Request) 
 	dst := wsNormalizePathParam(req.Destination)
 	if src == "/" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "cannot_move_root")
+		return
+	}
+	if src == dst || dst == src || strings.HasPrefix(dst+"/", src+"/") {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "cannot_move_into_self")
 		return
 	}
 

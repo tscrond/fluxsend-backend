@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -148,20 +147,9 @@ func (s *APIServer) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TotalBytes comes back as interface{} from COALESCE(SUM(...), 0)
-	var totalBytes int64
-	switch v := row.TotalBytes.(type) {
-	case int64:
-		totalBytes = v
-	case float64:
-		totalBytes = int64(v)
-	case []byte:
-		fmt.Sscan(string(v), &totalBytes)
-	}
-
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", map[string]any{
 		"file_count":                        row.FileCount,
-		"total_bytes":                       totalBytes,
+		"total_bytes":                       row.TotalBytes,
 		"folder_count":                      row.FolderCount,
 		"member_count":                      row.MemberCount,
 		"max_files_workspace":               row.MaxFilesWorkspace,

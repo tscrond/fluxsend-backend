@@ -62,5 +62,14 @@ WHERE id = $3 AND workspace_id = $4;
 -- name: MoveWorkspaceFilesByPathPrefix :exec
 UPDATE workspace_files
 SET path = regexp_replace(path, $1, $2)
-WHERE workspace_id = $3 AND path LIKE $4;
+WHERE workspace_id = $3 AND (path = $4 OR path LIKE $4 || '/%');
+
+-- name: GetWorkspaceFilesAtPathWithUploaders :many
+SELECT wf.id, wf.workspace_id, wf.uploaded_by, wf.file_name, wf.file_type,
+       wf.size, wf.md5_checksum, wf.path, wf.created_at,
+       COALESCE(u.user_email, '') AS uploader_email
+FROM workspace_files wf
+LEFT JOIN users u ON u.id = wf.uploaded_by
+WHERE wf.workspace_id = $1 AND wf.file_type != 'inode/directory'
+  AND (wf.path = $2 OR wf.path LIKE $2 || '/%');
 

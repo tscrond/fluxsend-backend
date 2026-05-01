@@ -118,7 +118,7 @@ WITH plan AS (
 usage AS (
     SELECT
         COUNT(*) FILTER (WHERE file_type != 'inode/directory') AS file_count,
-        COALESCE(SUM(size), 0)                                  AS total_bytes,
+        COALESCE(SUM(size), 0)::BIGINT                          AS total_bytes,
         COUNT(*) FILTER (WHERE file_type = 'inode/directory')  AS folder_count
     FROM workspace_files
     WHERE workspace_id = $1
@@ -150,7 +150,7 @@ WITH plan AS (
 usage AS (
     SELECT
         COUNT(*) FILTER (WHERE file_type != 'inode/directory') AS file_count,
-        COALESCE(SUM(size), 0)                                  AS total_bytes,
+        COALESCE(SUM(size), 0)::BIGINT                          AS total_bytes,
         COUNT(*) FILTER (WHERE file_type = 'inode/directory')  AS folder_count
     FROM workspace_files
     WHERE workspace_id = $1
