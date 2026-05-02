@@ -44,7 +44,7 @@ func (s *APIServer) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) 
 
 	folder := wsNormalizePathParam(r.FormValue("folder"))
 
-	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, header.Size); err != nil {
+	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, header.Size, workspaceQuotaChecks{files: true, storage: true}); err != nil {
 		if errors.Is(err, ErrWorkspaceFilesLimitExceeded) || errors.Is(err, ErrWorkspaceStorageLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
@@ -104,7 +104,7 @@ func (s *APIServer) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, 0); err != nil {
+	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, 0, workspaceQuotaChecks{folders: true}); err != nil {
 		if errors.Is(err, ErrWorkspaceFoldersLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
