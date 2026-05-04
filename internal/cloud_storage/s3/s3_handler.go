@@ -57,12 +57,18 @@ func (b *S3BucketHandler) extractUserIdFromBucket(bucket string) string {
 }
 
 func (b *S3BucketHandler) PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*types.PutObjectResult, error) {
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := key
+	if userId != "" {
+		objectKey = s3Key(userId, key)
+	}
+
 	hasher := md5.New()
 	teeReader := io.TeeReader(r, hasher)
 
 	_, err := b.Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(b.BaseBucketName),
-		Key:           aws.String(key),
+		Key:           aws.String(objectKey),
 		Body:          teeReader,
 		ContentType:   aws.String(contentType),
 		ContentLength: aws.Int64(size),
