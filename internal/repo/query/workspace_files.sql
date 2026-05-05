@@ -73,3 +73,10 @@ LEFT JOIN users u ON u.id = wf.uploaded_by
 WHERE wf.workspace_id = $1 AND wf.file_type != 'inode/directory'
   AND (wf.path = $2 OR wf.path LIKE $2 || '/%');
 
+-- name: GetWorkspaceFoldersAtPathWithCreators :many
+SELECT wf.id, wf.workspace_id, wf.uploaded_by, wf.file_name, wf.path, wf.created_at,
+       COALESCE(u.user_email, '') AS creator_email
+FROM workspace_files wf
+LEFT JOIN users u ON u.id = wf.uploaded_by
+WHERE wf.workspace_id = $1 AND wf.path = $2 AND wf.file_type = 'inode/directory';
+

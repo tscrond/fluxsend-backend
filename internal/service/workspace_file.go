@@ -61,10 +61,17 @@ type WorkspaceFileTreeEntry struct {
 	CreatedAt       string    `json:"created_at"`
 }
 
+type WorkspaceFolderTreeEntry struct {
+	Name           string `json:"name"`
+	Size           int64  `json:"size"`
+	CreatedByEmail string `json:"created_by_email,omitempty"`
+	CreatedAt      string `json:"created_at,omitempty"`
+}
+
 type WorkspaceFilesTree struct {
-	Path    string                   `json:"path"`
-	Files   []WorkspaceFileTreeEntry `json:"files"`
-	Folders []string                 `json:"folders"`
+	Path    string                     `json:"path"`
+	Files   []WorkspaceFileTreeEntry   `json:"files"`
+	Folders []WorkspaceFolderTreeEntry `json:"folders"`
 }
 
 // ── Service interface ─────────────────────────────────────────────────────────
@@ -225,6 +232,19 @@ func (w *workspaceFileService) GetWorkspaceFilesTree(ctx context.Context, worksp
 		}
 	}
 
+	// Fetch explicit folder metadata (created_by email, created_at) at this path.
+	explicitFolderRows, err := w.queries.GetWorkspaceFoldersAtPathWithCreators(ctx, sqlc.GetWorkspaceFoldersAtPathWithCreatorsParams{
+		WorkspaceID: workspaceId,
+		Path:        path,
+	})
+	if err != nil {
+		return WorkspaceFilesTree{}, err
+	}
+	folderMeta := make(map[string]sqlc.GetWorkspaceFoldersAtPathWithCreatorsRow, len(explicitFolderRows))
+	for _, ef := range explicitFolderRows {
+		folderMeta[ef.FileName] = ef
+	}
+
 	// Fetch files at this path level with uploader emails via a single JOIN query.
 	rows, err := w.queries.GetWorkspaceFilesAtPathWithUploaders(ctx, sqlc.GetWorkspaceFilesAtPathWithUploadersParams{
 		WorkspaceID: workspaceId,
@@ -251,12 +271,36 @@ func (w *workspaceFileService) GetWorkspaceFilesTree(ctx context.Context, worksp
 		})
 	}
 
-	folders := make([]string, 0, len(foldersSet))
-	for f := range foldersSet {
-		folders = append(folders, f)
+	// Compute recursive size for each folder by summing real-file sizes from `all`.
+	folderSizes := make(map[string]int64, len(foldersSet))
+	for _, entry := range all {
+		if entry.FileType.String == "inode/directory" {
+			continue
+		}
+		for name := range foldersSet {
+			folderPath := path
+			if path == "/" {
+				folderPath = "/" + name
+			} else {
+				folderPath = path + "/" + name
+			}
+			if entry.Path == folderPath || strings.HasPrefix(entry.Path, folderPath+"/") {
+				folderSizes[name] += entry.Size
+			}
+		}
 	}
-	sort.Strings(folders)
-	sort.Slice(files, func(i, j int) bool { return files[i].Name < files[j].Name })
+
+	folders := make([]WorkspaceFolderTreeEntry, 0, len(foldersSet))
+	for name := range foldersSet {
+		entry := WorkspaceFolderTreeEntry{Name: name, Size: folderSizes[name]}
+		if meta, ok := folderMeta[name]; ok {
+			entry.CreatedByEmail = meta.CreatorEmail
+			entry.CreatedAt = meta.CreatedAt.String()
+		}
+		folders = append(folders, entry)
+	}
+	sort.SliceStable(folders, func(i, j int) bool { return folders[i].Name < folders[j].Name })
+	sort.SliceStable(files, func(i, j int) bool { return files[i].Name < files[j].Name })
 
 	return WorkspaceFilesTree{Path: path, Files: files, Folders: folders}, nil
 }
