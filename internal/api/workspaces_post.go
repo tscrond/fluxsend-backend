@@ -32,6 +32,16 @@ func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if exceedInfo, err := s.validateWorkspacesPerUserLimit(r.Context(), userUUID); err != nil {
+		if errors.Is(err, ErrWorkspacesPerUserLimitExceeded) {
+			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
+		} else {
+			log.Printf("[workspace-plan-limit] workspace count check failed for user=%s: %v", userUUID, err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
+		}
+		return
+	}
+
 	var workspaceResponse struct {
 		Slug string `json:"slug"`
 		Name string `json:"name"`
@@ -116,6 +126,16 @@ func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "unauthorized_to_invite")
 		} else {
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
+		}
+		return
+	}
+
+	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, 0, workspaceQuotaChecks{members: true}); err != nil {
+		if errors.Is(err, ErrWorkspaceUsersLimitExceeded) {
+			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
+		} else {
+			log.Printf("[workspace-plan-limit] resource quota check failed for workspace=%s: %v", workspaceID, err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return
 	}

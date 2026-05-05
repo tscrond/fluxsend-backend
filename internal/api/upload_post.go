@@ -59,7 +59,7 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	fileData.OwnerID = uuid.MustParse(userUUID)
 	fileData.OwnerInternalID = authUser.InternalID
 
-	if exceedInfo, err := s.validatePlan(r.Context(), uuid.MustParse(userUUID), userPlan); err != nil {
+	if exceedInfo, err := s.validateClassicUploadPlan(r.Context(), uuid.MustParse(userUUID), userPlan); err != nil {
 		if errors.Is(err, ErrFileLimitExceeded) || errors.Is(err, ErrStorageQuotaExceeded) || errors.Is(err, ErrDailyUploadLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {

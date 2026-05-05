@@ -9,7 +9,6 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/gcs"
 	s3handler "github.com/tscrond/fluxsend-backend/internal/cloud_storage/s3"
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
-	"github.com/tscrond/fluxsend-backend/internal/repo"
 )
 
 // TODO: use bucketMode parameter to define if storage backends:
@@ -17,7 +16,7 @@ import (
 // OR
 // - use a single bucket with per-user prefixing
 
-func NewStorageProvider(provider string, repository repo.Repository) (types.ObjectStorage, error) {
+func NewStorageProvider(provider string) (types.ObjectStorage, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 
 	switch provider {
@@ -36,7 +35,7 @@ func NewStorageProvider(provider string, repository repo.Repository) (types.Obje
 			return nil, errors.New("missing GOOGLE_PROJECT_ID for STORAGE_PROVIDER=gcs")
 		}
 
-		return gcs.NewGCSBucketHandler(svcaccountPath, bucketName, googleProjectID, repository)
+		return gcs.NewGCSBucketHandler(svcaccountPath, bucketName, googleProjectID)
 	case "s3":
 		bucketName := os.Getenv("S3_BUCKET_NAME")
 		if bucketName == "" {
@@ -52,7 +51,7 @@ func NewStorageProvider(provider string, repository repo.Repository) (types.Obje
 			return nil, errors.New("missing AWS_REGION for STORAGE_PROVIDER=s3")
 		}
 
-		return s3handler.NewS3BucketHandler(bucketName, region, repository)
+		return s3handler.NewS3BucketHandler(bucketName, region)
 	case "minio":
 		return nil, errors.New("not implemented")
 	default:

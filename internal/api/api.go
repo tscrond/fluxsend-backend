@@ -26,10 +26,11 @@ type APIServer struct {
 	authProviders    map[string]auth.AuthProvider
 	tokenEncryptor   *tokencrypto.Encryptor
 
-	files      service.FileService
-	shares     service.ShareService
-	users      service.UserService
-	workspaces service.WorkspaceService
+	files          service.FileService
+	shares         service.ShareService
+	users          service.UserService
+	workspaces     service.WorkspaceService
+	workspaceFiles service.WorkspaceFileService
 }
 
 func NewAPIServer(
@@ -44,6 +45,7 @@ func NewAPIServer(
 	shares service.ShareService,
 	users service.UserService,
 	workspaces service.WorkspaceService,
+	workspaceFiles service.WorkspaceFileService,
 ) *APIServer {
 
 	return &APIServer{
@@ -58,6 +60,7 @@ func NewAPIServer(
 		shares:           shares,
 		users:            users,
 		workspaces:       workspaces,
+		workspaceFiles:   workspaceFiles,
 	}
 }
 
@@ -124,6 +127,16 @@ func (s *APIServer) Start() {
 	r.Handle("/workspaces/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspace)))
 	r.Handle("/workspaces/rename", s.authMiddleware(http.HandlerFunc(s.renameWorkspace)))
 	r.Handle("/workspaces/members/role", s.authMiddleware(http.HandlerFunc(s.changeMemberRole)))
+
+	r.Handle("/workspaces/{workspace_id}/files/tree", s.authMiddleware(http.HandlerFunc(s.getWorkspaceFilesTree)))
+	r.Handle("/workspaces/{workspace_id}/files/upload", s.authMiddleware(http.HandlerFunc(s.uploadWorkspaceFile)))
+	r.Handle("/workspaces/{workspace_id}/files/mkdir", s.authMiddleware(http.HandlerFunc(s.mkdirWorkspace)))
+	r.Handle("/workspaces/{workspace_id}/files/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceFile)))
+	r.Handle("/workspaces/{workspace_id}/files/folder/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceFolder)))
+	r.Handle("/workspaces/{workspace_id}/files/move", s.authMiddleware(http.HandlerFunc(s.moveWorkspaceFile)))
+	r.Handle("/workspaces/{workspace_id}/files/folder/move", s.authMiddleware(http.HandlerFunc(s.moveWorkspaceFolder)))
+	r.Handle("/workspaces/{workspace_id}/files/download", s.authMiddleware(http.HandlerFunc(s.downloadWorkspaceFile)))
+	r.Handle("/workspaces/{workspace_id}/quota", s.authMiddleware(http.HandlerFunc(s.getWorkspaceQuota)))
 
 	log.Printf("Listening on %s\n", s.backendConfig.ListenPort)
 	http.ListenAndServe("0.0.0.0"+s.backendConfig.ListenPort, r)

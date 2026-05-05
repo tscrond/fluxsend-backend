@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -114,4 +115,46 @@ func (s *APIServer) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Request
 	}
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", invites)
+}
+
+// GET /workspaces/{workspace_id}/quota  (admin/owner only)
+func (s *APIServer) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
+		return
+	}
+
+	_, callerID, ok := parseAuthorizedUserUUID(r)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
+		return
+	}
+
+	workspaceID, role, ok := s.resolveWorkspaceRole(r, callerID)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "forbidden")
+		return
+	}
+	if role != "owner" && role != "admin" {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "forbidden")
+		return
+	}
+
+	row, err := s.repository.Queries().GetWorkspaceQuotaDetails(r.Context(), workspaceID)
+	if err != nil {
+		log.Printf("[quota] DB error fetching quota for workspace=%s: %v", workspaceID, err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "ok", map[string]any{
+		"file_count":                        row.FileCount,
+		"total_bytes":                       row.TotalBytes,
+		"folder_count":                      row.FolderCount,
+		"member_count":                      row.MemberCount,
+		"max_files_workspace":               row.MaxFilesWorkspace,
+		"max_total_storage_bytes_workspace": row.MaxTotalStorageBytesWorkspace,
+		"max_users_workspace":               row.MaxUsersWorkspace,
+		"max_workspace_folders":             row.MaxWorkspaceFolders,
+	})
 }

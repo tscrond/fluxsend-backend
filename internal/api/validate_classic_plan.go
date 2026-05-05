@@ -16,7 +16,7 @@ var ErrStorageQuotaExceeded = errors.New("storage quota exceeded")
 var ErrDailyUploadLimitExceeded = errors.New("daily upload limit exceeded")
 var ErrDailyShareLimitExceeded = errors.New("daily share limit exceeded")
 
-func (s *APIServer) validatePlan(ctx context.Context, userUUID uuid.UUID, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
+func (s *APIServer) validateClassicUploadPlan(ctx context.Context, userUUID uuid.UUID, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
 	quota, err := s.repository.Queries().CheckUploadQuota(ctx, sqlc.CheckUploadQuotaParams{
 		OwnerID: userUUID,
 		ID:      uuid.MustParse(userPlan.PlanID),
@@ -26,7 +26,7 @@ func (s *APIServer) validatePlan(ctx context.Context, userUUID uuid.UUID, userPl
 		return nil, err
 	}
 
-	switch errType := s.checkForPlanErrorType(quota); errType {
+	switch errType := s.checkForClassicPlanErrorType(quota); errType {
 	case ErrFileLimitExceeded:
 		log.Printf("[plan-limit] user=%s plan=%s limit=max_files value=%d: file limit exceeded", userUUID, userPlan.PlanName, userPlan.MaxFiles)
 		return map[string]any{
@@ -49,7 +49,7 @@ func (s *APIServer) validatePlan(ctx context.Context, userUUID uuid.UUID, userPl
 	return nil, nil
 }
 
-func (s *APIServer) validateSharePlan(ctx context.Context, sharedByEmail string, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
+func (s *APIServer) validateClassicSharePlan(ctx context.Context, sharedByEmail string, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
 	sharesExceeded, err := s.repository.Queries().CheckShareQuota(ctx, sqlc.CheckShareQuotaParams{
 		SharedBy: sql.NullString{String: sharedByEmail, Valid: true},
 		ID:       uuid.MustParse(userPlan.PlanID),
@@ -69,7 +69,7 @@ func (s *APIServer) validateSharePlan(ctx context.Context, sharedByEmail string,
 	return nil, nil
 }
 
-func (s *APIServer) checkForPlanErrorType(quota sqlc.CheckUploadQuotaRow) error {
+func (s *APIServer) checkForClassicPlanErrorType(quota sqlc.CheckUploadQuotaRow) error {
 	switch {
 	case quota.FilesExceeded:
 		return ErrFileLimitExceeded

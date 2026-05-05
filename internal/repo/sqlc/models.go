@@ -43,14 +43,19 @@ type Note struct {
 }
 
 type Plan struct {
-	ID                   uuid.UUID `json:"id"`
-	Name                 string    `json:"name"`
-	MaxTotalStorageBytes int64     `json:"max_total_storage_bytes"`
-	MaxFileSizeBytes     int64     `json:"max_file_size_bytes"`
-	MaxFiles             int32     `json:"max_files"`
-	MaxFilesSentPerDay   int32     `json:"max_files_sent_per_day"`
-	MaxSharesPerDay      int32     `json:"max_shares_per_day"`
-	CreatedAt            time.Time `json:"created_at"`
+	ID                            uuid.UUID `json:"id"`
+	Name                          string    `json:"name"`
+	MaxTotalStorageBytes          int64     `json:"max_total_storage_bytes"`
+	MaxFileSizeBytes              int64     `json:"max_file_size_bytes"`
+	MaxFiles                      int32     `json:"max_files"`
+	MaxFilesSentPerDay            int32     `json:"max_files_sent_per_day"`
+	MaxSharesPerDay               int32     `json:"max_shares_per_day"`
+	CreatedAt                     time.Time `json:"created_at"`
+	MaxFilesWorkspace             int64     `json:"max_files_workspace"`
+	MaxUserWorkspaces             int64     `json:"max_user_workspaces"`
+	MaxTotalStorageBytesWorkspace int64     `json:"max_total_storage_bytes_workspace"`
+	MaxUsersWorkspace             int64     `json:"max_users_workspace"`
+	MaxWorkspaceFolders           int64     `json:"max_workspace_folders"`
 }
 
 type PlanFeature struct {
@@ -103,6 +108,18 @@ type Workspace struct {
 	Name      string    `json:"name"`
 	OwnerID   uuid.UUID `json:"owner_id"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type WorkspaceFile struct {
+	ID          uuid.UUID      `json:"id"`
+	WorkspaceID uuid.UUID      `json:"workspace_id"`
+	UploadedBy  uuid.UUID      `json:"uploaded_by"`
+	FileName    string         `json:"file_name"`
+	FileType    sql.NullString `json:"file_type"`
+	Size        int64          `json:"size"`
+	Md5Checksum sql.NullString `json:"md5_checksum"`
+	Path        string         `json:"path"`
+	CreatedAt   time.Time      `json:"created_at"`
 }
 
 type WorkspaceInvite struct {

@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -14,6 +17,7 @@ import (
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 // FileTreeEntry describes a single file within the virtual filesystem tree.
@@ -60,7 +64,74 @@ func NewFileService(queries *sqlc.Queries, storage storagetypes.ObjectStorage, s
 }
 
 func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
-	return s.storage.SendFileToBucket(ctx, fd)
+	fileName := fd.RequestHeaders.Filename
+	if fd.Folder != "" {
+		fileName = fd.Folder + "/" + fileName
+	}
+
+	_, err := s.queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  fd.OwnerID,
+		FileName: fileName,
+	})
+	if err == nil {
+		return storagetypes.ErrFileAlreadyExists
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		log.Println("error checking existing file:", err)
+		return storagetypes.ErrUploadFailed
+	}
+
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), fd.OwnerID, fd.OwnerInternalID)
+	if err != nil {
+		return err
+	}
+
+	contentType := fd.RequestHeaders.Header.Get("Content-Type")
+	if contentType == "" {
+		buffer := make([]byte, 512)
+		_, readErr := fd.MultipartFile.Read(buffer)
+		if readErr != nil && readErr != io.EOF {
+			return readErr
+		}
+		fd.MultipartFile.Seek(0, io.SeekStart)
+		contentType = http.DetectContentType(buffer)
+	}
+
+	storageMapping := uuid.New()
+
+	result, err := s.storage.PutObject(ctx, bucket, storageMapping.String(), fd.MultipartFile, fd.RequestHeaders.Size, contentType)
+	if err != nil {
+		log.Println("error uploading file:", err)
+		return err
+	}
+
+	privateDownloadToken, err := pkg.RandToken(32)
+	if err != nil {
+		log.Println("err generating token:", err)
+		return err
+	}
+
+	file, err := s.queries.InsertFile(ctx, sqlc.InsertFileParams{
+		OwnerID:              fd.OwnerID,
+		FileName:             fileName,
+		FileType:             sql.NullString{Valid: true, String: result.ContentType},
+		Size:                 sql.NullInt64{Valid: true, Int64: result.Size},
+		Md5Checksum:          result.MD5,
+		PrivateDownloadToken: sql.NullString{Valid: true, String: privateDownloadToken},
+		StorageMapping:       storageMapping,
+	})
+	if err != nil {
+		log.Println("error inserting file to DB, removing object from storage:", err)
+		if delErr := s.storage.DeleteObjectFromBucket(ctx, storageMapping.String(), bucket); delErr != nil {
+			log.Printf("error deleting object %s: %v\n", storageMapping.String(), delErr)
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			return storagetypes.ErrFileAlreadyExists
+		}
+		return storagetypes.ErrUploadFailed
+	}
+	log.Printf("file %s uploaded successfully (checksum: %v)", fileName, file.Md5Checksum)
+	return nil
 }
 
 func (s *fileService) GetFilesTree(ctx context.Context, userID uuid.UUID, path string) (*FilesTree, error) {
@@ -169,6 +240,7 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 			OwnerID:  userID,
 			FileName: name,
 		})
+		log.Println("filerow kurwa:", fileRow)
 		if lookupErr != nil {
 			log.Printf("resolving file %q from DB: %v", name, lookupErr)
 			failed = append(failed, name)

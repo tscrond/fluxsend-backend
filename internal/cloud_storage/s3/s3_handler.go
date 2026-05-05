@@ -3,14 +3,11 @@ package s3
 import (
 	"context"
 	"crypto/md5"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
-	"net/http"
 	"strings"
 	"time"
 
@@ -18,25 +15,20 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/google/uuid"
 
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
-	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
-	"github.com/tscrond/fluxsend-backend/internal/repo"
-	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 type S3BucketHandler struct {
-	repository     repo.Repository
 	Client         *s3.Client
 	PresignClient  *s3.PresignClient
 	BaseBucketName string
 	Region         string
 }
 
-func NewS3BucketHandler(bucketName, region string, repository repo.Repository) (types.ObjectStorage, error) {
+func NewS3BucketHandler(bucketName, region string) (types.ObjectStorage, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithRegion(region))
 	if err != nil {
 		log.Println("Error loading AWS config:", err)
@@ -47,7 +39,6 @@ func NewS3BucketHandler(bucketName, region string, repository repo.Repository) (
 	presignClient := s3.NewPresignClient(client)
 
 	return &S3BucketHandler{
-		repository:     repository,
 		Client:         client,
 		PresignClient:  presignClient,
 		BaseBucketName: bucketName,
@@ -65,144 +56,35 @@ func (b *S3BucketHandler) extractUserIdFromBucket(bucket string) string {
 	return pkg.ExtractUserIdFromBucketName(b.BaseBucketName, bucket)
 }
 
-func (b *S3BucketHandler) SendFileToBucket(ctx context.Context, data *filedata.FileData) error {
-	if data == nil {
-		log.Println("Data for bucket operation is empty")
-		return types.ErrUploadFailed
+func (b *S3BucketHandler) PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*types.PutObjectResult, error) {
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := key
+	if userId != "" {
+		objectKey = s3Key(userId, key)
 	}
 
-	if data.OwnerID == uuid.Nil {
-		log.Println("OwnerID not set in FileData")
-		return types.ErrUploadFailed
-	}
-
-	fileName := data.RequestHeaders.Filename
-
-	// Prepend folder to filename if provided
-	if data.Folder != "" {
-		fileName = data.Folder + "/" + fileName
-	}
-
-	_, err := b.repository.Queries().GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  data.OwnerID,
-		FileName: fileName,
-	})
-	if err == nil {
-		return types.ErrFileAlreadyExists
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		log.Println("error checking existing file:", err)
-		return types.ErrUploadFailed
-	}
-
-	// get or set user bucket name in DB
-	userBucketName, err := b.repository.Queries().GetUserBucketById(ctx, data.OwnerID)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	newUserBucketName := userBucketName.String
-	if !userBucketName.Valid || userBucketName.String == "" {
-		retrievedBucketName := b.getUserBucketName(data.OwnerInternalID)
-
-		if err := b.repository.Queries().UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
-			UserBucket: sql.NullString{String: retrievedBucketName, Valid: true},
-			ID:         data.OwnerID,
-		}); err != nil {
-			log.Println(err)
-			return err
-		}
-		newUserBucketName = retrievedBucketName
-	}
-
-	// detect content type
-	contentType := data.RequestHeaders.Header.Get("Content-Type")
-	if contentType == "" {
-		buffer := make([]byte, 512)
-		_, err := data.MultipartFile.Read(buffer)
-		if err != nil && err != io.EOF {
-			log.Println("failed to read file for content type detection:", err)
-			return err
-		}
-		data.MultipartFile.Seek(0, io.SeekStart)
-		contentType = http.DetectContentType(buffer)
-	}
-	log.Println(contentType)
-
-	// compute the userId from the stored bucket name to build the S3 key
-	userId := b.extractUserIdFromBucket(newUserBucketName)
-	storageMapping := uuid.New()
-	objectKey := s3Key(userId, storageMapping.String())
-
-	// compute MD5 while reading
 	hasher := md5.New()
-	teeReader := io.TeeReader(data.MultipartFile, hasher)
+	teeReader := io.TeeReader(r, hasher)
 
-	// upload to S3
-	putOutput, err := b.Client.PutObject(ctx, &s3.PutObjectInput{
+	_, err := b.Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(b.BaseBucketName),
 		Key:           aws.String(objectKey),
 		Body:          teeReader,
 		ContentType:   aws.String(contentType),
-		ContentLength: aws.Int64(data.RequestHeaders.Size),
+		ContentLength: aws.Int64(size),
 	})
 	if err != nil {
-		log.Println("error uploading file: ", err)
-		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
+		log.Println("error uploading file:", err)
+		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
 	md5Hash := hex.EncodeToString(hasher.Sum(nil))
 
-	// get size from HeadObject
-	headOutput, err := b.Client.HeadObject(ctx, &s3.HeadObjectInput{
-		Bucket: aws.String(b.BaseBucketName),
-		Key:    aws.String(objectKey),
-	})
-	if err != nil {
-		log.Println("err reading obj attrs: ", err)
-		return fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
-	}
-
-	objSize := *headOutput.ContentLength
-	_ = putOutput
-
-	randInt := rand.Int63()
-	privateDownloadToken, err := pkg.GenerateSecureTokenFromID(randInt)
-	if err != nil {
-		log.Println("err generating token: ", err)
-		return err
-	}
-
-	insertArgs := sqlc.InsertFileParams{
-		OwnerID:              data.OwnerID,
-		FileName:             fileName,
-		FileType:             sql.NullString{Valid: true, String: contentType},
-		Size:                 sql.NullInt64{Valid: true, Int64: objSize},
-		Md5Checksum:          md5Hash,
-		PrivateDownloadToken: sql.NullString{Valid: true, String: privateDownloadToken},
-		StorageMapping:       storageMapping,
-	}
-
-	file, err := b.repository.Queries().InsertFile(ctx, insertArgs)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("file already exists: %s\n", err)
-			return types.ErrFileAlreadyExists
-		} else {
-			log.Println("error inserting file to DB, removing the object from the bucket: ", err)
-			if _, delErr := b.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-				Bucket: aws.String(b.BaseBucketName),
-				Key:    aws.String(objectKey),
-			}); delErr != nil {
-				log.Printf("error deleting object %s: %v\n", objectKey, delErr)
-				return types.ErrUploadFailed
-			}
-			return types.ErrUploadFailed
-		}
-	}
-	log.Printf("file %s uploaded successfully (checksum: %v)", fileName, file.Md5Checksum)
-	return nil
+	return &types.PutObjectResult{
+		MD5:         md5Hash,
+		Size:        size,
+		ContentType: contentType,
+	}, nil
 }
 
 func (b *S3BucketHandler) BucketExists(ctx context.Context, fullBucketName string) (bool, error) {

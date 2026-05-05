@@ -75,7 +75,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	bucketHandler, err := InitObjectStorage(backendEndpoint, storageProvider, repository)
+	bucketHandler, err := InitObjectStorage(backendEndpoint, storageProvider)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -148,6 +148,7 @@ func main() {
 	shareSvc := service.NewShareService(repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, backendEndpoint, frontendEndpoint, mailFrom)
 	userSvc := service.NewUserService(repository.Queries(), bucketHandler)
 	workspaceSvc := service.NewWorkspaceService(repository.Queries(), repository)
+	workspaceFileSvc := service.NewWorkspaceFileService(repository.Queries(), bucketHandler)
 
 	s := api.NewAPIServer(
 		backendConfig,
@@ -161,6 +162,7 @@ func main() {
 		shareSvc,
 		userSvc,
 		workspaceSvc,
+		workspaceFileSvc,
 	)
 
 	s.Start()
@@ -170,11 +172,11 @@ func InitMailSender(provider string) (mailtypes.EmailSender, error) {
 	return mailfactory.NewEmailService(provider)
 }
 
-func InitObjectStorage(backendEndpoint, storageProvider string, repository repo.Repository) (storagetypes.ObjectStorage, error) {
+func InitObjectStorage(backendEndpoint, storageProvider string) (storagetypes.ObjectStorage, error) {
 
 	log.Printf("%s", fmt.Sprintf("%s/auth/callback", backendEndpoint))
 
-	return storagefactory.NewStorageProvider(storageProvider, repository)
+	return storagefactory.NewStorageProvider(storageProvider)
 }
 
 func InitRepository(connString string) (*repo.PostgresRepository, error) {
