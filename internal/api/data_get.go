@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/tscrond/fluxsend-backend/pkg"
@@ -74,5 +75,57 @@ func (s *APIServer) getUserPrivateFileByName(w http.ResponseWriter, r *http.Requ
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "", map[string]any{
 		"private_download_token": token,
+	})
+}
+
+// GET /user/stats — personal usage analytics
+func (s *APIServer) getUserStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
+		return
+	}
+
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "access_denied")
+		return
+	}
+
+	stats, err := s.repository.Queries().GetUserStats(r.Context(), userUUID)
+	if err != nil {
+		log.Printf("[stats] error fetching user stats for %s: %v", userUUID, err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
+		return
+	}
+
+	dailyUploads, err := s.repository.Queries().GetUserDailyUploads(r.Context(), userUUID)
+	if err != nil {
+		log.Printf("[stats] error fetching daily uploads for %s: %v", userUUID, err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
+		return
+	}
+
+	dailyShares, err := s.repository.Queries().GetUserDailyShares(r.Context(), userUUID)
+	if err != nil {
+		log.Printf("[stats] error fetching daily shares for %s: %v", userUUID, err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "ok", map[string]any{
+		"total_files":       stats.TotalFiles,
+		"total_bytes":       stats.TotalBytes,
+		"files_today":       stats.FilesToday,
+		"files_last_7d":     stats.FilesLast7d,
+		"files_last_30d":    stats.FilesLast30d,
+		"total_shares_sent": stats.TotalSharesSent,
+		"shares_today":      stats.SharesToday,
+		"targeted_shares":   stats.TargetedShares,
+		"public_shares":     stats.PublicShares,
+		"active_shares":     stats.ActiveShares,
+		"total_received":    stats.TotalReceived,
+		"owned_workspaces":  stats.OwnedWorkspaces,
+		"daily_uploads":     dailyUploads,
+		"daily_shares":      dailyShares,
 	})
 }
