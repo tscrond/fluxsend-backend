@@ -113,6 +113,7 @@ func (s *APIServer) Start() {
 	r.Handle("/user/bucket", s.authMiddleware(http.HandlerFunc(s.getUserBucketData)))
 	r.Handle("/user/private/download_token", s.authMiddleware(http.HandlerFunc(s.getUserPrivateFileByName)))
 	r.Handle("/user/account/delete", s.authMiddleware(http.HandlerFunc(s.deleteAccount)))
+	r.Handle("/user/stats", s.authMiddleware(http.HandlerFunc(s.getUserStats)))
 
 	r.Handle("/workspaces/create", s.authMiddleware(http.HandlerFunc(s.createWorkspace)))
 	r.Handle("/workspaces/list", s.authMiddleware(http.HandlerFunc(s.listWorkspaces)))

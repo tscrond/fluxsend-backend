@@ -294,13 +294,18 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		userPlan := &userdata.UserPlan{
-			PlanID:               user.PlanID.String(),
-			PlanName:             user.PlanName,
-			MaxFileSizeBytes:     user.MaxFileSizeBytes,
-			MaxTotalStorageBytes: user.MaxTotalStorageBytes,
-			MaxFiles:             user.MaxFiles,
-			MaxFilesSentPerDay:   user.MaxFilesSentPerDay,
-			MaxSharesPerDay:      user.MaxSharesPerDay,
+			PlanID:                        user.PlanID.String(),
+			PlanName:                      user.PlanName,
+			MaxFileSizeBytes:              user.MaxFileSizeBytes,
+			MaxTotalStorageBytes:          user.MaxTotalStorageBytes,
+			MaxFiles:                      user.MaxFiles,
+			MaxFilesSentPerDay:            user.MaxFilesSentPerDay,
+			MaxSharesPerDay:               user.MaxSharesPerDay,
+			MaxUserWorkspaces:             user.MaxUserWorkspaces,
+			MaxFilesWorkspace:             user.MaxFilesWorkspace,
+			MaxTotalStorageBytesWorkspace: user.MaxTotalStorageBytesWorkspace,
+			MaxUsersPerWorkspace:          user.MaxUsersWorkspace,
+			MaxWorkspaceFolders:           user.MaxWorkspaceFolders,
 		}
 
 		ctx := context.WithValue(

@@ -194,6 +194,169 @@ func (q *Queries) GetPlans(ctx context.Context) ([]Plan, error) {
 	return items, nil
 }
 
+const getUserDailyShares = `-- name: GetUserDailyShares :many
+SELECT
+    shares.created_at::date AS day,
+    COUNT(*)::BIGINT         AS shares
+FROM shares
+WHERE shares.shared_by = (SELECT user_email FROM users WHERE users.id = $1)
+  AND shares.created_at >= NOW() - INTERVAL '7 days'
+GROUP BY shares.created_at::date
+ORDER BY day
+`
+
+type GetUserDailySharesRow struct {
+	Day    time.Time `json:"day"`
+	Shares int64     `json:"shares"`
+}
+
+func (q *Queries) GetUserDailyShares(ctx context.Context, id uuid.UUID) ([]GetUserDailySharesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserDailyShares, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserDailySharesRow
+	for rows.Next() {
+		var i GetUserDailySharesRow
+		if err := rows.Scan(&i.Day, &i.Shares); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserDailyUploads = `-- name: GetUserDailyUploads :many
+SELECT
+    files.created_at::date AS day,
+    COUNT(*)::BIGINT        AS uploads
+FROM files
+WHERE files.owner_id = $1
+  AND files.created_at >= NOW() - INTERVAL '7 days'
+GROUP BY files.created_at::date
+ORDER BY day
+`
+
+type GetUserDailyUploadsRow struct {
+	Day     time.Time `json:"day"`
+	Uploads int64     `json:"uploads"`
+}
+
+func (q *Queries) GetUserDailyUploads(ctx context.Context, ownerID uuid.UUID) ([]GetUserDailyUploadsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserDailyUploads, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserDailyUploadsRow
+	for rows.Next() {
+		var i GetUserDailyUploadsRow
+		if err := rows.Scan(&i.Day, &i.Uploads); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserStats = `-- name: GetUserStats :one
+WITH file_usage AS (
+    SELECT
+        COUNT(*)                                                              AS total_files,
+        COALESCE(SUM(size), 0)::BIGINT                                        AS total_bytes,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 day')       AS files_today,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')      AS files_last_7d,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')     AS files_last_30d
+    FROM files
+    WHERE files.owner_id = $1
+),
+share_usage AS (
+    SELECT
+        COUNT(*)                                                              AS total_shares_sent,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 day')       AS shares_today,
+        COUNT(*) FILTER (WHERE shared_for IS NOT NULL)                        AS targeted_shares,
+        COUNT(*) FILTER (WHERE shared_for IS NULL)                            AS public_shares,
+        COUNT(*) FILTER (WHERE expires_at > NOW())                            AS active_shares
+    FROM shares
+    WHERE shares.shared_by = (SELECT user_email FROM users WHERE users.id = $1)
+),
+received_usage AS (
+    SELECT
+        COUNT(*) AS total_received
+    FROM shares s
+    JOIN files f ON f.id = s.file_id
+    WHERE s.shared_for = (SELECT user_email FROM users WHERE id = $1)
+),
+workspace_usage AS (
+    SELECT
+        COUNT(*) AS owned_workspaces
+    FROM workspaces
+    WHERE workspaces.owner_id = $1
+)
+SELECT
+    f.total_files,
+    f.total_bytes,
+    f.files_today,
+    f.files_last_7d,
+    f.files_last_30d,
+    s.total_shares_sent,
+    s.shares_today,
+    s.targeted_shares,
+    s.public_shares,
+    s.active_shares,
+    r.total_received,
+    w.owned_workspaces
+FROM file_usage f, share_usage s, received_usage r, workspace_usage w
+`
+
+type GetUserStatsRow struct {
+	TotalFiles      int64 `json:"total_files"`
+	TotalBytes      int64 `json:"total_bytes"`
+	FilesToday      int64 `json:"files_today"`
+	FilesLast7d     int64 `json:"files_last_7d"`
+	FilesLast30d    int64 `json:"files_last_30d"`
+	TotalSharesSent int64 `json:"total_shares_sent"`
+	SharesToday     int64 `json:"shares_today"`
+	TargetedShares  int64 `json:"targeted_shares"`
+	PublicShares    int64 `json:"public_shares"`
+	ActiveShares    int64 `json:"active_shares"`
+	TotalReceived   int64 `json:"total_received"`
+	OwnedWorkspaces int64 `json:"owned_workspaces"`
+}
+
+func (q *Queries) GetUserStats(ctx context.Context, ownerID uuid.UUID) (GetUserStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserStats, ownerID)
+	var i GetUserStatsRow
+	err := row.Scan(
+		&i.TotalFiles,
+		&i.TotalBytes,
+		&i.FilesToday,
+		&i.FilesLast7d,
+		&i.FilesLast30d,
+		&i.TotalSharesSent,
+		&i.SharesToday,
+		&i.TargetedShares,
+		&i.PublicShares,
+		&i.ActiveShares,
+		&i.TotalReceived,
+		&i.OwnedWorkspaces,
+	)
+	return i, err
+}
+
 const getUserWithPlan = `-- name: GetUserWithPlan :one
 SELECT
     u.id,
@@ -206,24 +369,34 @@ SELECT
     p.max_total_storage_bytes,
     p.max_files,
     p.max_files_sent_per_day,
-    p.max_shares_per_day
+    p.max_shares_per_day,
+    p.max_user_workspaces,
+    p.max_files_workspace,
+    p.max_total_storage_bytes_workspace,
+    p.max_users_workspace,
+    p.max_workspace_folders
 FROM users u
 JOIN plans p ON u.plan_id = p.id
 WHERE u.id = $1
 `
 
 type GetUserWithPlanRow struct {
-	ID                   uuid.UUID      `json:"id"`
-	UserEmail            string         `json:"user_email"`
-	UserBucket           sql.NullString `json:"user_bucket"`
-	CreatedAt            time.Time      `json:"created_at"`
-	PlanID               uuid.UUID      `json:"plan_id"`
-	PlanName             string         `json:"plan_name"`
-	MaxFileSizeBytes     int64          `json:"max_file_size_bytes"`
-	MaxTotalStorageBytes int64          `json:"max_total_storage_bytes"`
-	MaxFiles             int32          `json:"max_files"`
-	MaxFilesSentPerDay   int32          `json:"max_files_sent_per_day"`
-	MaxSharesPerDay      int32          `json:"max_shares_per_day"`
+	ID                            uuid.UUID      `json:"id"`
+	UserEmail                     string         `json:"user_email"`
+	UserBucket                    sql.NullString `json:"user_bucket"`
+	CreatedAt                     time.Time      `json:"created_at"`
+	PlanID                        uuid.UUID      `json:"plan_id"`
+	PlanName                      string         `json:"plan_name"`
+	MaxFileSizeBytes              int64          `json:"max_file_size_bytes"`
+	MaxTotalStorageBytes          int64          `json:"max_total_storage_bytes"`
+	MaxFiles                      int32          `json:"max_files"`
+	MaxFilesSentPerDay            int32          `json:"max_files_sent_per_day"`
+	MaxSharesPerDay               int32          `json:"max_shares_per_day"`
+	MaxUserWorkspaces             int64          `json:"max_user_workspaces"`
+	MaxFilesWorkspace             int64          `json:"max_files_workspace"`
+	MaxTotalStorageBytesWorkspace int64          `json:"max_total_storage_bytes_workspace"`
+	MaxUsersWorkspace             int64          `json:"max_users_workspace"`
+	MaxWorkspaceFolders           int64          `json:"max_workspace_folders"`
 }
 
 func (q *Queries) GetUserWithPlan(ctx context.Context, id uuid.UUID) (GetUserWithPlanRow, error) {
@@ -241,6 +414,11 @@ func (q *Queries) GetUserWithPlan(ctx context.Context, id uuid.UUID) (GetUserWit
 		&i.MaxFiles,
 		&i.MaxFilesSentPerDay,
 		&i.MaxSharesPerDay,
+		&i.MaxUserWorkspaces,
+		&i.MaxFilesWorkspace,
+		&i.MaxTotalStorageBytesWorkspace,
+		&i.MaxUsersWorkspace,
+		&i.MaxWorkspaceFolders,
 	)
 	return i, err
 }
