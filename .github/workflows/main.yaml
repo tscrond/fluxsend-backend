@@ -12,6 +12,7 @@ jobs:
     uses: ./.github/workflows/_checks.yaml
 
   build-multiarch:
+    needs: [checks]
     uses: ./.github/workflows/_build.yaml
     permissions:
         contents: read
