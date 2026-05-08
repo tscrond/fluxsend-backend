@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
@@ -106,6 +106,7 @@ func (s *APIServer) getFolders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	authUserData, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
@@ -126,7 +127,7 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "recursive_required", nil)
 			return
 		}
-		log.Println("deleteFolder error:", err)
+		log.Errorw("deleteFolder error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "delete_folder_error", nil)
 		return
 	}
@@ -138,6 +139,7 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return
@@ -167,7 +169,7 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "source_not_found", nil)
 			return
 		}
-		log.Println("moveFile error:", err)
+		log.Errorw("moveFile error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_file_error", nil)
 		return
 	}
@@ -179,6 +181,7 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return
@@ -213,7 +216,7 @@ func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "source_not_found", nil)
 			return
 		}
-		log.Println("moveFolder error:", err)
+		log.Errorw("moveFolder error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "move_folder_error", nil)
 		return
 	}

@@ -17,3 +17,7 @@ build:
 .PHONY: deploy
 deploy:
 	docker compose up -d --force-recreate --remove-orphans && cd -
+
+.PHONY: logs
+logs:
+	docker logs -f backend

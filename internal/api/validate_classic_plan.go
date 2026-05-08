@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 )
@@ -17,30 +17,31 @@ var ErrDailyUploadLimitExceeded = errors.New("daily upload limit exceeded")
 var ErrDailyShareLimitExceeded = errors.New("daily share limit exceeded")
 
 func (s *APIServer) validateClassicUploadPlan(ctx context.Context, userUUID uuid.UUID, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
+	log := logger.FromContext(ctx)
 	quota, err := s.repository.Queries().CheckUploadQuota(ctx, sqlc.CheckUploadQuotaParams{
 		OwnerID: userUUID,
 		ID:      uuid.MustParse(userPlan.PlanID),
 	})
 	if err != nil {
-		log.Printf("[plan-limit] DB error checking upload quota for user=%s plan=%s: %v", userUUID, userPlan.PlanName, err)
+		log.Errorw("DB error checking upload quota", "user", userUUID, "plan", userPlan.PlanName, "error", err)
 		return nil, err
 	}
 
 	switch errType := s.checkForClassicPlanErrorType(quota); errType {
 	case ErrFileLimitExceeded:
-		log.Printf("[plan-limit] user=%s plan=%s limit=max_files value=%d: file limit exceeded", userUUID, userPlan.PlanName, userPlan.MaxFiles)
+		log.Warnw("plan limit exceeded: max_files", "user", userUUID, "plan", userPlan.PlanName, "limit", userPlan.MaxFiles)
 		return map[string]any{
 			"msg":       "You have reached the maximum number of files for your plan",
 			"max_files": userPlan.MaxFiles,
 		}, errType
 	case ErrStorageQuotaExceeded:
-		log.Printf("[plan-limit] user=%s plan=%s limit=max_total_storage_bytes value=%d: storage quota exceeded", userUUID, userPlan.PlanName, userPlan.MaxTotalStorageBytes)
+		log.Warnw("plan limit exceeded: max_total_storage_bytes", "user", userUUID, "plan", userPlan.PlanName, "limit", userPlan.MaxTotalStorageBytes)
 		return map[string]any{
 			"msg":                     "You have reached the maximum storage quota for your plan",
 			"max_total_storage_bytes": userPlan.MaxTotalStorageBytes,
 		}, errType
 	case ErrDailyUploadLimitExceeded:
-		log.Printf("[plan-limit] user=%s plan=%s limit=max_files_sent_per_day value=%d: daily upload limit exceeded", userUUID, userPlan.PlanName, userPlan.MaxFilesSentPerDay)
+		log.Warnw("plan limit exceeded: max_files_sent_per_day", "user", userUUID, "plan", userPlan.PlanName, "limit", userPlan.MaxFilesSentPerDay)
 		return map[string]any{
 			"msg":               "You have reached the maximum number of daily uploads for your plan",
 			"max_files_per_day": userPlan.MaxFilesSentPerDay,
@@ -50,17 +51,18 @@ func (s *APIServer) validateClassicUploadPlan(ctx context.Context, userUUID uuid
 }
 
 func (s *APIServer) validateClassicSharePlan(ctx context.Context, sharedByEmail string, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
+	log := logger.FromContext(ctx)
 	sharesExceeded, err := s.repository.Queries().CheckShareQuota(ctx, sqlc.CheckShareQuotaParams{
 		SharedBy: sql.NullString{String: sharedByEmail, Valid: true},
 		ID:       uuid.MustParse(userPlan.PlanID),
 	})
 	if err != nil {
-		log.Printf("[plan-limit] DB error checking share quota for user=%s plan=%s: %v", sharedByEmail, userPlan.PlanName, err)
+		log.Errorw("DB error checking share quota", "user", sharedByEmail, "plan", userPlan.PlanName, "error", err)
 		return nil, err
 	}
 
 	if sharesExceeded {
-		log.Printf("[plan-limit] user=%s plan=%s limit=max_shares_per_day value=%d: daily share limit exceeded", sharedByEmail, userPlan.PlanName, userPlan.MaxSharesPerDay)
+		log.Warnw("plan limit exceeded: max_shares_per_day", "user", sharedByEmail, "plan", userPlan.PlanName, "limit", userPlan.MaxSharesPerDay)
 		return map[string]any{
 			"msg":                "You have reached the maximum number of daily shares for your plan",
 			"max_shares_per_day": userPlan.MaxSharesPerDay,

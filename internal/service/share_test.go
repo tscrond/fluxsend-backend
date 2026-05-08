@@ -11,13 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/mocks"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
 
 func newShareTestSvc(q *mocks.MockQuerier, stor *mocks.MockObjectStorage, email *mocks.MockEmailSender) ShareService {
-	return NewShareService(q, stor, nil, email, "https://api.example.com", "https://app.example.com", "noreply@example.com")
+	return NewShareService(zap.NewNop().Sugar(), q, stor, nil, email, "https://api.example.com", "https://app.example.com", "noreply@example.com")
 }
 
 // --- GetSharedForUser -----------------------------------------------------

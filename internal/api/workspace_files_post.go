@@ -3,17 +3,18 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
 // ── POST /workspaces/{workspace_id}/files/upload  (editor+) ──────────────────
 
 func (s *APIServer) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -48,7 +49,7 @@ func (s *APIServer) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) 
 		if errors.Is(err, ErrWorkspaceFilesLimitExceeded) || errors.Is(err, ErrWorkspaceStorageLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Printf("[workspace-plan-limit] resource quota check failed for workspace=%s: %v", workspaceID, err)
+			log.Errorw("workspace resource quota check failed", "workspace_id", workspaceID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return
@@ -66,6 +67,7 @@ func (s *APIServer) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) 
 // ── POST /workspaces/{workspace_id}/files/mkdir  (editor+) ───────────────────
 
 func (s *APIServer) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -108,7 +110,7 @@ func (s *APIServer) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrWorkspaceFoldersLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Printf("[workspace-plan-limit] resource quota check failed for workspace=%s: %v", workspaceID, err)
+			log.Errorw("workspace folder quota check failed", "workspace_id", workspaceID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return

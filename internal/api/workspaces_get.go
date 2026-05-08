@@ -1,10 +1,10 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
@@ -119,6 +119,7 @@ func (s *APIServer) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Request
 
 // GET /workspaces/{workspace_id}/quota  (admin/owner only)
 func (s *APIServer) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -142,7 +143,7 @@ func (s *APIServer) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 
 	row, err := s.repository.Queries().GetWorkspaceQuotaDetails(r.Context(), workspaceID)
 	if err != nil {
-		log.Printf("[quota] DB error fetching quota for workspace=%s: %v", workspaceID, err)
+		log.Errorw("DB error fetching workspace quota", "workspace_id", workspaceID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}

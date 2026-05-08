@@ -1,23 +1,24 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
 	"github.com/tscrond/fluxsend-backend/internal/auth"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	chimiddleware "github.com/tscrond/fluxsend-backend/internal/middleware"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
+	"go.uber.org/zap"
 )
 
 type APIServer struct {
+	log              *zap.SugaredLogger
 	backendConfig    config.BackendConfig
 	bucketHandler    storagetypes.ObjectStorage
 	cloudFrontSigner *cdn.CloudFrontURLSigner
@@ -34,6 +35,7 @@ type APIServer struct {
 }
 
 func NewAPIServer(
+	log *zap.SugaredLogger,
 	backendConfig config.BackendConfig,
 	es mailtypes.EmailSender,
 	bh storagetypes.ObjectStorage,
@@ -49,6 +51,7 @@ func NewAPIServer(
 ) *APIServer {
 
 	return &APIServer{
+		log:              log,
 		backendConfig:    backendConfig,
 		bucketHandler:    bh,
 		cloudFrontSigner: cloudFrontSigner,
@@ -67,7 +70,7 @@ func NewAPIServer(
 func (s *APIServer) Start() {
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(chimiddleware.RequestLogger(s.log))
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.backendConfig.FrontendEndpoint},
@@ -139,6 +142,6 @@ func (s *APIServer) Start() {
 	r.Handle("/workspaces/{workspace_id}/files/download", s.authMiddleware(http.HandlerFunc(s.downloadWorkspaceFile)))
 	r.Handle("/workspaces/{workspace_id}/quota", s.authMiddleware(http.HandlerFunc(s.getWorkspaceQuota)))
 
-	log.Printf("Listening on %s\n", s.backendConfig.ListenPort)
+	s.log.Infof("listening on %s", s.backendConfig.ListenPort)
 	http.ListenAndServe("0.0.0.0"+s.backendConfig.ListenPort, r)
 }

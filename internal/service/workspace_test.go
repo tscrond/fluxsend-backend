@@ -11,13 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/mocks"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
 
 func newWsSvc(q *mocks.MockQuerier, repo *mocks.MockRepository) WorkspaceService {
-	return NewWorkspaceService(q, repo)
+	return NewWorkspaceService(zap.NewNop().Sugar(), q, repo)
 }
 
 // --- GetUserWorkspaces ---------------------------------------------------

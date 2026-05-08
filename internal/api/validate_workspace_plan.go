@@ -3,11 +3,11 @@ package api
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 )
 
 var ErrWorkspaceFilesLimitExceeded = errors.New("workspace files limit exceeded")
@@ -26,13 +26,14 @@ type workspaceQuotaChecks struct {
 // validateWorkspacesPerUserLimit checks whether the owner has hit their plan's
 // workspace count cap. Call this before creating a new workspace.
 func (s *APIServer) validateWorkspacesPerUserLimit(ctx context.Context, ownerID uuid.UUID) (exceedInfo map[string]any, err error) {
+	log := logger.FromContext(ctx)
 	exceeded, err := s.repository.Queries().CheckWorkspacesPerUserQuota(ctx, ownerID)
 	if err != nil {
-		log.Printf("[plan-limit] DB error checking workspace count for owner=%s: %v", ownerID, err)
+		log.Errorw("DB error checking workspace count", "owner", ownerID, "error", err)
 		return nil, err
 	}
 	if exceeded {
-		log.Printf("[plan-limit] owner=%s: workspaces per user limit exceeded", ownerID)
+		log.Warnw("plan limit exceeded: workspaces per user", "owner", ownerID)
 		return map[string]any{
 			"msg": "You have reached the maximum number of workspaces for your plan",
 		}, ErrWorkspacesPerUserLimitExceeded
@@ -44,30 +45,31 @@ func (s *APIServer) validateWorkspacesPerUserLimit(ctx context.Context, ownerID 
 // caps for a specific operation. pendingBytes is the size of the incoming
 // upload (0 for non-upload operations).
 func (s *APIServer) validateWorkspaceResourceLimits(ctx context.Context, workspaceID uuid.UUID, pendingBytes int64, checks workspaceQuotaChecks) (exceedInfo map[string]any, err error) {
+	log := logger.FromContext(ctx)
 	quota, err := s.repository.Queries().GetWorkspaceQuotaDetails(ctx, workspaceID)
 	if err != nil {
-		log.Printf("[plan-limit] DB error checking resource quota for workspace=%s: %v", workspaceID, err)
+		log.Errorw("DB error checking workspace resource quota", "workspace_id", workspaceID, "error", err)
 		return nil, err
 	}
 
 	switch {
 	case checks.files && quota.FileCount >= quota.MaxFilesWorkspace:
-		log.Printf("[plan-limit] workspace=%s: files limit exceeded", workspaceID)
+		log.Warnw("plan limit exceeded: workspace files", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of files for your plan",
 		}, ErrWorkspaceFilesLimitExceeded
 	case checks.storage && quota.TotalBytes+pendingBytes > quota.MaxTotalStorageBytesWorkspace:
-		log.Printf("[plan-limit] workspace=%s: storage limit exceeded", workspaceID)
+		log.Warnw("plan limit exceeded: workspace storage", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum storage quota for your plan",
 		}, ErrWorkspaceStorageLimitExceeded
 	case checks.folders && quota.FolderCount >= quota.MaxWorkspaceFolders:
-		log.Printf("[plan-limit] workspace=%s: folders limit exceeded", workspaceID)
+		log.Warnw("plan limit exceeded: workspace folders", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of folders for your plan",
 		}, ErrWorkspaceFoldersLimitExceeded
 	case checks.members && quota.MemberCount >= quota.MaxUsersWorkspace:
-		log.Printf("[plan-limit] workspace=%s: members limit exceeded", workspaceID)
+		log.Warnw("plan limit exceeded: workspace members", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of members for your plan",
 		}, ErrWorkspaceUsersLimitExceeded

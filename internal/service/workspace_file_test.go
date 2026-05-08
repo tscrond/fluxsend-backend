@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/mocks"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
@@ -22,7 +23,7 @@ func TestWorkspaceFileService_GetWorkspaceFilesTree_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -75,7 +76,7 @@ func TestWorkspaceFileService_GetWorkspaceFilesTree_DBError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	dbErr := errors.New("connection refused")
 	q.EXPECT().GetWorkspaceFiles(gomock.Any(), gomock.Any()).Return(nil, dbErr)
@@ -88,7 +89,7 @@ func TestWorkspaceFileService_GetWorkspaceFilesTree_VirtualFolder(t *testing.T) 
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -131,7 +132,7 @@ func TestWorkspaceFileService_CreateWorkspaceFolder_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	creatorID := uuid.New()
@@ -166,7 +167,7 @@ func TestWorkspaceFileService_CreateWorkspaceFolder_DBError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	dbErr := errors.New("constraint violation")
 	q.EXPECT().CreateWorkspaceFolder(gomock.Any(), gomock.Any()).Return(sqlc.WorkspaceFile{}, dbErr)
@@ -181,7 +182,7 @@ func TestWorkspaceFileService_RemoveWorkspaceFile_Owner(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -205,7 +206,7 @@ func TestWorkspaceFileService_RemoveWorkspaceFile_EditorOwnFile(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -226,7 +227,7 @@ func TestWorkspaceFileService_RemoveWorkspaceFile_EditorForbiddenOtherFile(t *te
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -244,7 +245,7 @@ func TestWorkspaceFileService_RemoveWorkspaceFile_ViewerForbidden(t *testing.T) 
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -262,7 +263,7 @@ func TestWorkspaceFileService_RemoveWorkspaceFile_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	q.EXPECT().GetWorkspaceFileById(gomock.Any(), gomock.Any()).
 		Return(sqlc.WorkspaceFile{}, sql.ErrNoRows)
@@ -277,7 +278,7 @@ func TestWorkspaceFileService_MoveWorkspaceFile_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -298,7 +299,7 @@ func TestWorkspaceFileService_MoveWorkspaceFile_EditorForbidden(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -316,7 +317,7 @@ func TestWorkspaceFileService_MoveWorkspaceFile_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	q.EXPECT().GetWorkspaceFileById(gomock.Any(), gomock.Any()).
 		Return(sqlc.WorkspaceFile{}, sql.ErrNoRows)
@@ -331,7 +332,7 @@ func TestWorkspaceFileService_GetWorkspaceFileDownloadInfo_HappyPath(t *testing.
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	wsID := uuid.New()
 	fileID := uuid.New()
@@ -358,7 +359,7 @@ func TestWorkspaceFileService_GetWorkspaceFileDownloadInfo_NotFound(t *testing.T
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewWorkspaceFileService(q, stor)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
 
 	q.EXPECT().GetWorkspaceFileById(gomock.Any(), gomock.Any()).
 		Return(sqlc.WorkspaceFile{}, sql.ErrNoRows)

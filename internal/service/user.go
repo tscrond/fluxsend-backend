@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/google/uuid"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
@@ -30,12 +31,14 @@ type UserService interface {
 }
 
 type userService struct {
+	log     *zap.SugaredLogger
 	queries sqlc.Querier
 	storage storagetypes.ObjectStorage
 }
 
-func NewUserService(queries sqlc.Querier, storage storagetypes.ObjectStorage) UserService {
+func NewUserService(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage) UserService {
 	return &userService{
+		log:     log,
 		queries: queries,
 		storage: storage,
 	}
@@ -98,7 +101,7 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userI
 
 	if deleteStorageData {
 		if err := s.storage.DeleteBucket(ctx, bucketName); err != nil {
-			log.Printf("failed to delete bucket %s: %v", bucketName, err)
+			s.log.Warnw("failed to delete user bucket", "bucket", bucketName, "error", err)
 		} else {
 			result.BucketDeleted = true
 		}

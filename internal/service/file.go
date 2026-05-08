@@ -6,11 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	"go.uber.org/zap"
 
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
@@ -50,13 +51,15 @@ type FileService interface {
 }
 
 type fileService struct {
+	log       *zap.SugaredLogger
 	queries   sqlc.Querier
 	storage   storagetypes.ObjectStorage
 	sanitizer *bluemonday.Policy
 }
 
-func NewFileService(queries sqlc.Querier, storage storagetypes.ObjectStorage, sanitizer *bluemonday.Policy) FileService {
+func NewFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage, sanitizer *bluemonday.Policy) FileService {
 	return &fileService{
+		log:       log,
 		queries:   queries,
 		storage:   storage,
 		sanitizer: sanitizer,
@@ -77,7 +80,7 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 		return storagetypes.ErrFileAlreadyExists
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		log.Println("error checking existing file:", err)
+		s.log.Errorw("error checking existing file", "error", err)
 		return storagetypes.ErrUploadFailed
 	}
 
@@ -101,13 +104,13 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 
 	result, err := s.storage.PutObject(ctx, bucket, storageMapping.String(), fd.MultipartFile, fd.RequestHeaders.Size, contentType)
 	if err != nil {
-		log.Println("error uploading file:", err)
+		s.log.Errorw("error uploading file", "error", err)
 		return err
 	}
 
 	privateDownloadToken, err := pkg.RandToken(32)
 	if err != nil {
-		log.Println("err generating token:", err)
+		s.log.Errorw("error generating private download token", "error", err)
 		return err
 	}
 
@@ -121,16 +124,16 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 		StorageMapping:       storageMapping,
 	})
 	if err != nil {
-		log.Println("error inserting file to DB, removing object from storage:", err)
+		s.log.Errorw("error inserting file to DB, removing object from storage", "error", err)
 		if delErr := s.storage.DeleteObjectFromBucket(ctx, storageMapping.String(), bucket); delErr != nil {
-			log.Printf("error deleting object %s: %v\n", storageMapping.String(), delErr)
+			s.log.Errorw("error deleting object during rollback", "object", storageMapping.String(), "error", delErr)
 		}
 		if errors.Is(err, sql.ErrNoRows) {
 			return storagetypes.ErrFileAlreadyExists
 		}
 		return storagetypes.ErrUploadFailed
 	}
-	log.Printf("file %s uploaded successfully (checksum: %v)", fileName, file.Md5Checksum)
+	s.log.Infow("file uploaded", "file", fileName, "checksum", file.Md5Checksum)
 	return nil
 }
 
@@ -209,7 +212,7 @@ func (s *fileService) DeleteFile(ctx context.Context, userID uuid.UUID, userInte
 	}
 
 	if err := s.storage.DeleteObjectFromBucket(ctx, fileRow.StorageMapping.String(), bucket); err != nil {
-		log.Println("issues deleting object from storage (non-fatal):", err)
+		s.log.Warnw("issues deleting object from storage (non-fatal)", "error", err)
 	}
 
 	return s.queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
@@ -240,9 +243,8 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 			OwnerID:  userID,
 			FileName: name,
 		})
-		log.Println("filerow kurwa:", fileRow)
 		if lookupErr != nil {
-			log.Printf("resolving file %q from DB: %v", name, lookupErr)
+			s.log.Warnw("resolving file from DB", "file", name, "error", lookupErr)
 			failed = append(failed, name)
 			continue
 		}
@@ -251,7 +253,7 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 	}
 
 	if deleteErr := s.storage.DeleteObjectsFromBucket(ctx, storageKeys, bucket); deleteErr != nil {
-		log.Println("issues bulk-deleting objects from storage (non-fatal):", deleteErr)
+		s.log.Warnw("issues bulk-deleting objects from storage (non-fatal)", "error", deleteErr)
 	}
 
 	for _, entry := range resolved {
@@ -259,7 +261,7 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 			OwnerID:  userID,
 			FileName: entry.logicalName,
 		}); dbErr != nil {
-			log.Printf("deleting file %q from DB: %v", entry.logicalName, dbErr)
+			s.log.Warnw("deleting file from DB", "file", entry.logicalName, "error", dbErr)
 			failed = append(failed, entry.logicalName)
 			continue
 		}

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/apimocks"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
@@ -47,6 +48,7 @@ func newTestServer(ctrl *gomock.Controller) (*APIServer, *testDeps) {
 	}
 
 	srv := NewAPIServer(
+		zap.NewNop().Sugar(),
 		config.BackendConfig{},
 		nil, // email sender — not needed for these tests
 		deps.stor,

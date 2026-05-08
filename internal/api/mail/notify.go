@@ -2,23 +2,25 @@ package mail
 
 import (
 	"fmt"
-	"log"
 
 	templates "github.com/tscrond/fluxsend-backend/internal/mailservice/templates"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	"go.uber.org/zap"
 )
 
 type Notifier struct {
+	log         *zap.SugaredLogger
 	emailSender mailtypes.EmailSender
 	from        string
 }
 
-func NewMailNotifier(es mailtypes.EmailSender, from string) Notifier {
+func NewMailNotifier(log *zap.SugaredLogger, es mailtypes.EmailSender, from string) Notifier {
 	if from == "" {
 		from = "noreply@fluxsend.com"
 	}
 
 	return Notifier{
+		log:         log,
 		emailSender: es,
 		from:        from,
 	}
@@ -44,7 +46,7 @@ func (n *Notifier) SendSharingNotification(sharedByUser, emailTo, expiryDate str
 	})
 
 	if err != nil {
-		log.Println(err)
+		n.log.Errorw("failed to render mail template", "error", err)
 		return err
 	}
 
@@ -52,11 +54,11 @@ func (n *Notifier) SendSharingNotification(sharedByUser, emailTo, expiryDate str
 
 	output, err := n.emailSender.Send(messageConfig)
 	if err != nil {
-		log.Println("Something went wrong while sending email: ", err)
+		n.log.Errorw("failed to send email", "error", err)
 		return err
 	}
 
-	log.Println("Mail sent successfully!", output)
+	n.log.Infow("mail sent", "output", output)
 
 	return nil
 }
