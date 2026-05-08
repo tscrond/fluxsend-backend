@@ -31,14 +31,14 @@ func TestWorkspaceFileService_GetWorkspaceFilesTree_HappyPath(t *testing.T) {
 
 	allFiles := []sqlc.WorkspaceFile{
 		{
-			ID:         fileID,
+			ID:          fileID,
 			WorkspaceID: wsID,
-			UploadedBy: uploader,
-			FileName:   "report.pdf",
-			FileType:   sql.NullString{Valid: true, String: "application/pdf"},
-			Size:       1024,
-			Path:       "/",
-			CreatedAt:  now,
+			UploadedBy:  uploader,
+			FileName:    "report.pdf",
+			FileType:    sql.NullString{Valid: true, String: "application/pdf"},
+			Size:        1024,
+			Path:        "/",
+			CreatedAt:   now,
 		},
 	}
 
@@ -98,14 +98,14 @@ func TestWorkspaceFileService_GetWorkspaceFilesTree_VirtualFolder(t *testing.T) 
 	// File lives in /docs subfolder
 	allFiles := []sqlc.WorkspaceFile{
 		{
-			ID:         fileID,
+			ID:          fileID,
 			WorkspaceID: wsID,
-			UploadedBy: uploader,
-			FileName:   "notes.txt",
-			FileType:   sql.NullString{Valid: true, String: "text/plain"},
-			Size:       512,
-			Path:       "/docs",
-			CreatedAt:  now,
+			UploadedBy:  uploader,
+			FileName:    "notes.txt",
+			FileType:    sql.NullString{Valid: true, String: "text/plain"},
+			Size:        512,
+			Path:        "/docs",
+			CreatedAt:   now,
 		},
 	}
 

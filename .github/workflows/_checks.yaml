@@ -12,20 +12,23 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          # Version or version range of Go to use
           go-version: '1.26'
-          
-          # Path to go.mod, go.work, .go-version, or .tool-versions file
-          # Note: if both go-version and go-version-file are provided, go-version takes precedence.
           go-version-file: 'go.mod'
-          
-          # GitHub token for authentication
           token: ${{ github.token }}
-
-          # Path to dependency files for caching
           cache-dependency-path: 'go.sum'
-          
-          # Architecture to install (auto-detected if not specified)
           architecture: 'x64'
+      - name: Format Code
+        run: |
+          result="$(go fmt ./...)"
+          if [[ $result != "" ]]; then
+            echo 'go fmt check failed'
+            echo $result
+            exit 1
+          fi
       - name: Run tests
         run: go test -cover -race -count=1 ./...
+      - name: govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+           go-version-input: 1.26
+           go-package: ./...
