@@ -1,0 +1,34 @@
+name: Checks
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+          go-version-file: 'go.mod'
+          token: ${{ github.token }}
+          cache-dependency-path: 'go.sum'
+          architecture: 'x64'
+      - name: Format Code
+        run: |
+          result="$(go fmt ./...)"
+          if [[ $result != "" ]]; then
+            echo 'go fmt check failed'
+            echo $result
+            exit 1
+          fi
+      - name: Run tests
+        run: go test -cover -race -count=1 ./...
+      - name: govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+           go-version-input: 1.26
+           go-package: ./...

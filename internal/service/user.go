@@ -30,11 +30,11 @@ type UserService interface {
 }
 
 type userService struct {
-	queries *sqlc.Queries
+	queries sqlc.Querier
 	storage storagetypes.ObjectStorage
 }
 
-func NewUserService(queries *sqlc.Queries, storage storagetypes.ObjectStorage) UserService {
+func NewUserService(queries sqlc.Querier, storage storagetypes.ObjectStorage) UserService {
 	return &userService{
 		queries: queries,
 		storage: storage,

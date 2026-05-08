@@ -67,11 +67,11 @@ type WorkspaceService interface {
 }
 
 type workspaceService struct {
-	queries *sqlc.Queries
+	queries sqlc.Querier
 	repo    repo.Repository
 }
 
-func NewWorkspaceService(queries *sqlc.Queries, r repo.Repository) WorkspaceService {
+func NewWorkspaceService(queries sqlc.Querier, r repo.Repository) WorkspaceService {
 	return &workspaceService{
 		queries: queries,
 		repo:    r,
@@ -117,7 +117,7 @@ func (w *workspaceService) CreateWorkspace(ctx context.Context, userID uuid.UUID
 		log.Printf("error beginning transaction for CreateWorkspace: %v", err)
 		return err
 	}
-	txq := w.queries.WithTx(tx)
+	txq := w.repo.Queries().WithTx(tx)
 
 	workspace, err := txq.CreateWorkspace(ctx, sqlc.CreateWorkspaceParams{
 		Slug:    slug,
