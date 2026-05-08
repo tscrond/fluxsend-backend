@@ -99,12 +99,12 @@ type WorkspaceFileService interface {
 
 // ── Constructor ───────────────────────────────────────────────────────────────
 
-func NewWorkspaceFileService(queries *sqlc.Queries, storage storagetypes.ObjectStorage) WorkspaceFileService {
+func NewWorkspaceFileService(queries sqlc.Querier, storage storagetypes.ObjectStorage) WorkspaceFileService {
 	return &workspaceFileService{queries: queries, storage: storage}
 }
 
 type workspaceFileService struct {
-	queries *sqlc.Queries
+	queries sqlc.Querier
 	storage storagetypes.ObjectStorage
 }
 

@@ -85,7 +85,7 @@ type ShareService interface {
 }
 
 type shareService struct {
-	queries          *sqlc.Queries
+	queries          sqlc.Querier
 	storage          storagetypes.ObjectStorage
 	cloudFrontSigner *cdn.CloudFrontURLSigner
 	emailSender      mailtypes.EmailSender
@@ -95,7 +95,7 @@ type shareService struct {
 }
 
 func NewShareService(
-	queries *sqlc.Queries,
+	queries sqlc.Querier,
 	storage storagetypes.ObjectStorage,
 	cloudFrontSigner *cdn.CloudFrontURLSigner,
 	emailSender mailtypes.EmailSender,

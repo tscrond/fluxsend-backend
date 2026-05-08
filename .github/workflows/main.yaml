@@ -8,6 +8,9 @@ on:
     branches: [ "main" ]
 
 jobs:
+  checks:
+    uses: ./.github/workflows/_checks.yaml
+
   build-multiarch:
     uses: ./.github/workflows/_build.yaml
     permissions:

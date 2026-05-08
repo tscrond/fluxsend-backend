@@ -50,12 +50,12 @@ type FileService interface {
 }
 
 type fileService struct {
-	queries   *sqlc.Queries
+	queries   sqlc.Querier
 	storage   storagetypes.ObjectStorage
 	sanitizer *bluemonday.Policy
 }
 
-func NewFileService(queries *sqlc.Queries, storage storagetypes.ObjectStorage, sanitizer *bluemonday.Policy) FileService {
+func NewFileService(queries sqlc.Querier, storage storagetypes.ObjectStorage, sanitizer *bluemonday.Policy) FileService {
 	return &fileService{
 		queries:   queries,
 		storage:   storage,
@@ -390,7 +390,7 @@ func (s *fileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum
 
 // resolveUserBucketName resolves the stored bucket name for a user, falling back
 // to constructing it from the base name and the user's internal ID.
-func resolveUserBucketName(ctx context.Context, queries *sqlc.Queries, baseBucketName string, userID uuid.UUID, internalID string) (string, error) {
+func resolveUserBucketName(ctx context.Context, queries sqlc.Querier, baseBucketName string, userID uuid.UUID, internalID string) (string, error) {
 	stored, err := queries.GetUserBucketById(ctx, userID)
 	if err != nil {
 		return "", err
