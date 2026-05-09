@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	templates "github.com/tscrond/fluxsend-backend/internal/mailservice/templates"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
@@ -147,13 +148,13 @@ func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, owne
 			FileName: objectName,
 		})
 		if err != nil {
-			s.log.Errorw("error getting object data", "object", objectName, "error", err)
+			logger.FromContext(ctx).Errorw("error getting object data", "object", objectName, "error", err)
 			continue
 		}
 
 		token, err := pkg.RandToken(32)
 		if err != nil {
-			s.log.Errorw("error generating share token", "object", objectName, "error", err)
+			logger.FromContext(ctx).Errorw("error generating share token", "object", objectName, "error", err)
 			continue
 		}
 
@@ -202,7 +203,7 @@ func (s *shareService) ShareWith(ctx context.Context, sharedByEmail string, owne
 
 	notifyErr := s.sendSharingNotification(sharedByEmail, forUser, expiresAt.Format("2006-01-02 15:04"), filesForMail)
 	if notifyErr != nil {
-		s.log.Warnw("issues sending email notification", "error", notifyErr)
+		logger.FromContext(ctx).Warnw("issues sending email notification", "error", notifyErr)
 		return results, "failed", nil
 	}
 	return results, "sent", nil
@@ -401,14 +402,14 @@ func (s *shareService) ResolvePublicDownload(ctx context.Context, token, mode, p
 		if errors.Is(err, ErrWrongPassword) {
 			newCount, incErr := s.queries.IncrementShareFailedAttempts(ctx, token)
 			if incErr != nil {
-				s.log.Warnw("incrementing failed share attempts", "token", token, "error", incErr)
+				logger.FromContext(ctx).Warnw("incrementing failed share attempts", "token", token, "error", incErr)
 			}
 			if newCount >= maxShareFailedAttempts {
 				if _, delErr := s.queries.DeleteShareByToken(ctx, sqlc.DeleteShareByTokenParams{
 					SharingToken: token,
 					SharedBy:     row.SharedBy,
 				}); delErr != nil {
-					s.log.Warnw("deleting blocked share", "token", token, "error", delErr)
+					logger.FromContext(ctx).Warnw("deleting blocked share", "token", token, "error", delErr)
 				}
 				return nil, ErrShareBlocked
 			}

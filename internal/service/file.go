@@ -17,6 +17,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
@@ -80,7 +81,7 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 		return storagetypes.ErrFileAlreadyExists
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		s.log.Errorw("error checking existing file", "error", err)
+		logger.FromContext(ctx).Errorw("error checking existing file", "error", err)
 		return storagetypes.ErrUploadFailed
 	}
 
@@ -104,13 +105,13 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 
 	result, err := s.storage.PutObject(ctx, bucket, storageMapping.String(), fd.MultipartFile, fd.RequestHeaders.Size, contentType)
 	if err != nil {
-		s.log.Errorw("error uploading file", "error", err)
+		logger.FromContext(ctx).Errorw("error uploading file", "error", err)
 		return err
 	}
 
 	privateDownloadToken, err := pkg.RandToken(32)
 	if err != nil {
-		s.log.Errorw("error generating private download token", "error", err)
+		logger.FromContext(ctx).Errorw("error generating private download token", "error", err)
 		return err
 	}
 
@@ -124,16 +125,16 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 		StorageMapping:       storageMapping,
 	})
 	if err != nil {
-		s.log.Errorw("error inserting file to DB, removing object from storage", "error", err)
+		logger.FromContext(ctx).Errorw("error inserting file to DB, removing object from storage", "error", err)
 		if delErr := s.storage.DeleteObjectFromBucket(ctx, storageMapping.String(), bucket); delErr != nil {
-			s.log.Errorw("error deleting object during rollback", "object", storageMapping.String(), "error", delErr)
+			logger.FromContext(ctx).Errorw("error deleting object during rollback", "object", storageMapping.String(), "error", delErr)
 		}
 		if errors.Is(err, sql.ErrNoRows) {
 			return storagetypes.ErrFileAlreadyExists
 		}
 		return storagetypes.ErrUploadFailed
 	}
-	s.log.Infow("file uploaded", "file", fileName, "checksum", file.Md5Checksum)
+	logger.FromContext(ctx).Infow("file uploaded", "file", fileName, "checksum", file.Md5Checksum)
 	return nil
 }
 
@@ -212,7 +213,7 @@ func (s *fileService) DeleteFile(ctx context.Context, userID uuid.UUID, userInte
 	}
 
 	if err := s.storage.DeleteObjectFromBucket(ctx, fileRow.StorageMapping.String(), bucket); err != nil {
-		s.log.Warnw("issues deleting object from storage (non-fatal)", "error", err)
+		logger.FromContext(ctx).Warnw("issues deleting object from storage (non-fatal)", "error", err)
 	}
 
 	return s.queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
@@ -244,7 +245,7 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 			FileName: name,
 		})
 		if lookupErr != nil {
-			s.log.Warnw("resolving file from DB", "file", name, "error", lookupErr)
+			logger.FromContext(ctx).Warnw("resolving file from DB", "file", name, "error", lookupErr)
 			failed = append(failed, name)
 			continue
 		}
@@ -253,7 +254,7 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 	}
 
 	if deleteErr := s.storage.DeleteObjectsFromBucket(ctx, storageKeys, bucket); deleteErr != nil {
-		s.log.Warnw("issues bulk-deleting objects from storage (non-fatal)", "error", deleteErr)
+		logger.FromContext(ctx).Warnw("issues bulk-deleting objects from storage (non-fatal)", "error", deleteErr)
 	}
 
 	for _, entry := range resolved {
@@ -261,7 +262,7 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 			OwnerID:  userID,
 			FileName: entry.logicalName,
 		}); dbErr != nil {
-			s.log.Warnw("deleting file from DB", "file", entry.logicalName, "error", dbErr)
+			logger.FromContext(ctx).Warnw("deleting file from DB", "file", entry.logicalName, "error", dbErr)
 			failed = append(failed, entry.logicalName)
 			continue
 		}

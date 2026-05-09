@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/pkg"
@@ -101,7 +102,7 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userI
 
 	if deleteStorageData {
 		if err := s.storage.DeleteBucket(ctx, bucketName); err != nil {
-			s.log.Warnw("failed to delete user bucket", "bucket", bucketName, "error", err)
+			logger.FromContext(ctx).Warnw("failed to delete user bucket", "bucket", bucketName, "error", err)
 		} else {
 			result.BucketDeleted = true
 		}

@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
@@ -76,7 +77,7 @@ func (b *S3BucketHandler) PutObject(ctx context.Context, bucket, key string, r i
 		ContentLength: aws.Int64(size),
 	})
 	if err != nil {
-		b.log.Errorw("error uploading file", "error", err)
+		logger.FromContext(ctx).Errorw("error uploading file", "error", err)
 		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
@@ -96,7 +97,7 @@ func (b *S3BucketHandler) BucketExists(ctx context.Context, fullBucketName strin
 	if err != nil {
 		var notFound *s3types.NotFound
 		if errors.As(err, &notFound) {
-			b.log.Infow("bucket does not exist", "bucket", b.BaseBucketName)
+			logger.FromContext(ctx).Infow("bucket does not exist", "bucket", b.BaseBucketName)
 			return false, nil
 		}
 		return false, err
@@ -107,7 +108,7 @@ func (b *S3BucketHandler) BucketExists(ctx context.Context, fullBucketName strin
 func (b *S3BucketHandler) CreateBucketIfNotExists(ctx context.Context, userId string) error {
 	exists, err := b.BucketExists(ctx, b.BaseBucketName)
 	if err != nil {
-		b.log.Errorw("error checking for bucket", "error", err)
+		logger.FromContext(ctx).Errorw("error checking for bucket", "error", err)
 		return err
 	}
 	if !exists {
@@ -118,10 +119,10 @@ func (b *S3BucketHandler) CreateBucketIfNotExists(ctx context.Context, userId st
 			},
 		})
 		if err != nil {
-			b.log.Errorw("error creating storage bucket", "error", err)
+			logger.FromContext(ctx).Errorw("error creating storage bucket", "error", err)
 			return err
 		}
-		b.log.Infow("bucket created", "bucket", b.BaseBucketName)
+		logger.FromContext(ctx).Infow("bucket created", "bucket", b.BaseBucketName)
 	}
 	return nil
 }
@@ -134,7 +135,7 @@ func (b *S3BucketHandler) GetUserBucketData(ctx context.Context, id string) (any
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		b.log.Errorw("error listing objects", "bucket", b.BaseBucketName, "error", err)
+		logger.FromContext(ctx).Errorw("error listing objects", "bucket", b.BaseBucketName, "error", err)
 		return nil, err
 	}
 
@@ -236,7 +237,7 @@ func (b *S3BucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bu
 		return fmt.Errorf("Object(%q).Delete: %w", objectKey, err)
 	}
 
-	b.log.Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
+	logger.FromContext(ctx).Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
 	return nil
 }
 
@@ -260,7 +261,7 @@ func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects [
 			return fmt.Errorf("Object(%q).Delete: %w", objectKey, err)
 		}
 
-		b.log.Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
+		logger.FromContext(ctx).Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
 	}
 
 	return nil
@@ -315,7 +316,7 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		b.log.Errorw("failed fetching bucket info", "error", err)
+		logger.FromContext(ctx).Errorw("failed fetching bucket info", "error", err)
 		return err
 	}
 
@@ -325,7 +326,7 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 			objectIds = append(objectIds, s3types.ObjectIdentifier{
 				Key: obj.Key,
 			})
-			b.log.Infow("deleting object", "key", aws.ToString(obj.Key))
+			logger.FromContext(ctx).Infow("deleting object", "key", aws.ToString(obj.Key))
 		}
 
 		_, err = b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
@@ -333,12 +334,12 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 			Delete: &s3types.Delete{Objects: objectIds},
 		})
 		if err != nil {
-			b.log.Errorw("error batch deleting objects", "error", err)
+			logger.FromContext(ctx).Errorw("error batch deleting objects", "error", err)
 			return fmt.Errorf("failed_deleting_user_objects")
 		}
 	}
 
-	b.log.Infow("deleted all objects for user prefix", "prefix", prefix)
+	logger.FromContext(ctx).Infow("deleted all objects for user prefix", "prefix", prefix)
 	return nil
 }
 

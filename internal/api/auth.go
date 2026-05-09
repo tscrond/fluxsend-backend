@@ -218,7 +218,7 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 		UserBucket: sql.NullString{String: bucketName, Valid: true},
 		ID:         user.ID,
 	}); err != nil {
-		s.log.Warnw("failed to update bucket name for user", "user", user.ID, "error", err)
+		logger.FromContext(ctx).Warnw("failed to update bucket name for user", "user", user.ID, "error", err)
 	}
 
 	// Create identity

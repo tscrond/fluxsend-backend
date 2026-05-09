@@ -24,7 +24,7 @@ func New() *zap.SugaredLogger {
 
 	base, err := cfg.Build(zap.AddCallerSkip(0))
 	if err != nil {
-		panic("failed to initialise logger: " + err.Error())
+		panic("failed to initialize logger: " + err.Error())
 	}
 
 	return base.Sugar()
