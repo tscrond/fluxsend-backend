@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -18,14 +17,19 @@ import (
 	storagefactory "github.com/tscrond/fluxsend-backend/internal/cloud_storage/factory"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	mailfactory "github.com/tscrond/fluxsend-backend/internal/mailservice/factory"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
+	"go.uber.org/zap"
 )
 
 func main() {
+	log := logger.New()
+	defer log.Sync() //nolint:errcheck
+
 	listenPort := os.Getenv("FLUXSEND_LISTEN_PORT")
 	if listenPort == "" {
 		listenPort = "3000"
@@ -50,12 +54,11 @@ func main() {
 	//postgres://<user>:<pass>@<dbhost>:5432/<dbname>?sslmode=disable
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbName)
 
-	// log.Printf("db connection string: %s", connStr)
-	log.Printf("backend endpoint: %s\n frontend endpoint: %s", backendEndpoint, frontendEndpoint)
+	log.Infof("backend endpoint: %s\n frontend endpoint: %s", backendEndpoint, frontendEndpoint)
 
 	repository, err := InitRepository(connStr)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to init repository: %v", err)
 	}
 	defer repository.Close()
 
@@ -68,23 +71,23 @@ func main() {
 			storageProvider = "gcs"
 		}
 	}
-	log.Printf("selected storage provider: %s", storageProvider)
+	log.Infof("selected storage provider: %s", storageProvider)
 
 	enableCloudFrontDownloads, err := getEnvBool("ENABLE_CLOUDFRONT_DOWNLOADS", false)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("getEnvBool: %v", err)
 	}
 
-	bucketHandler, err := InitObjectStorage(backendEndpoint, storageProvider)
+	bucketHandler, err := InitObjectStorage(log, backendEndpoint, storageProvider)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to init object storage: %v", err)
 	}
 	defer bucketHandler.Close()
 
 	var cloudFrontSigner *cdn.CloudFrontURLSigner
 	if enableCloudFrontDownloads {
 		if storageProvider != "s3" {
-			log.Fatalln("ENABLE_CLOUDFRONT_DOWNLOADS requires STORAGE_PROVIDER=s3")
+			log.Fatal("ENABLE_CLOUDFRONT_DOWNLOADS requires STORAGE_PROVIDER=s3")
 		}
 
 		cloudFrontSigner, err = cdn.NewCloudFrontURLSigner(
@@ -94,12 +97,12 @@ func main() {
 			os.Getenv("CLOUDFRONT_PRIVATE_KEY_PATH"),
 		)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalf("failed to init CloudFront signer: %v", err)
 		}
 
-		log.Println("CloudFront download signing enabled")
+		log.Info("CloudFront download signing enabled")
 	} else {
-		log.Println("CloudFront download signing disabled; using storage signed URLs")
+		log.Info("CloudFront download signing disabled; using storage signed URLs")
 	}
 
 	htmlSanitizationPolicy := bluemonday.UGCPolicy()
@@ -115,7 +118,7 @@ func main() {
 	provider := "standard"
 	emailSender, err := InitMailSender(provider)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to init mail sender: %v", err)
 	}
 
 	authConfig := config.AuthConfig{
@@ -136,7 +139,7 @@ func main() {
 
 	authProviders, err := InitAuth(authConfig)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to init auth: %v", err)
 	}
 
 	tokenEncryptor, err := tokencrypto.New(tokenEncryptionKey)
@@ -144,13 +147,14 @@ func main() {
 		log.Fatalf("failed to initialize token encryptor: %v (set TOKEN_ENCRYPTION_KEY env var)", err)
 	}
 
-	fileSvc := service.NewFileService(repository.Queries(), bucketHandler, htmlSanitizationPolicy)
-	shareSvc := service.NewShareService(repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, backendEndpoint, frontendEndpoint, mailFrom)
-	userSvc := service.NewUserService(repository.Queries(), bucketHandler)
-	workspaceSvc := service.NewWorkspaceService(repository.Queries(), repository)
-	workspaceFileSvc := service.NewWorkspaceFileService(repository.Queries(), bucketHandler)
+	fileSvc := service.NewFileService(log, repository.Queries(), bucketHandler, htmlSanitizationPolicy)
+	shareSvc := service.NewShareService(log, repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, backendEndpoint, frontendEndpoint, mailFrom)
+	userSvc := service.NewUserService(log, repository.Queries(), bucketHandler)
+	workspaceSvc := service.NewWorkspaceService(log, repository.Queries(), repository)
+	workspaceFileSvc := service.NewWorkspaceFileService(log, repository.Queries(), bucketHandler)
 
 	s := api.NewAPIServer(
+		log,
 		backendConfig,
 		emailSender,
 		bucketHandler,
@@ -172,11 +176,10 @@ func InitMailSender(provider string) (mailtypes.EmailSender, error) {
 	return mailfactory.NewEmailService(provider)
 }
 
-func InitObjectStorage(backendEndpoint, storageProvider string) (storagetypes.ObjectStorage, error) {
+func InitObjectStorage(log *zap.SugaredLogger, backendEndpoint, storageProvider string) (storagetypes.ObjectStorage, error) {
+	log.Infof("backend endpoint: %s", backendEndpoint)
 
-	log.Printf("%s", fmt.Sprintf("%s/auth/callback", backendEndpoint))
-
-	return storagefactory.NewStorageProvider(storageProvider)
+	return storagefactory.NewStorageProvider(log, storageProvider)
 }
 
 func InitRepository(connString string) (*repo.PostgresRepository, error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/mocks"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
@@ -19,7 +20,7 @@ import (
 
 // newFileTestSvc creates a FileService backed by the given mocks.
 func newFileTestSvc(q *mocks.MockQuerier, s *mocks.MockObjectStorage) FileService {
-	return NewFileService(q, s, bluemonday.UGCPolicy())
+	return NewFileService(zap.NewNop().Sugar(), q, s, bluemonday.UGCPolicy())
 }
 
 // --- GetFilesTree ----------------------------------------------------------

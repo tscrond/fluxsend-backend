@@ -3,16 +3,17 @@ package api
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -32,14 +33,20 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "failed_parsing_files", "")
-		log.Println(err)
+		log.Errorw("failed to parse form file", "error", err)
 		return
 	}
 	defer file.Close()
 
 	// Enforce per-file size limit
 	if userPlan.MaxFileSizeBytes > 0 && header.Size > userPlan.MaxFileSizeBytes {
-		log.Printf("[plan-limit] user=%s plan=%s limit=max_file_size_bytes value=%d file=%q size=%d: file too large", userUUID, userPlan.PlanName, userPlan.MaxFileSizeBytes, header.Filename, header.Size)
+		log.Warnw("plan limit: file too large",
+			"user", userUUID,
+			"plan", userPlan.PlanName,
+			"limit", userPlan.MaxFileSizeBytes,
+			"file", header.Filename,
+			"size", header.Size,
+		)
 		pkg.WriteJSONResponse(w, http.StatusRequestEntityTooLarge, "file_too_large", map[string]any{
 			"msg":                 "File exceeds the maximum allowed size for your plan",
 			"max_file_size_bytes": userPlan.MaxFileSizeBytes,
@@ -63,7 +70,7 @@ func (s *APIServer) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrFileLimitExceeded) || errors.Is(err, ErrStorageQuotaExceeded) || errors.Is(err, ErrDailyUploadLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Printf("[plan-limit] upload quota check failed for user=%s: %v", userUUID, err)
+			log.Errorw("upload quota check failed", "user", userUUID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return

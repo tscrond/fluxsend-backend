@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"strings"
 	"time"
 	"unicode/utf8"
 
+	"go.uber.org/zap"
+
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
@@ -67,12 +69,14 @@ type WorkspaceService interface {
 }
 
 type workspaceService struct {
+	log     *zap.SugaredLogger
 	queries sqlc.Querier
 	repo    repo.Repository
 }
 
-func NewWorkspaceService(queries sqlc.Querier, r repo.Repository) WorkspaceService {
+func NewWorkspaceService(log *zap.SugaredLogger, queries sqlc.Querier, r repo.Repository) WorkspaceService {
 	return &workspaceService{
+		log:     log,
 		queries: queries,
 		repo:    r,
 	}
@@ -81,7 +85,7 @@ func NewWorkspaceService(queries sqlc.Querier, r repo.Repository) WorkspaceServi
 func (w *workspaceService) GetUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]WorkspaceResult, error) {
 	workspaces, err := w.queries.GetUserWorkspaces(ctx, userID)
 	if err != nil {
-		log.Printf("error getting user workspaces: %v", err)
+		logger.FromContext(ctx).Errorw("error getting user workspaces", "error", err)
 		return nil, err
 	}
 
@@ -105,7 +109,7 @@ func (w *workspaceService) GetUserWorkspaceRole(ctx context.Context, userId uuid
 		UserID:      userId,
 	})
 	if err != nil {
-		log.Printf("error getting user workspace role: %v", err)
+		logger.FromContext(ctx).Errorw("error getting user workspace role", "error", err)
 		return "", err
 	}
 	return role, nil
@@ -114,7 +118,7 @@ func (w *workspaceService) GetUserWorkspaceRole(ctx context.Context, userId uuid
 func (w *workspaceService) CreateWorkspace(ctx context.Context, userID uuid.UUID, name, slug string) error {
 	tx, err := w.repo.BeginTx(ctx, nil)
 	if err != nil {
-		log.Printf("error beginning transaction for CreateWorkspace: %v", err)
+		logger.FromContext(ctx).Errorw("error beginning transaction for CreateWorkspace", "error", err)
 		return err
 	}
 	txq := w.repo.Queries().WithTx(tx)
@@ -126,7 +130,7 @@ func (w *workspaceService) CreateWorkspace(ctx context.Context, userID uuid.UUID
 	})
 	if err != nil {
 		_ = tx.Rollback()
-		log.Printf("error creating workspace: %v", err)
+		logger.FromContext(ctx).Errorw("error creating workspace", "error", err)
 		return err
 	}
 
@@ -137,7 +141,7 @@ func (w *workspaceService) CreateWorkspace(ctx context.Context, userID uuid.UUID
 	})
 	if err != nil {
 		_ = tx.Rollback()
-		log.Printf("error adding owner to workspace members: %v", err)
+		logger.FromContext(ctx).Errorw("error adding owner to workspace members", "error", err)
 		return err
 	}
 
@@ -147,10 +151,10 @@ func (w *workspaceService) CreateWorkspace(ctx context.Context, userID uuid.UUID
 func (w *workspaceService) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
 	workspaceDeleted, err := w.queries.DeleteWorkspace(ctx, workspaceID)
 	if err != nil {
-		log.Printf("error deleting workspace: %v", err)
+		logger.FromContext(ctx).Errorw("error deleting workspace", "workspace_id", workspaceID, "error", err)
 		return err
 	}
-	log.Printf("deleted workspace: %v (%s)", workspaceID, workspaceDeleted.Slug)
+	logger.FromContext(ctx).Infow("workspace deleted", "workspace_id", workspaceID, "slug", workspaceDeleted.Slug)
 	return nil
 }
 
@@ -184,7 +188,7 @@ func (w *workspaceService) RenameWorkspace(ctx context.Context, workspaceID uuid
 	}
 
 	if renameErr != nil {
-		log.Printf("error renaming workspace %v: %v", workspaceID, renameErr)
+		logger.FromContext(ctx).Errorw("error renaming workspace", "workspace_id", workspaceID, "error", renameErr)
 		return nil, renameErr
 	}
 	return &WorkspaceResult{
@@ -199,7 +203,7 @@ func (w *workspaceService) RenameWorkspace(ctx context.Context, workspaceID uuid
 func (w *workspaceService) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMemberResult, error) {
 	members, err := w.queries.GetWorkspaceMembers(ctx, workspaceID)
 	if err != nil {
-		log.Printf("error getting workspace members: %v\n", err)
+		logger.FromContext(ctx).Errorw("error getting workspace members", "workspace_id", workspaceID, "error", err)
 		return nil, err
 	}
 
@@ -218,7 +222,7 @@ func (w *workspaceService) GetWorkspaceMembers(ctx context.Context, workspaceID 
 func (w *workspaceService) GetWorkspaceInvites(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceInviteResult, error) {
 	invites, err := w.queries.GetWorkspaceInvites(ctx, workspaceID)
 	if err != nil {
-		log.Printf("error getting workspace invites: %v\n", err)
+		logger.FromContext(ctx).Errorw("error getting workspace invites", "workspace_id", workspaceID, "error", err)
 		return nil, err
 	}
 
@@ -246,11 +250,11 @@ func (w *workspaceService) CreateWorkspaceInvite(ctx context.Context, workspaceI
 		if memberErr == nil {
 			return nil, errors.New("already_a_member")
 		} else if !errors.Is(memberErr, sql.ErrNoRows) {
-			log.Printf("error looking up workspace member: %v", memberErr)
+			logger.FromContext(ctx).Errorw("error looking up workspace member", "workspace_id", workspaceID, "error", memberErr)
 			return nil, memberErr
 		}
 	} else if !errors.Is(err, sql.ErrNoRows) {
-		log.Printf("error looking up user by email: %v", err)
+		logger.FromContext(ctx).Errorw("error looking up user by email", "email", email, "error", err)
 		return nil, err
 	}
 
@@ -262,7 +266,7 @@ func (w *workspaceService) CreateWorkspaceInvite(ctx context.Context, workspaceI
 		Role:        role,
 	})
 	if err != nil {
-		log.Printf("error creating workspace invite: %v", err)
+		logger.FromContext(ctx).Errorw("error creating workspace invite", "workspace_id", workspaceID, "email", email, "error", err)
 		return nil, err
 	}
 	return &WorkspaceInviteResult{
@@ -279,7 +283,7 @@ func (w *workspaceService) RemoveWorkspaceMember(ctx context.Context, workspaceI
 		WorkspaceID: workspaceID,
 		UserID:      userID,
 	}); err != nil {
-		log.Printf("error removing workspace member %v from %v: %v", userID, workspaceID, err)
+		logger.FromContext(ctx).Errorw("error removing workspace member", "user_id", userID, "workspace_id", workspaceID, "error", err)
 		return err
 	}
 	return nil
@@ -291,7 +295,7 @@ func (w *workspaceService) UpdateMemberRole(ctx context.Context, workspaceID uui
 		UserID:      targetUserID,
 		Role:        newRole,
 	}); err != nil {
-		log.Printf("error updating role for member %v in workspace %v: %v", targetUserID, workspaceID, err)
+		logger.FromContext(ctx).Errorw("error updating workspace member role", "target_user_id", targetUserID, "workspace_id", workspaceID, "error", err)
 		return err
 	}
 	return nil
@@ -299,7 +303,7 @@ func (w *workspaceService) UpdateMemberRole(ctx context.Context, workspaceID uui
 
 func (w *workspaceService) DeleteWorkspaceInvite(ctx context.Context, inviteID uuid.UUID) error {
 	if err := w.queries.DeleteWorkspaceInvite(ctx, inviteID); err != nil {
-		log.Printf("error deleting workspace invite %v: %v", inviteID, err)
+		logger.FromContext(ctx).Errorw("error deleting workspace invite", "invite_id", inviteID, "error", err)
 		return err
 	}
 	return nil
@@ -308,7 +312,7 @@ func (w *workspaceService) DeleteWorkspaceInvite(ctx context.Context, inviteID u
 func (w *workspaceService) GetUserInvites(ctx context.Context, email string) ([]UserInviteResult, error) {
 	rows, err := w.queries.GetUserInvitesByEmail(ctx, email)
 	if err != nil {
-		log.Printf("error getting user invites for %s: %v", email, err)
+		logger.FromContext(ctx).Errorw("error getting user invites", "email", email, "error", err)
 		return nil, err
 	}
 	result := make([]UserInviteResult, 0, len(rows))
@@ -359,7 +363,7 @@ func (w *workspaceService) AcceptWorkspaceInvite(ctx context.Context, token stri
 		UserID:      userID,
 		Role:        invite.Role,
 	}); err != nil {
-		log.Printf("error accepting workspace invite: %v", err)
+		logger.FromContext(ctx).Errorw("error accepting workspace invite", "token", token, "error", err)
 		return err
 	}
 	return w.queries.DeleteWorkspaceInviteByToken(ctx, token)

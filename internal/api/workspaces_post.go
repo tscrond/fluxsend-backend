@@ -6,14 +6,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -36,7 +37,7 @@ func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrWorkspacesPerUserLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Printf("[workspace-plan-limit] workspace count check failed for user=%s: %v", userUUID, err)
+			log.Errorw("workspace count check failed", "user", userUUID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return
@@ -87,6 +88,7 @@ func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -134,7 +136,7 @@ func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request
 		if errors.Is(err, ErrWorkspaceUsersLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Printf("[workspace-plan-limit] resource quota check failed for workspace=%s: %v", workspaceID, err)
+			log.Errorw("workspace resource quota check failed", "workspace_id", workspaceID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return
@@ -201,12 +203,13 @@ func (s *APIServer) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Request
 }
 
 func (s *APIServer) checkIfCanSendInvites(ctx context.Context, userUUID uuid.UUID, workspaceID uuid.UUID) error {
+	log := logger.FromContext(ctx)
 	role, err := s.workspaces.GetUserWorkspaceRole(ctx, userUUID, workspaceID)
 	if err != nil {
 		return err
 	}
 	if role == "viewer" || role == "editor" {
-		log.Println("user is not owner or admin:", role)
+		log.Warnw("user is not owner or admin", "role", role, "user_id", userUUID, "workspace_id", workspaceID)
 		return errors.New("unauthorized_to_invite")
 	}
 

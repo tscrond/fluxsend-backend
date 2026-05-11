@@ -1,9 +1,9 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
@@ -80,6 +80,7 @@ func (s *APIServer) getUserPrivateFileByName(w http.ResponseWriter, r *http.Requ
 
 // GET /user/stats — personal usage analytics
 func (s *APIServer) getUserStats(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -93,21 +94,21 @@ func (s *APIServer) getUserStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := s.repository.Queries().GetUserStats(r.Context(), userUUID)
 	if err != nil {
-		log.Printf("[stats] error fetching user stats for %s: %v", userUUID, err)
+		log.Errorw("error fetching user stats", "user", userUUID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
 
 	dailyUploads, err := s.repository.Queries().GetUserDailyUploads(r.Context(), userUUID)
 	if err != nil {
-		log.Printf("[stats] error fetching daily uploads for %s: %v", userUUID, err)
+		log.Errorw("error fetching daily uploads", "user", userUUID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
 
 	dailyShares, err := s.repository.Queries().GetUserDailyShares(r.Context(), userUUID)
 	if err != nil {
-		log.Printf("[stats] error fetching daily shares for %s: %v", userUUID, err)
+		log.Errorw("error fetching daily shares", "user", userUUID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}

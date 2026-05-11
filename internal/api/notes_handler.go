@@ -3,10 +3,10 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
@@ -21,6 +21,7 @@ func (s *APIServer) fileNotesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) editFileNotes(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPut {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -49,7 +50,7 @@ func (s *APIServer) editFileNotes(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "too_many_characters", "")
 			return
 		}
-		log.Println("error upserting note:", err)
+		log.Errorw("error upserting note", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "cannot_update_resource", "")
 		return
 	}
@@ -60,6 +61,7 @@ func (s *APIServer) editFileNotes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) getFileNotes(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -79,7 +81,7 @@ func (s *APIServer) getFileNotes(w http.ResponseWriter, r *http.Request) {
 
 	content, err := s.files.GetNote(r.Context(), userUUID, checksum)
 	if err != nil {
-		log.Println("error getting note:", err)
+		log.Errorw("error getting note", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "error_get_note", "")
 		return
 	}

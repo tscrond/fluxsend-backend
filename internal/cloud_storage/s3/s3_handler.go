@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"time"
 
@@ -15,23 +14,26 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 type S3BucketHandler struct {
+	log            *zap.SugaredLogger
 	Client         *s3.Client
 	PresignClient  *s3.PresignClient
 	BaseBucketName string
 	Region         string
 }
 
-func NewS3BucketHandler(bucketName, region string) (types.ObjectStorage, error) {
+func NewS3BucketHandler(log *zap.SugaredLogger, bucketName, region string) (types.ObjectStorage, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithRegion(region))
 	if err != nil {
-		log.Println("Error loading AWS config:", err)
+		log.Errorw("error loading AWS config", "error", err)
 		return nil, err
 	}
 
@@ -39,6 +41,7 @@ func NewS3BucketHandler(bucketName, region string) (types.ObjectStorage, error) 
 	presignClient := s3.NewPresignClient(client)
 
 	return &S3BucketHandler{
+		log:            log,
 		Client:         client,
 		PresignClient:  presignClient,
 		BaseBucketName: bucketName,
@@ -74,7 +77,7 @@ func (b *S3BucketHandler) PutObject(ctx context.Context, bucket, key string, r i
 		ContentLength: aws.Int64(size),
 	})
 	if err != nil {
-		log.Println("error uploading file:", err)
+		logger.FromContext(ctx).Errorw("error uploading file", "error", err)
 		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
@@ -94,7 +97,7 @@ func (b *S3BucketHandler) BucketExists(ctx context.Context, fullBucketName strin
 	if err != nil {
 		var notFound *s3types.NotFound
 		if errors.As(err, &notFound) {
-			log.Println("bucket does not exist")
+			logger.FromContext(ctx).Infow("bucket does not exist", "bucket", b.BaseBucketName)
 			return false, nil
 		}
 		return false, err
@@ -105,7 +108,7 @@ func (b *S3BucketHandler) BucketExists(ctx context.Context, fullBucketName strin
 func (b *S3BucketHandler) CreateBucketIfNotExists(ctx context.Context, userId string) error {
 	exists, err := b.BucketExists(ctx, b.BaseBucketName)
 	if err != nil {
-		log.Println("error checking for bucket: ", err)
+		logger.FromContext(ctx).Errorw("error checking for bucket", "error", err)
 		return err
 	}
 	if !exists {
@@ -116,10 +119,10 @@ func (b *S3BucketHandler) CreateBucketIfNotExists(ctx context.Context, userId st
 			},
 		})
 		if err != nil {
-			log.Println("error creating storage bucket: ", err)
+			logger.FromContext(ctx).Errorw("error creating storage bucket", "error", err)
 			return err
 		}
-		log.Printf("bucket %s created successfully", b.BaseBucketName)
+		logger.FromContext(ctx).Infow("bucket created", "bucket", b.BaseBucketName)
 	}
 	return nil
 }
@@ -132,7 +135,7 @@ func (b *S3BucketHandler) GetUserBucketData(ctx context.Context, id string) (any
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		log.Println("error listing objects: ", err)
+		logger.FromContext(ctx).Errorw("error listing objects", "bucket", b.BaseBucketName, "error", err)
 		return nil, err
 	}
 
@@ -234,7 +237,7 @@ func (b *S3BucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bu
 		return fmt.Errorf("Object(%q).Delete: %w", objectKey, err)
 	}
 
-	log.Printf("object deleted successfully: (%s,%s)", b.BaseBucketName, objectKey)
+	logger.FromContext(ctx).Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
 	return nil
 }
 
@@ -258,7 +261,7 @@ func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects [
 			return fmt.Errorf("Object(%q).Delete: %w", objectKey, err)
 		}
 
-		log.Printf("object deleted successfully: (%s,%s)", b.BaseBucketName, objectKey)
+		logger.FromContext(ctx).Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
 	}
 
 	return nil
@@ -313,7 +316,7 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		log.Println("failed_fetching_bucket_info, err: ", err)
+		logger.FromContext(ctx).Errorw("failed fetching bucket info", "error", err)
 		return err
 	}
 
@@ -323,7 +326,7 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 			objectIds = append(objectIds, s3types.ObjectIdentifier{
 				Key: obj.Key,
 			})
-			log.Printf("deleting object %s", aws.ToString(obj.Key))
+			logger.FromContext(ctx).Infow("deleting object", "key", aws.ToString(obj.Key))
 		}
 
 		_, err = b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
@@ -331,12 +334,12 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 			Delete: &s3types.Delete{Objects: objectIds},
 		})
 		if err != nil {
-			log.Println("error batch deleting objects: ", err)
+			logger.FromContext(ctx).Errorw("error batch deleting objects", "error", err)
 			return fmt.Errorf("failed_deleting_user_objects")
 		}
 	}
 
-	log.Printf("deleted all objects for user prefix: %s", prefix)
+	logger.FromContext(ctx).Infow("deleted all objects for user prefix", "prefix", prefix)
 	return nil
 }
 

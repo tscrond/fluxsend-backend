@@ -6,16 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/google/uuid"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
 
@@ -99,11 +101,12 @@ type WorkspaceFileService interface {
 
 // ── Constructor ───────────────────────────────────────────────────────────────
 
-func NewWorkspaceFileService(queries sqlc.Querier, storage storagetypes.ObjectStorage) WorkspaceFileService {
-	return &workspaceFileService{queries: queries, storage: storage}
+func NewWorkspaceFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage) WorkspaceFileService {
+	return &workspaceFileService{log: log, queries: queries, storage: storage}
 }
 
 type workspaceFileService struct {
+	log     *zap.SugaredLogger
 	queries sqlc.Querier
 	storage storagetypes.ObjectStorage
 }
@@ -355,7 +358,7 @@ func (w *workspaceFileService) CreateWorkspaceFiles(ctx context.Context, workspa
 
 		putResult, err := w.storage.PutObject(ctx, bucket, objectKey, f.MultipartFile, f.RequestHeaders.Size, contentType)
 		if err != nil {
-			log.Printf("workspace upload: PutObject failed for %q: %v", fileName, err)
+			logger.FromContext(ctx).Errorw("workspace upload: PutObject failed", "file", fileName, "error", err)
 			return nil, err
 		}
 
@@ -370,9 +373,9 @@ func (w *workspaceFileService) CreateWorkspaceFiles(ctx context.Context, workspa
 			Path:        path,
 		})
 		if err != nil {
-			log.Printf("workspace upload: DB insert failed for %q, removing object: %v", fileName, err)
+			logger.FromContext(ctx).Errorw("workspace upload: DB insert failed, removing object", "file", fileName, "error", err)
 			if delErr := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
-				log.Printf("workspace upload: cleanup failed for %q: %v", objectKey, delErr)
+				logger.FromContext(ctx).Warnw("workspace upload: cleanup of storage object failed", "object_key", objectKey, "error", delErr)
 			}
 			return nil, err
 		}
@@ -425,7 +428,7 @@ func (w *workspaceFileService) RemoveWorkspaceFile(ctx context.Context, workspac
 	bucket := w.storage.GetBucketBaseName()
 	objectKey := workspaceId.String() + "/" + fileId.String()
 	if delErr := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
-		log.Printf("workspace delete: storage delete failed for %s (non-fatal): %v", objectKey, delErr)
+		logger.FromContext(ctx).Warnw("workspace delete: storage delete failed (non-fatal)", "object_key", objectKey, "error", delErr)
 	}
 
 	return w.queries.DeleteWorkspaceFileById(ctx, sqlc.DeleteWorkspaceFileByIdParams{
@@ -472,7 +475,7 @@ func (w *workspaceFileService) RemoveWorkspaceFolder(ctx context.Context, worksp
 			}
 			objectKey := workspaceId.String() + "/" + f.ID.String()
 			if delErr := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
-				log.Printf("workspace folder delete: storage delete failed for %s (non-fatal): %v", objectKey, delErr)
+				logger.FromContext(ctx).Warnw("workspace folder delete: storage delete failed (non-fatal)", "object_key", objectKey, "error", delErr)
 			}
 		}
 	}

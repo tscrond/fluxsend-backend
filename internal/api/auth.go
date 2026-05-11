@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
@@ -27,6 +27,7 @@ const (
 )
 
 func (s *APIServer) oauthLoginHandler(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	providerName := chi.URLParam(r, "provider")
 	provider, ok := s.authProviders[providerName]
 	if !ok {
@@ -36,7 +37,7 @@ func (s *APIServer) oauthLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	state, err := generateState()
 	if err != nil {
-		log.Printf("failed to generate oauth state: %v", err)
+		log.Errorw("failed to generate oauth state", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
@@ -55,6 +56,7 @@ func (s *APIServer) oauthLoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	ctx := r.Context()
 
 	providerName := chi.URLParam(r, "provider")
@@ -88,20 +90,20 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 
 	result, err := provider.HandleCallback(ctx, r)
 	if err != nil {
-		log.Printf("auth callback error [%s]: %v", providerName, err)
+		log.Errorw("auth callback error", "provider", providerName, "error", err)
 		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=auth_failed", http.StatusTemporaryRedirect)
 		return
 	}
 
 	userID, err := s.findOrCreateUserFromResult(ctx, result.Email, result.Provider, result.ProviderUserID, result.EmailVerified, result.Name, result.AvatarURL)
 	if err != nil {
-		log.Printf("error finding or creating user: %v", err)
+		log.Errorw("error finding or creating user", "error", err)
 		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=user_error", http.StatusTemporaryRedirect)
 		return
 	}
 
 	if err := s.bucketHandler.CreateBucketIfNotExists(ctx, userID.String()); err != nil {
-		log.Printf("warning: failed to create bucket for user %s: %v", userID, err)
+		log.Warnw("failed to create bucket for user", "user", userID, "error", err)
 	}
 
 	sessionID := uuid.New()
@@ -109,7 +111,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 	if result.AccessToken != "" {
 		enc, err := s.tokenEncryptor.Encrypt(result.AccessToken)
 		if err != nil {
-			log.Printf("warning: failed to encrypt provider access token: %v", err)
+			log.Warnw("failed to encrypt provider access token", "error", err)
 		} else {
 			encryptedToken = sql.NullString{String: enc, Valid: true}
 		}
@@ -121,7 +123,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		ProviderAccessToken: encryptedToken,
 		ExpiresAt:           time.Now().Add(sessionDuration),
 	}); err != nil {
-		log.Printf("failed to create session: %v", err)
+		log.Errorw("failed to create session", "error", err)
 		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=session_error", http.StatusTemporaryRedirect)
 		return
 	}
@@ -216,7 +218,7 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 		UserBucket: sql.NullString{String: bucketName, Valid: true},
 		ID:         user.ID,
 	}); err != nil {
-		log.Printf("warning: failed to update bucket name for user %s: %v", user.ID, err)
+		logger.FromContext(ctx).Warnw("failed to update bucket name for user", "user", user.ID, "error", err)
 	}
 
 	// Create identity
@@ -251,6 +253,7 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 
 func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := logger.FromContext(r.Context())
 		cookie, err := r.Cookie(sessionCookieName)
 		if err != nil || cookie.Value == "" {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "Unauthorized")
@@ -271,14 +274,14 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 
 		user, err := s.repository.Queries().GetUserWithPlan(r.Context(), session.UserID)
 		if err != nil {
-			log.Printf("cannot find user %s: %v", session.UserID, err)
+			log.Errorw("cannot find user", "user_id", session.UserID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User/plan not found")
 			return
 		}
 
 		identity, err := s.repository.Queries().GetIdentityByUserID(r.Context(), session.UserID)
 		if err != nil {
-			log.Printf("cannot find identity for user %s: %v", session.UserID, err)
+			log.Errorw("cannot find identity for user", "user_id", session.UserID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User identity not found")
 			return
 		}
@@ -318,7 +321,7 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 		)
 
 		if err := s.bucketHandler.CreateBucketIfNotExists(ctx, user.ID.String()); err != nil {
-			log.Printf("warning: failed to create bucket in middleware: %v", err)
+			log.Warnw("failed to create bucket in middleware", "user", user.ID, "error", err)
 		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -326,6 +329,7 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *APIServer) logout(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusNotFound, "cookie_not_found", map[string]any{
@@ -348,13 +352,13 @@ func (s *APIServer) logout(w http.ResponseWriter, r *http.Request) {
 		if provider, exists := s.authProviders[session.Provider]; exists && session.ProviderAccessToken.Valid {
 			plainToken, decErr := s.tokenEncryptor.Decrypt(session.ProviderAccessToken.String)
 			if decErr != nil {
-				log.Printf("warning: failed to decrypt provider access token: %v", decErr)
+				log.Warnw("failed to decrypt provider access token", "error", decErr)
 			} else if revokeErr := provider.Logout(ctx, plainToken); revokeErr != nil {
-				log.Printf("warning: failed to revoke provider token: %v", revokeErr)
+				log.Warnw("failed to revoke provider token", "error", revokeErr)
 			}
 		}
 		if deleteErr := s.repository.Queries().DeleteSession(ctx, sessionID); deleteErr != nil {
-			log.Printf("warning: failed to delete session: %v", deleteErr)
+			log.Warnw("failed to delete session", "error", deleteErr)
 		}
 	}
 

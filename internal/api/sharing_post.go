@@ -3,15 +3,16 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
 		return
@@ -46,7 +47,7 @@ func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrDailyShareLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Printf("[plan-limit] share quota check failed for user=%s: %v", authUser.Email, err)
+			log.Errorw("share quota check failed", "user", authUser.Email, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return
@@ -58,7 +59,7 @@ func (s *APIServer) shareWith(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "password_too_long")
 			return
 		}
-		log.Println("shareWith error:", err)
+		log.Errorw("shareWith error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "sharing_error")
 		return
 	}

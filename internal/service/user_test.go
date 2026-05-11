@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/mocks"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
@@ -22,7 +23,7 @@ func TestUserService_GetBucketData_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
 	const internalID = "internal-abc"
@@ -54,7 +55,7 @@ func TestUserService_GetBucketData_DBError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	dbErr := errors.New("db timeout")
 	q.EXPECT().GetFilesByOwner(gomock.Any(), gomock.Any()).Return(nil, dbErr)
@@ -67,7 +68,7 @@ func TestUserService_GetBucketData_FallbackBucketName(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
 	const internalID = "fallback-id"
@@ -90,7 +91,7 @@ func TestUserService_GetPrivateDownloadToken_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
 	const fileName = "report.pdf"
@@ -109,7 +110,7 @@ func TestUserService_GetPrivateDownloadToken_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	q.EXPECT().GetPrivateDownloadTokenByFileName(gomock.Any(), gomock.Any()).
 		Return(sql.NullString{}, sql.ErrNoRows)
@@ -124,7 +125,7 @@ func TestUserService_DeleteAccount_WithStorageDeletion(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
 	const internalID = "user-internal-xyz"
@@ -146,7 +147,7 @@ func TestUserService_DeleteAccount_SkipStorageDeletion(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
 	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
@@ -163,7 +164,7 @@ func TestUserService_DeleteAccount_DBError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
-	svc := NewUserService(q, stor)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
 	stor.EXPECT().GetBucketBaseName().Return("fluxsend")

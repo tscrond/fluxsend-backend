@@ -61,6 +61,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
+      - APP_ENV=production
 
     volumes:
       - ./config/bucket-auth.json:/config/bucket-auth.json:ro

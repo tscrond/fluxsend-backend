@@ -7,15 +7,16 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"log"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
+	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/mappings"
 	"github.com/tscrond/fluxsend-backend/pkg"
 	"google.golang.org/api/iterator"
@@ -23,13 +24,14 @@ import (
 )
 
 type GCSBucketHandler struct {
+	log                   *zap.SugaredLogger
 	Client                *storage.Client
 	ServiceAccountKeyPath string
 	BaseBucketName        string
 	GoogleProjectID       string
 }
 
-func NewGCSBucketHandler(svcaccountPath, bucketName, projId string) (types.ObjectStorage, error) {
+func NewGCSBucketHandler(log *zap.SugaredLogger, svcaccountPath, bucketName, projId string) (types.ObjectStorage, error) {
 	if strings.TrimSpace(svcaccountPath) == "" {
 		return nil, errors.New("GOOGLE_APPLICATION_CREDENTIALS is empty for STORAGE_PROVIDER=gcs")
 	}
@@ -40,21 +42,22 @@ func NewGCSBucketHandler(svcaccountPath, bucketName, projId string) (types.Objec
 		if err == nil {
 			break
 		}
-		log.Printf("Retrying to find credentials file (%s): %v", svcaccountPath, err)
+		log.Warnw("retrying to find credentials file", "path", svcaccountPath, "error", err)
 		time.Sleep(1 * time.Second)
 	}
 	if err != nil {
-		log.Printf("Failed to find credentials file after retries: %v\n", err)
+		log.Errorw("failed to find credentials file after retries", "path", svcaccountPath, "error", err)
 		return nil, err
 	}
 
 	client, err := storage.NewClient(context.Background(), option.WithCredentialsFile(svcaccountPath))
 	if err != nil {
-		log.Println("Error initializing client:", err)
+		log.Errorw("error initializing GCS client", "error", err)
 		return nil, err
 	}
 
 	return &GCSBucketHandler{
+		log:                   log,
 		Client:                client,
 		ServiceAccountKeyPath: svcaccountPath,
 		BaseBucketName:        bucketName,
@@ -67,17 +70,17 @@ func (b *GCSBucketHandler) PutObject(ctx context.Context, bucket, key string, r 
 	writer.ContentType = contentType
 
 	if _, err := io.Copy(writer, r); err != nil {
-		log.Println("error uploading file:", err)
+		logger.FromContext(ctx).Errorw("error uploading file", "error", err)
 		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 	if err := writer.Close(); err != nil {
-		log.Println("error closing writer:", err)
+		logger.FromContext(ctx).Errorw("error closing writer", "error", err)
 		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
 	attrs, err := b.Client.Bucket(bucket).Object(key).Attrs(ctx)
 	if err != nil {
-		log.Println("err reading obj attrs:", err)
+		logger.FromContext(ctx).Errorw("error reading object attrs", "error", err)
 		return nil, fmt.Errorf("%w: %v", types.ErrStorageUnavailable, err)
 	}
 
@@ -91,7 +94,7 @@ func (b *GCSBucketHandler) PutObject(ctx context.Context, bucket, key string, r 
 func (b *GCSBucketHandler) BucketExists(ctx context.Context, fullBucketName string) (bool, error) {
 	_, err := b.Client.Bucket(fullBucketName).Attrs(ctx)
 	if err == storage.ErrBucketNotExist {
-		log.Println("bucket does not exist")
+		logger.FromContext(ctx).Infow("bucket does not exist", "bucket", fullBucketName)
 		return false, nil
 	}
 	return err == nil, err
@@ -105,7 +108,7 @@ func (b *GCSBucketHandler) checkObjExists(ctx context.Context, bucketName, objNa
 		return false, nil
 	}
 	if err != nil {
-		log.Printf("error checking object existence: %v", err)
+		logger.FromContext(ctx).Errorw("error checking object existence", "error", err)
 		return false, err
 	}
 
@@ -119,13 +122,13 @@ func (b *GCSBucketHandler) CreateBucketIfNotExists(ctx context.Context, userId s
 	exists, err := b.BucketExists(ctx, bucketName)
 	if !exists {
 		if err := b.CreateBucket(ctx, bucketName, b.GoogleProjectID); err != nil {
-			log.Println("error creating storage bucket: ", err)
+			logger.FromContext(ctx).Errorw("error creating storage bucket", "bucket", bucketName, "error", err)
 			return err
 		}
 		return nil
 	}
 	if err != nil {
-		log.Println("error checking for bucket: ", err)
+		logger.FromContext(ctx).Errorw("error checking for bucket", "bucket", bucketName, "error", err)
 		return err
 	}
 
@@ -162,7 +165,7 @@ func (b *GCSBucketHandler) getObjectsAttrs(ctx context.Context, bucketName strin
 			break
 		}
 		if err != nil {
-			log.Println(err)
+			logger.FromContext(ctx).Warnw("error iterating objects", "error", err)
 			continue
 		}
 		// log.Printf("%+v\n", objAttrs)
@@ -187,7 +190,7 @@ func (b *GCSBucketHandler) getObjectsAttrsByObjName(ctx context.Context, bucketN
 	var selectedObj *mappings.ObjectMedatata
 	objects, err := b.getObjectsAttrs(ctx, bucketName)
 	if err != nil {
-		log.Println("error getting objects attributes", err)
+		logger.FromContext(ctx).Errorw("error getting objects attributes", "error", err)
 		return nil, err
 	}
 	for _, o := range objects {
@@ -204,13 +207,13 @@ func (b *GCSBucketHandler) GetUserBucketData(ctx context.Context, id string) (an
 
 	bucketData, err := b.getBucketAttrs(ctx, bucketName)
 	if err != nil {
-		log.Println("error getting bucket metadata: ", err)
+		logger.FromContext(ctx).Errorw("error getting bucket metadata", "bucket", bucketName, "error", err)
 		return nil, err
 	}
 
 	objects, err := b.getObjectsAttrs(ctx, bucketName)
 	if err != nil {
-		log.Println("error getting objects metadata: ", err)
+		logger.FromContext(ctx).Errorw("error getting objects metadata", "bucket", bucketName, "error", err)
 		return nil, err
 	}
 
@@ -238,7 +241,7 @@ func (b *GCSBucketHandler) CreateBucket(ctx context.Context, fullBucketName, pro
 		return err
 	}
 
-	log.Printf("bucket %s created successfully", fullBucketName)
+	logger.FromContext(ctx).Infow("bucket created", "bucket", fullBucketName)
 	return err
 }
 
@@ -303,7 +306,7 @@ func (b *GCSBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects 
 			return fmt.Errorf("Object(%q).Delete: %w", object, err)
 		}
 
-		log.Printf("object deleted successfully: (%s,%s)", o.BucketName(), o.ObjectName())
+		logger.FromContext(ctx).Infow("object deleted", "bucket", o.BucketName(), "key", o.ObjectName())
 	}
 
 	return nil
@@ -330,7 +333,7 @@ func (b *GCSBucketHandler) DeleteObjectFromBucket(ctx context.Context, object, b
 		return fmt.Errorf("Object(%q).Delete: %w", object, err)
 	}
 
-	log.Printf("object deleted successfully: (%s,%s)", o.BucketName(), o.ObjectName())
+	logger.FromContext(ctx).Infow("object deleted", "bucket", o.BucketName(), "key", o.ObjectName())
 	return nil
 }
 
@@ -380,23 +383,23 @@ func (b *GCSBucketHandler) DeleteBucket(ctx context.Context, bucket string) erro
 
 	objectsInBucket, err := b.getAllObjectNames(ctx, bucket)
 	if err != nil {
-		log.Println("failed_fetching_bucket_info, err: ", err)
+		logger.FromContext(ctx).Errorw("failed fetching bucket info", "bucket", bucket, "error", err)
 	}
 
 	gcsBucket := b.Client.Bucket(bucket)
 	for _, o := range objectsInBucket {
 		object := gcsBucket.Object(o)
 		if err := object.Delete(ctx); err != nil {
-			log.Printf("failed deleting object %s, err: %s\n", o, err)
+			logger.FromContext(ctx).Errorw("failed deleting object", "object", o, "error", err)
 		}
-		log.Printf("deleted object %s", o)
+		logger.FromContext(ctx).Infow("deleted object", "object", o)
 	}
 
 	if err := gcsBucket.Delete(ctx); err != nil {
-		log.Println(err)
+		logger.FromContext(ctx).Errorw("failed deleting bucket", "bucket", bucket, "error", err)
 		return fmt.Errorf("failed_deleting_bucket")
 	}
 
-	log.Printf("deleted bucket: %s\n", bucket)
+	logger.FromContext(ctx).Infow("deleted bucket", "bucket", bucket)
 	return nil
 }

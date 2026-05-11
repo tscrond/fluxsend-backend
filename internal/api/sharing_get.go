@@ -5,17 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -49,7 +50,7 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", "")
 			return
 		}
-		log.Println("ResolvePersonalDownload error:", err)
+		log.Errorw("ResolvePersonalDownload error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "cannot_get_bucket_data", "")
 		return
 	}
@@ -58,6 +59,7 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 }
 
 func (s *APIServer) publicShareInfo(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
 		return
@@ -82,7 +84,7 @@ func (s *APIServer) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "share_blocked", "")
 			return
 		}
-		log.Println("publicShareInfo error:", err)
+		log.Errorw("publicShareInfo error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
@@ -91,6 +93,7 @@ func (s *APIServer) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
 		return
@@ -138,7 +141,7 @@ func (s *APIServer) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "share_blocked", "")
 			return
 		}
-		log.Println("resolvePublicShare error:", err)
+		log.Errorw("resolvePublicShare error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
@@ -150,6 +153,7 @@ func (s *APIServer) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -193,7 +197,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "share_blocked", "")
 			return
 		}
-		log.Println("ResolvePublicDownload error:", err)
+		log.Errorw("ResolvePublicDownload error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
@@ -203,23 +207,24 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 
 func (s *APIServer) handleDownloadResponse(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) {
 	if mode == "download" && s.cloudFrontSigner != nil {
-		s.proxyDownload(w, signedUrl, filename)
+		s.proxyDownload(w, r, signedUrl, filename)
 		return
 	}
 	http.Redirect(w, r, signedUrl, http.StatusFound)
 }
 
-func (s *APIServer) proxyDownload(w http.ResponseWriter, signedUrl, filename string) {
+func (s *APIServer) proxyDownload(w http.ResponseWriter, r *http.Request, signedUrl, filename string) {
+	log := logger.FromContext(r.Context())
 	resp, err := http.Get(signedUrl)
 	if err != nil {
-		log.Printf("download proxy: fetch error: %v", err)
+		log.Errorw("download proxy: fetch error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("download proxy: upstream returned %d", resp.StatusCode)
+		log.Warnw("download proxy: upstream non-200", "status", resp.StatusCode)
 		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
 		return
 	}
@@ -256,6 +261,7 @@ func sanitizeDownloadFilename(filename string) string {
 }
 
 func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -269,7 +275,7 @@ func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request)
 
 	files, err := s.shares.GetSharedForUser(r.Context(), authUser.Email)
 	if err != nil {
-		log.Println("GetSharedForUser error:", err)
+		log.Errorw("GetSharedForUser error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
@@ -280,6 +286,7 @@ func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *APIServer) getDataSharedByUser(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -293,7 +300,7 @@ func (s *APIServer) getDataSharedByUser(w http.ResponseWriter, r *http.Request) 
 
 	files, err := s.shares.GetSharedByUser(r.Context(), authUser.Email)
 	if err != nil {
-		log.Println("GetSharedByUser error:", err)
+		log.Errorw("GetSharedByUser error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}

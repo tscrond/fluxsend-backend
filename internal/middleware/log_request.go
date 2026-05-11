@@ -1,49 +1,60 @@
 package middleware
 
 import (
-	"bytes"
-	"io"
-	"log"
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
+	"time"
+
+	"github.com/tscrond/fluxsend-backend/internal/logger"
+	"go.uber.org/zap"
 )
 
-func logRequestDetails(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Log request method and URL
-		log.Printf("Received %s request for %s", r.Method, r.URL.Path)
-
-		// Log all request headers
-		for name, values := range r.Header {
-			for _, value := range values {
-				log.Printf("Header: %s = %s", name, value)
-			}
-		}
-
-		// If the request method is POST, log the request body
-		if r.Method == http.MethodPost {
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-				log.Println("Error reading request body:", err)
-				return
-			}
-
-			// Be cautious when logging large bodies; log the first 1000 characters
-			log.Printf("Request body: %s", string(body[:min(len(body), 1000)])) // Limit body logged
-
-			// Rewind the body so it can be processed by the next handler
-			r.Body = io.NopCloser(bytes.NewReader(body))
-		}
-
-		// Call the next handler in the chain
-		next.ServeHTTP(w, r)
-	})
+// wrappedResponseWriter captures the status code written by a handler.
+type wrappedResponseWriter struct {
+	http.ResponseWriter
+	status int
 }
 
-// Utility function to limit the size of logged body
-func min(a, b int) int {
-	if a < b {
-		return a
+func (w *wrappedResponseWriter) WriteHeader(code int) {
+	w.status = code
+	w.ResponseWriter.WriteHeader(code)
+}
+
+// RequestLogger returns a chi-compatible middleware that:
+//   - generates (or forwards) an X-Request-ID header,
+//   - enriches the request context with a per-request SugaredLogger,
+//   - logs method, path, status and latency as structured fields.
+func RequestLogger(base *zap.SugaredLogger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reqID := r.Header.Get("X-Request-ID")
+			if reqID == "" {
+				reqID = newRequestID()
+			}
+			w.Header().Set("X-Request-ID", reqID)
+
+			reqLog := base.With("request_id", reqID)
+			ctx := logger.WithContext(r.Context(), reqLog)
+
+			wrapped := &wrappedResponseWriter{ResponseWriter: w, status: http.StatusOK}
+			start := time.Now()
+
+			next.ServeHTTP(wrapped, r.WithContext(ctx))
+
+			reqLog.Infow("request",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", wrapped.status,
+				"latency_ms", time.Since(start).Milliseconds(),
+				"remote_addr", r.RemoteAddr,
+			)
+		})
 	}
-	return b
+}
+
+func newRequestID() string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }

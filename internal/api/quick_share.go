@@ -4,15 +4,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
 func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
 		return
@@ -49,7 +50,7 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrDailyShareLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Printf("[plan-limit] share quota check failed for user=%s: %v", authUser.Email, err)
+			log.Errorw("share quota check failed", "user", authUser.Email, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return
@@ -65,7 +66,7 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "password_too_long")
 			return
 		}
-		log.Println("quickShare error:", err)
+		log.Errorw("quickShare error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
@@ -74,6 +75,7 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) getUnseenReceivedCount(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
 		return
@@ -87,7 +89,7 @@ func (s *APIServer) getUnseenReceivedCount(w http.ResponseWriter, r *http.Reques
 
 	count, err := s.shares.CountUnseen(r.Context(), authUser.Email)
 	if err != nil {
-		log.Println("error counting unseen shares:", err)
+		log.Errorw("error counting unseen shares", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
@@ -98,6 +100,7 @@ func (s *APIServer) getUnseenReceivedCount(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *APIServer) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
 		return
@@ -127,11 +130,11 @@ func (s *APIServer) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "", "share_not_found")
 			return
 		}
-		log.Println("error marking share seen:", err)
+		log.Errorw("error marking share seen", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
 
-	log.Printf("share %s marked seen\n", req.SharingToken)
+	log.Infow("share marked seen", "token", req.SharingToken)
 	pkg.WriteJSONResponse(w, http.StatusOK, "", "ok")
 }
