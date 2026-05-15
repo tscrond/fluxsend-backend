@@ -10,9 +10,24 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 	"unicode"
 )
+
+func GetEnvBool(name string, defaultValue bool) (bool, error) {
+	rawValue := strings.TrimSpace(os.Getenv(name))
+	if rawValue == "" {
+		return defaultValue, nil
+	}
+
+	parsedValue, err := strconv.ParseBool(rawValue)
+	if err != nil {
+		return false, fmt.Errorf("invalid %s value %q: %w", name, rawValue, err)
+	}
+
+	return parsedValue, nil
+}
 
 func GetUserBucketName(bucketBaseName, userID string) string {
 	return fmt.Sprintf("%s-%s", bucketBaseName, userID)
@@ -172,4 +187,12 @@ func WriteJSONResponse(w http.ResponseWriter, responseStatus int, customMessage 
 	}
 
 	JSON(w, resp)
+}
+
+func ReadConfigRequired(envVar string) string {
+	value := os.Getenv(envVar)
+	if value == "" {
+		panic(envVar + " is required")
+	}
+	return value
 }

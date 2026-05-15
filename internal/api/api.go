@@ -34,40 +34,40 @@ type APIServer struct {
 	workspaceFiles service.WorkspaceFileService
 }
 
-func NewAPIServer(
-	log *zap.SugaredLogger,
-	backendConfig config.BackendConfig,
-	es mailtypes.EmailSender,
-	bh storagetypes.ObjectStorage,
-	cloudFrontSigner *cdn.CloudFrontURLSigner,
-	repository repo.Repository,
-	authProviders map[string]auth.AuthProvider,
-	tokenEncryptor *tokencrypto.Encryptor,
-	files service.FileService,
-	shares service.ShareService,
-	users service.UserService,
-	workspaces service.WorkspaceService,
-	workspaceFiles service.WorkspaceFileService,
-) *APIServer {
+type APIServerDependencies struct {
+	Log              *zap.SugaredLogger
+	EmailSender      mailtypes.EmailSender
+	BucketHandler    storagetypes.ObjectStorage
+	CloudFrontSigner *cdn.CloudFrontURLSigner
+	Repository       repo.Repository
+	AuthProviders    map[string]auth.AuthProvider
+	TokenEncryptor   *tokencrypto.Encryptor
+	Files            service.FileService
+	Shares           service.ShareService
+	Users            service.UserService
+	Workspaces       service.WorkspaceService
+	WorkspaceFiles   service.WorkspaceFileService
+}
 
+func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies) *APIServer {
 	return &APIServer{
-		log:              log,
+		log:              deps.Log,
 		backendConfig:    backendConfig,
-		bucketHandler:    bh,
-		cloudFrontSigner: cloudFrontSigner,
-		emailSender:      es,
-		repository:       repository,
-		authProviders:    authProviders,
-		tokenEncryptor:   tokenEncryptor,
-		files:            files,
-		shares:           shares,
-		users:            users,
-		workspaces:       workspaces,
-		workspaceFiles:   workspaceFiles,
+		bucketHandler:    deps.BucketHandler,
+		cloudFrontSigner: deps.CloudFrontSigner,
+		emailSender:      deps.EmailSender,
+		repository:       deps.Repository,
+		authProviders:    deps.AuthProviders,
+		tokenEncryptor:   deps.TokenEncryptor,
+		files:            deps.Files,
+		shares:           deps.Shares,
+		users:            deps.Users,
+		workspaces:       deps.Workspaces,
+		workspaceFiles:   deps.WorkspaceFiles,
 	}
 }
 
-func (s *APIServer) Start() {
+func (s *APIServer) Handler() http.Handler {
 
 	r := chi.NewRouter()
 	r.Use(chimiddleware.RequestLogger(s.log))
@@ -81,13 +81,29 @@ func (s *APIServer) Start() {
 
 	r.Use(c.Handler)
 
+	s.registerAuthRoutes(r)
+	s.registerFileRoutes(r)
+	s.registerWorkspaceRoutes(r)
+	s.registerSharingRoutes(r)
+	s.registerUserRoutes(r)
+
+	return r
+}
+
+func (s *APIServer) Start() {
+	s.log.Infof("listening on %s", s.backendConfig.ListenPort)
+	http.ListenAndServe("0.0.0.0"+s.backendConfig.ListenPort, s.Handler())
+}
+
+func (s *APIServer) registerAuthRoutes(r chi.Router) {
 	// auth
 	r.Handle("/auth/{provider}/login", http.HandlerFunc(s.oauthLoginHandler))
 	r.Handle("/auth/{provider}/callback", http.HandlerFunc(s.authCallbackHandler))
 	r.Handle("/auth/is_valid", http.HandlerFunc(s.isValid))
 	r.Handle("/auth/logout", http.HandlerFunc(s.logout))
+}
 
-	// functionality
+func (s *APIServer) registerFileRoutes(r chi.Router) {
 	r.Handle("/files/upload", s.authMiddleware(http.HandlerFunc(s.uploadHandler)))
 	r.Handle("/files/share", s.authMiddleware(http.HandlerFunc(s.shareWith)))
 	r.Handle("/files/tree", s.authMiddleware(http.HandlerFunc(s.getFilesTree)))
@@ -104,20 +120,9 @@ func (s *APIServer) Start() {
 
 	r.Handle("/folders", s.authMiddleware(http.HandlerFunc(s.foldersHandler)))
 	r.Handle("/folders/move", s.authMiddleware(http.HandlerFunc(s.moveFolder)))
+}
 
-	r.Handle("/d/private/{token}", s.authMiddleware(http.HandlerFunc(s.downloadThroughProxyPersonal)))
-	r.Handle("/d/{token}", http.HandlerFunc(s.downloadThroughProxy))
-
-	r.Handle("/share/info/{token}", http.HandlerFunc(s.publicShareInfo))
-	r.Handle("/share/resolve/{token}", http.HandlerFunc(s.resolvePublicShare))
-	r.Handle("/share/revoke/{token}", s.authMiddleware(http.HandlerFunc(s.revokeShare)))
-
-	r.Handle("/user/data", s.authMiddleware(http.HandlerFunc(s.getUserData)))
-	r.Handle("/user/bucket", s.authMiddleware(http.HandlerFunc(s.getUserBucketData)))
-	r.Handle("/user/private/download_token", s.authMiddleware(http.HandlerFunc(s.getUserPrivateFileByName)))
-	r.Handle("/user/account/delete", s.authMiddleware(http.HandlerFunc(s.deleteAccount)))
-	r.Handle("/user/stats", s.authMiddleware(http.HandlerFunc(s.getUserStats)))
-
+func (s *APIServer) registerWorkspaceRoutes(r chi.Router) {
 	r.Handle("/workspaces/create", s.authMiddleware(http.HandlerFunc(s.createWorkspace)))
 	r.Handle("/workspaces/list", s.authMiddleware(http.HandlerFunc(s.listWorkspaces)))
 	r.Handle("/workspaces/members", s.authMiddleware(http.HandlerFunc(s.getWorkspaceMembers)))
@@ -141,7 +146,20 @@ func (s *APIServer) Start() {
 	r.Handle("/workspaces/{workspace_id}/files/folder/move", s.authMiddleware(http.HandlerFunc(s.moveWorkspaceFolder)))
 	r.Handle("/workspaces/{workspace_id}/files/download", s.authMiddleware(http.HandlerFunc(s.downloadWorkspaceFile)))
 	r.Handle("/workspaces/{workspace_id}/quota", s.authMiddleware(http.HandlerFunc(s.getWorkspaceQuota)))
+}
 
-	s.log.Infof("listening on %s", s.backendConfig.ListenPort)
-	http.ListenAndServe("0.0.0.0"+s.backendConfig.ListenPort, r)
+func (s *APIServer) registerSharingRoutes(r chi.Router) {
+	r.Handle("/d/private/{token}", s.authMiddleware(http.HandlerFunc(s.downloadThroughProxyPersonal)))
+	r.Handle("/d/{token}", http.HandlerFunc(s.downloadThroughProxy))
+	r.Handle("/share/info/{token}", http.HandlerFunc(s.publicShareInfo))
+	r.Handle("/share/resolve/{token}", http.HandlerFunc(s.resolvePublicShare))
+	r.Handle("/share/revoke/{token}", s.authMiddleware(http.HandlerFunc(s.revokeShare)))
+}
+
+func (s *APIServer) registerUserRoutes(r chi.Router) {
+	r.Handle("/user/data", s.authMiddleware(http.HandlerFunc(s.getUserData)))
+	r.Handle("/user/bucket", s.authMiddleware(http.HandlerFunc(s.getUserBucketData)))
+	r.Handle("/user/private/download_token", s.authMiddleware(http.HandlerFunc(s.getUserPrivateFileByName)))
+	r.Handle("/user/account/delete", s.authMiddleware(http.HandlerFunc(s.deleteAccount)))
+	r.Handle("/user/stats", s.authMiddleware(http.HandlerFunc(s.getUserStats)))
 }
