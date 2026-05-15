@@ -11,6 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
+type ApiKey struct {
+	ID                 uuid.UUID      `json:"id"`
+	CreatedByUserID    uuid.UUID      `json:"created_by_user_id"`
+	WhitelistedUserIds []uuid.UUID    `json:"whitelisted_user_ids"`
+	CreatedAt          time.Time      `json:"created_at"`
+	ExpiresAt          sql.NullTime   `json:"expires_at"`
+	Name               string         `json:"name"`
+	Key                string         `json:"key"`
+	Description        sql.NullString `json:"description"`
+	Permissions        string         `json:"permissions"`
+	Scope              string         `json:"scope"`
+}
+
 type File struct {
 	ID                   int32          `json:"id"`
 	FileName             string         `json:"file_name"`

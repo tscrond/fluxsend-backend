@@ -56,6 +56,8 @@ type Querier interface {
 	GetFilesByOwner(ctx context.Context, ownerID uuid.UUID) ([]File, error)
 	GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullString) ([]GetFilesSharedByUserRow, error)
 	GetFilesSharedWithUser(ctx context.Context, sharedFor sql.NullString) ([]GetFilesSharedWithUserRow, error)
+	//- PLACEHOLDER FOR QUERY
+	GetIdentityByAPIKey(ctx context.Context, userID uuid.UUID) (Identity, error)
 	GetIdentityByProvider(ctx context.Context, arg GetIdentityByProviderParams) (Identity, error)
 	GetIdentityByUserID(ctx context.Context, userID uuid.UUID) (Identity, error)
 	GetNoteForFileById(ctx context.Context, arg GetNoteForFileByIdParams) (Note, error)
