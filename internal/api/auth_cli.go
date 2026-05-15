@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 	"github.com/tscrond/fluxsend-backend/pkg"
@@ -30,14 +29,14 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			apiKeyIdentity, err := s.repository.Queries().GetIdentityByAPIKey(r.Context(), uuid.New()) // later use: apiKeyResponse.APIKey
-			if err != nil {
-				log.Errorw("cannot find identity for associated API Key", "api_key", apiKeyResponse.APIKey, "error", err)
-				pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User identity not found")
-				return
-			}
+			// apiKeyIdentity, err := s.repository.Queries().GetIdentityByAPIKey(r.Context(), uuid.New()) // later use: apiKeyResponse.APIKey
+			// if err != nil {
+			// 	log.Errorw("cannot find identity for associated API Key", "api_key", apiKeyResponse.APIKey, "error", err)
+			// 	pkg.WriteJSONResponse(w, http.StatusForbidden, "", "User identity not found")
+			// 	return
+			// }
 
-			log.Infof("api key identity checked", "identity", apiKeyIdentity)
+			// log.Infof("api key identity checked", "identity", apiKeyIdentity)
 
 			authorizedUser := &userdata.AuthorizedCLIUserInfo{}
 			userPlan := &userdata.UserPlan{}
