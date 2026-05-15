@@ -8,6 +8,7 @@ import (
 	chimiddleware "github.com/tscrond/fluxsend-backend/internal/middleware"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
+	"github.com/tscrond/fluxsend-backend/pkg"
 	"go.uber.org/zap"
 )
 
@@ -46,6 +47,9 @@ func (s *CLIServer) Handler() http.Handler {
 		// r.Handle("/auth/login", s.authMiddleware(http.HandlerFunc(s.loginHandler)))
 		// r.Handle("/files/tree", s.authMiddleware(http.HandlerFunc(s.getFilesTree)))
 		// r.Handle("/user/data", s.authMiddleware(http.HandlerFunc(s.getUserData)))
+		r.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			pkg.WriteJSONResponse(w, http.StatusOK, "fluxsend developer api", nil)
+		}))
 		// CLI routes will be mounted here as the transport surface stabilizes.
 	})
 

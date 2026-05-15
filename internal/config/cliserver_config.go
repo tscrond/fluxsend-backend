@@ -14,15 +14,15 @@ type CLIServerConfig struct {
 
 func NewCLIServerConfig() *CLIServerConfig {
 	cliConfig := CLIServerConfig{
-		ListenPort:      os.Getenv("FLUXSEND_CLI_LISTEN_PORT"),
+		ListenPort:      os.Getenv("FLUXSEND_API_LISTEN_PORT"),
 		BackendEndpoint: pkg.ReadConfigRequired("BACKEND_ENDPOINT"),
-		RoutePrefix:     os.Getenv("FLUXSEND_CLI_ROUTE_PREFIX"),
+		RoutePrefix:     os.Getenv("FLUXSEND_API_LISTEN_PORT"),
 	}
 	if cliConfig.ListenPort == "" {
 		cliConfig.ListenPort = os.Getenv("FLUXSEND_API_LISTEN_PORT")
 	}
 	if cliConfig.ListenPort == "" {
-		cliConfig.ListenPort = "3001"
+		cliConfig.ListenPort = "8091"
 	}
 	if cliConfig.RoutePrefix == "" {
 		cliConfig.RoutePrefix = "/api"
