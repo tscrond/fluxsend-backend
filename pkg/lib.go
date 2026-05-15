@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -191,6 +192,8 @@ func WriteJSONResponse(w http.ResponseWriter, responseStatus int, customMessage 
 
 func ReadConfigRequired(envVar string) string {
 	value := os.Getenv(envVar)
+	log.Println(value)
+	log.Printf("env var: %s read", envVar)
 	if value == "" {
 		panic(envVar + " is required")
 	}

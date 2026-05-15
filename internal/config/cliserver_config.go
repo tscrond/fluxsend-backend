@@ -25,7 +25,7 @@ func NewCLIServerConfig() *CLIServerConfig {
 		cliConfig.ListenPort = "3001"
 	}
 	if cliConfig.RoutePrefix == "" {
-		cliConfig.RoutePrefix = "/cli"
+		cliConfig.RoutePrefix = "/api"
 	}
 
 	return &cliConfig

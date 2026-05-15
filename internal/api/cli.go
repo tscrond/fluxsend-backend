@@ -43,9 +43,10 @@ func (s *CLIServer) Handler() http.Handler {
 	r.Use(chimiddleware.RequestLogger(s.log))
 
 	r.Route(s.routePrefix, func(r chi.Router) {
-		// r.Handle("/auth/login", http.HandlerFunc(s.oauthLoginHandler))
-		// r.Handle("/files/upload", s.authMiddleware(http.HandlerFunc(s.uploadHandler)))
+		// r.Handle("/auth/login", s.authMiddleware(http.HandlerFunc(s.loginHandler)))
+		// r.Handle("/files/tree", s.authMiddleware(http.HandlerFunc(s.getFilesTree)))
 		// r.Handle("/user/data", s.authMiddleware(http.HandlerFunc(s.getUserData)))
+		// CLI routes will be mounted here as the transport surface stabilizes.
 	})
 
 	return r

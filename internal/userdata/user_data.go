@@ -49,7 +49,7 @@ type AuthorizedUserInfo struct {
 }
 
 type AuthorizedCLIUserInfo struct {
-	InternalID string `json:"internal_id"` // UUID from our database
+	InternalID string `json:"internal_id"`
 	Email      string `json:"email"`
 	Name       string `json:"name"`
 }

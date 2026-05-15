@@ -10,6 +10,8 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// authMiddleware is CLI transport scaffolding only. Real CLI auth can replace
+// the placeholder context injection once the auth scheme is finalized.
 func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
