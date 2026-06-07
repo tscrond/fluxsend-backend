@@ -53,7 +53,7 @@ func NewWorkspaceAPIKeyData(name, description, key string, workspaceID, createdB
 		return nil, fmt.Errorf("key is required")
 	}
 
-	normalizedScopes, err := normalizeWorkspaceScopes(scopes)
+	normalizedScopes, err := normalizeScopes(scopes, allowedWorkspaceScopes)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func NewPrivateAPIKeyData(name, description, key string, createdByID uuid.UUID, 
 		return nil, fmt.Errorf("key is required")
 	}
 
-	normalizedScopes, err := normalizeWorkspaceScopes(scopes)
+	normalizedScopes, err := normalizeScopes(scopes, allowedPrivateScopes)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func NewPrivateAPIKeyData(name, description, key string, createdByID uuid.UUID, 
 	}, nil
 }
 
-func normalizeWorkspaceScopes(scopes []string) ([]string, error) {
+func normalizeScopes(scopes []string, allowedScopes map[string]struct{}) ([]string, error) {
 	if len(scopes) == 0 {
 		return nil, fmt.Errorf("at least one scope is required")
 	}
@@ -109,7 +109,7 @@ func normalizeWorkspaceScopes(scopes []string) ([]string, error) {
 		if scope == "" {
 			return nil, fmt.Errorf("scope cannot be empty")
 		}
-		if _, ok := allowedWorkspaceScopes[scope]; !ok {
+		if _, ok := allowedScopes[scope]; !ok {
 			return nil, fmt.Errorf("invalid workspace scope: %s", scope)
 		}
 		if _, ok := seen[scope]; ok {
