@@ -173,6 +173,63 @@ func (q *Queries) ListAPIKeyScopes(ctx context.Context, apiKeyID uuid.UUID) ([]s
 	return items, nil
 }
 
+const listPrivateAPIKeysByUserID = `-- name: ListPrivateAPIKeysByUserID :many
+SELECT
+	ak.id,
+	ak.created_by_user_id,
+	ak.created_at,
+	ak.name,
+	ak.description,
+	ak.status,
+	ak.last_used_at
+FROM api_keys ak
+JOIN api_key_user_assignments aku ON aku.api_key_id = ak.id
+WHERE aku.user_id = $1
+	AND ak.revoked_at IS NULL
+ORDER BY ak.created_at DESC
+`
+
+type ListPrivateAPIKeysByUserIDRow struct {
+	ID              uuid.UUID      `json:"id"`
+	CreatedByUserID uuid.UUID      `json:"created_by_user_id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	Name            string         `json:"name"`
+	Description     sql.NullString `json:"description"`
+	Status          string         `json:"status"`
+	LastUsedAt      sql.NullTime   `json:"last_used_at"`
+}
+
+func (q *Queries) ListPrivateAPIKeysByUserID(ctx context.Context, userID uuid.UUID) ([]ListPrivateAPIKeysByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPrivateAPIKeysByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPrivateAPIKeysByUserIDRow
+	for rows.Next() {
+		var i ListPrivateAPIKeysByUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedByUserID,
+			&i.CreatedAt,
+			&i.Name,
+			&i.Description,
+			&i.Status,
+			&i.LastUsedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWorkspaceAPIKeys = `-- name: ListWorkspaceAPIKeys :many
 SELECT
 	ak.id,
@@ -228,6 +285,43 @@ func (q *Queries) ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUI
 		return nil, err
 	}
 	return items, nil
+}
+
+const revokePrivateAPIKey = `-- name: RevokePrivateAPIKey :one
+UPDATE api_keys ak
+SET status = 'revoked',
+	revoked_at = now(),
+	revoked_by_user_id = $3
+FROM api_key_user_assignments aku
+WHERE ak.id = $1
+	AND aku.api_key_id = ak.id
+	AND aku.user_id = $2
+	AND ak.revoked_at IS NULL
+RETURNING ak.id, ak.created_by_user_id, ak.created_at, ak.name, ak.key_hash, ak.description, ak.status, ak.last_used_at, ak.revoked_at, ak.revoked_by_user_id
+`
+
+type RevokePrivateAPIKeyParams struct {
+	ID              uuid.UUID     `json:"id"`
+	UserID          uuid.UUID     `json:"user_id"`
+	RevokedByUserID uuid.NullUUID `json:"revoked_by_user_id"`
+}
+
+func (q *Queries) RevokePrivateAPIKey(ctx context.Context, arg RevokePrivateAPIKeyParams) (ApiKey, error) {
+	row := q.db.QueryRowContext(ctx, revokePrivateAPIKey, arg.ID, arg.UserID, arg.RevokedByUserID)
+	var i ApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedByUserID,
+		&i.CreatedAt,
+		&i.Name,
+		&i.KeyHash,
+		&i.Description,
+		&i.Status,
+		&i.LastUsedAt,
+		&i.RevokedAt,
+		&i.RevokedByUserID,
+	)
+	return i, err
 }
 
 const revokeWorkspaceAPIKey = `-- name: RevokeWorkspaceAPIKey :one

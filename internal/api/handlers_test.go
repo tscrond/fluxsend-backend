@@ -32,6 +32,7 @@ type testDeps struct {
 	workspaces *apimocks.MockWorkspaceService
 	users      *apimocks.MockUserService
 	wsFiles    *apimocks.MockWorkspaceFileService
+	apiKeys    *apimocks.MockAPIKeyService
 	repo       *mocks.MockRepository
 	stor       *mocks.MockObjectStorage
 }
@@ -43,6 +44,7 @@ func newTestServer(ctrl *gomock.Controller) (*APIServer, *testDeps) {
 		workspaces: apimocks.NewMockWorkspaceService(ctrl),
 		users:      apimocks.NewMockUserService(ctrl),
 		wsFiles:    apimocks.NewMockWorkspaceFileService(ctrl),
+		apiKeys:    apimocks.NewMockAPIKeyService(ctrl),
 		repo:       mocks.NewMockRepository(ctrl),
 		stor:       mocks.NewMockObjectStorage(ctrl),
 	}
@@ -56,6 +58,7 @@ func newTestServer(ctrl *gomock.Controller) (*APIServer, *testDeps) {
 		Users:          deps.users,
 		Workspaces:     deps.workspaces,
 		WorkspaceFiles: deps.wsFiles,
+		ApiKeys:        deps.apiKeys,
 	})
 	return srv, deps
 }

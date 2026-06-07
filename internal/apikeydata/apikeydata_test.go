@@ -39,7 +39,7 @@ func TestNewWorkspaceAPIKeyData_RejectsInvalidScope(t *testing.T) {
 		[]string{"private_files:read"},
 	)
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "invalid workspace scope")
+	assert.ErrorContains(t, err, "invalid api key scope")
 }
 
 func TestNewWorkspaceAPIKeyData_RequiresScopes(t *testing.T) {
@@ -48,6 +48,48 @@ func TestNewWorkspaceAPIKeyData_RequiresScopes(t *testing.T) {
 		"description",
 		"generated-secret",
 		uuid.New(),
+		uuid.New(),
+		nil,
+	)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "at least one scope is required")
+}
+
+func TestNewPrivateAPIKeyData_HappyPath(t *testing.T) {
+	createdByID := uuid.New()
+
+	data, err := NewPrivateAPIKeyData(
+		" private key ",
+		" description ",
+		" generated-secret ",
+		createdByID,
+		[]string{"private_files:read", "private_files:write", "private_files:read"},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, createdByID, data.CreatedByUserID)
+	assert.Equal(t, "private key", data.Name)
+	assert.Equal(t, "description", data.Description)
+	assert.Equal(t, "generated-secret", data.Key)
+	assert.Equal(t, []string{"private_files:read", "private_files:write"}, data.Scopes)
+}
+
+func TestNewPrivateAPIKeyData_RejectsInvalidScope(t *testing.T) {
+	_, err := NewPrivateAPIKeyData(
+		"private key",
+		"description",
+		"generated-secret",
+		uuid.New(),
+		[]string{"workspaces:read"},
+	)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "invalid api key scope")
+}
+
+func TestNewPrivateAPIKeyData_RequiresScopes(t *testing.T) {
+	_, err := NewPrivateAPIKeyData(
+		"private key",
+		"description",
+		"generated-secret",
 		uuid.New(),
 		nil,
 	)

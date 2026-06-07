@@ -31,6 +31,21 @@ WHERE akw.workspace_id = $1
 	AND ak.revoked_at IS NULL
 ORDER BY ak.created_at DESC;
 
+-- name: ListPrivateAPIKeysByUserID :many
+SELECT
+	ak.id,
+	ak.created_by_user_id,
+	ak.created_at,
+	ak.name,
+	ak.description,
+	ak.status,
+	ak.last_used_at
+FROM api_keys ak
+JOIN api_key_user_assignments aku ON aku.api_key_id = ak.id
+WHERE aku.user_id = $1
+	AND ak.revoked_at IS NULL
+ORDER BY ak.created_at DESC;
+
 -- name: ListAPIKeyScopes :many
 SELECT scope
 FROM api_key_scopes
@@ -46,6 +61,18 @@ FROM api_key_workspaces akw
 WHERE ak.id = $1
 	AND akw.api_key_id = ak.id
 	AND akw.workspace_id = $2
+	AND ak.revoked_at IS NULL
+RETURNING ak.*;
+
+-- name: RevokePrivateAPIKey :one
+UPDATE api_keys ak
+SET status = 'revoked',
+	revoked_at = now(),
+	revoked_by_user_id = $3
+FROM api_key_user_assignments aku
+WHERE ak.id = $1
+	AND aku.api_key_id = ak.id
+	AND aku.user_id = $2
 	AND ak.revoked_at IS NULL
 RETURNING ak.*;
 
