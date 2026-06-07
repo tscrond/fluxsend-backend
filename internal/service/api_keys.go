@@ -261,7 +261,7 @@ func (s *apiKeyService) CreatePrivateAPIKey(ctx context.Context, akd *apikeydata
 func (s *apiKeyService) ListPrivateAPIKeys(ctx context.Context, userID uuid.UUID) ([]APIKeyResult, error) {
 	rows, err := s.repository.Queries().ListPrivateAPIKeysByUserID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("list workspace api keys: %w", err)
+		return nil, fmt.Errorf("list private api keys: %w", err)
 	}
 
 	results := make([]APIKeyResult, 0, len(rows))
