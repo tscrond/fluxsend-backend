@@ -311,10 +311,12 @@ workspace_usage AS (
     WHERE workspaces.owner_id = $1
 ),
 workspace_api_key_usage AS (
-    SELECT 
-    	COUNT(*) AS workspace_api_keys_used
-    FROM api_keys ak, workspaces w
-    WHERE w.owner_id = $1 AND ak.status = 'active'
+    SELECT COUNT(*) AS workspace_api_keys_used
+    FROM api_key_workspaces akw
+    JOIN workspaces w ON w.id = akw.workspace_id
+    JOIN api_keys ak ON ak.id = akw.api_key_id
+    WHERE w.owner_id = $1
+      AND ak.revoked_at IS NULL
 )
 SELECT
     f.total_files,
