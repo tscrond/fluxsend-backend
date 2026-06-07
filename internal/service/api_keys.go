@@ -246,7 +246,7 @@ func (s *apiKeyService) CreatePrivateAPIKey(ctx context.Context, akd *apikeydata
 		UserID:   akd.CreatedByUserID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("assign api key to private user: %s", err)
+		return nil, fmt.Errorf("assign api key to private user: %w", err)
 	}
 	s.log.Info("api_key_id_assigned", assignment.ApiKeyID, "assigned_to_user", assignment.UserID, "api_key_name", result.Name)
 
