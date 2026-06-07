@@ -52,8 +52,10 @@ RETURNING ak.*;
 -- name: CheckPrivateAPIKeyQuota :one
 SELECT (
 	SELECT COUNT(*)
-	FROM api_key_user_assignments
-	WHERE user_id = $1
+	FROM api_key_user_assignments a
+	JOIN api_keys ak ON ak.id = a.api_key_id
+	WHERE a.user_id = $1
+		AND ak.revoked_at IS NULL
 ) >= p.max_private_api_keys AS api_keys_exceeded
 FROM users u
 JOIN plans p ON u.plan_id = p.id
