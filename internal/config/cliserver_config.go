@@ -16,10 +16,7 @@ func NewCLIServerConfig() *CLIServerConfig {
 	cliConfig := CLIServerConfig{
 		ListenPort:      os.Getenv("FLUXSEND_API_LISTEN_PORT"),
 		BackendEndpoint: pkg.ReadConfigRequired("BACKEND_ENDPOINT"),
-		RoutePrefix:     os.Getenv("FLUXSEND_API_LISTEN_PORT"),
-	}
-	if cliConfig.ListenPort == "" {
-		cliConfig.ListenPort = os.Getenv("FLUXSEND_API_LISTEN_PORT")
+		RoutePrefix:     os.Getenv("FLUXSEND_API_ROUTE_PREFIX"),
 	}
 	if cliConfig.ListenPort == "" {
 		cliConfig.ListenPort = "8091"
