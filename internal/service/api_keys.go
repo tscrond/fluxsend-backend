@@ -302,7 +302,7 @@ func (s *apiKeyService) DeletePrivateAPIKey(ctx context.Context, userID, apiKeyI
 		return ErrWorkspaceAPIKeyNotFound
 	}
 	if err != nil {
-		return fmt.Errorf("revoke workspace api key: %w", err)
+		return fmt.Errorf("revoke private api key: %w", err)
 	}
 	return nil
 }
