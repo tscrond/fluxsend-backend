@@ -102,7 +102,7 @@ func (q *Queries) DeleteUserPlan(ctx context.Context, id uuid.UUID) error {
 }
 
 const getPlanByName = `-- name: GetPlanByName :one
-SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at, max_files_workspace, max_user_workspaces, max_total_storage_bytes_workspace, max_users_workspace, max_workspace_folders FROM plans WHERE name = $1
+SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at, max_files_workspace, max_user_workspaces, max_total_storage_bytes_workspace, max_users_workspace, max_workspace_folders, max_private_api_keys, max_workspace_api_keys FROM plans WHERE name = $1
 `
 
 func (q *Queries) GetPlanByName(ctx context.Context, name string) (Plan, error) {
@@ -122,6 +122,8 @@ func (q *Queries) GetPlanByName(ctx context.Context, name string) (Plan, error) 
 		&i.MaxTotalStorageBytesWorkspace,
 		&i.MaxUsersWorkspace,
 		&i.MaxWorkspaceFolders,
+		&i.MaxPrivateApiKeys,
+		&i.MaxWorkspaceApiKeys,
 	)
 	return i, err
 }
@@ -154,7 +156,7 @@ func (q *Queries) GetPlanFeatures(ctx context.Context, planID uuid.UUID) ([]Plan
 }
 
 const getPlans = `-- name: GetPlans :many
-SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at, max_files_workspace, max_user_workspaces, max_total_storage_bytes_workspace, max_users_workspace, max_workspace_folders FROM plans
+SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at, max_files_workspace, max_user_workspaces, max_total_storage_bytes_workspace, max_users_workspace, max_workspace_folders, max_private_api_keys, max_workspace_api_keys FROM plans
 `
 
 func (q *Queries) GetPlans(ctx context.Context) ([]Plan, error) {
@@ -180,6 +182,8 @@ func (q *Queries) GetPlans(ctx context.Context) ([]Plan, error) {
 			&i.MaxTotalStorageBytesWorkspace,
 			&i.MaxUsersWorkspace,
 			&i.MaxWorkspaceFolders,
+			&i.MaxPrivateApiKeys,
+			&i.MaxWorkspaceApiKeys,
 		); err != nil {
 			return nil, err
 		}
@@ -305,6 +309,12 @@ workspace_usage AS (
         COUNT(*) AS owned_workspaces
     FROM workspaces
     WHERE workspaces.owner_id = $1
+),
+workspace_api_key_usage AS (
+    SELECT 
+    	COUNT(*) AS workspace_api_keys_used
+    FROM api_keys ak, workspaces w
+    WHERE w.owner_id = $1 AND ak.status = 'active'
 )
 SELECT
     f.total_files,
@@ -318,23 +328,25 @@ SELECT
     s.public_shares,
     s.active_shares,
     r.total_received,
-    w.owned_workspaces
-FROM file_usage f, share_usage s, received_usage r, workspace_usage w
+    w.owned_workspaces,
+    wk.workspace_api_keys_used
+FROM file_usage f, share_usage s, received_usage r, workspace_usage w, workspace_api_key_usage wk
 `
 
 type GetUserStatsRow struct {
-	TotalFiles      int64 `json:"total_files"`
-	TotalBytes      int64 `json:"total_bytes"`
-	FilesToday      int64 `json:"files_today"`
-	FilesLast7d     int64 `json:"files_last_7d"`
-	FilesLast30d    int64 `json:"files_last_30d"`
-	TotalSharesSent int64 `json:"total_shares_sent"`
-	SharesToday     int64 `json:"shares_today"`
-	TargetedShares  int64 `json:"targeted_shares"`
-	PublicShares    int64 `json:"public_shares"`
-	ActiveShares    int64 `json:"active_shares"`
-	TotalReceived   int64 `json:"total_received"`
-	OwnedWorkspaces int64 `json:"owned_workspaces"`
+	TotalFiles           int64 `json:"total_files"`
+	TotalBytes           int64 `json:"total_bytes"`
+	FilesToday           int64 `json:"files_today"`
+	FilesLast7d          int64 `json:"files_last_7d"`
+	FilesLast30d         int64 `json:"files_last_30d"`
+	TotalSharesSent      int64 `json:"total_shares_sent"`
+	SharesToday          int64 `json:"shares_today"`
+	TargetedShares       int64 `json:"targeted_shares"`
+	PublicShares         int64 `json:"public_shares"`
+	ActiveShares         int64 `json:"active_shares"`
+	TotalReceived        int64 `json:"total_received"`
+	OwnedWorkspaces      int64 `json:"owned_workspaces"`
+	WorkspaceApiKeysUsed int64 `json:"workspace_api_keys_used"`
 }
 
 func (q *Queries) GetUserStats(ctx context.Context, ownerID uuid.UUID) (GetUserStatsRow, error) {
@@ -353,6 +365,7 @@ func (q *Queries) GetUserStats(ctx context.Context, ownerID uuid.UUID) (GetUserS
 		&i.ActiveShares,
 		&i.TotalReceived,
 		&i.OwnedWorkspaces,
+		&i.WorkspaceApiKeysUsed,
 	)
 	return i, err
 }
@@ -374,7 +387,9 @@ SELECT
     p.max_files_workspace,
     p.max_total_storage_bytes_workspace,
     p.max_users_workspace,
-    p.max_workspace_folders
+	p.max_workspace_folders,
+	p.max_private_api_keys,
+	p.max_workspace_api_keys
 FROM users u
 JOIN plans p ON u.plan_id = p.id
 WHERE u.id = $1
@@ -397,6 +412,8 @@ type GetUserWithPlanRow struct {
 	MaxTotalStorageBytesWorkspace int64          `json:"max_total_storage_bytes_workspace"`
 	MaxUsersWorkspace             int64          `json:"max_users_workspace"`
 	MaxWorkspaceFolders           int64          `json:"max_workspace_folders"`
+	MaxPrivateApiKeys             int64          `json:"max_private_api_keys"`
+	MaxWorkspaceApiKeys           int64          `json:"max_workspace_api_keys"`
 }
 
 func (q *Queries) GetUserWithPlan(ctx context.Context, id uuid.UUID) (GetUserWithPlanRow, error) {
@@ -419,6 +436,8 @@ func (q *Queries) GetUserWithPlan(ctx context.Context, id uuid.UUID) (GetUserWit
 		&i.MaxTotalStorageBytesWorkspace,
 		&i.MaxUsersWorkspace,
 		&i.MaxWorkspaceFolders,
+		&i.MaxPrivateApiKeys,
+		&i.MaxWorkspaceApiKeys,
 	)
 	return i, err
 }

@@ -15,7 +15,9 @@ SELECT
     p.max_files_workspace,
     p.max_total_storage_bytes_workspace,
     p.max_users_workspace,
-    p.max_workspace_folders
+	p.max_workspace_folders,
+	p.max_private_api_keys,
+	p.max_workspace_api_keys
 FROM users u
 JOIN plans p ON u.plan_id = p.id
 WHERE u.id = $1;
@@ -103,6 +105,12 @@ workspace_usage AS (
         COUNT(*) AS owned_workspaces
     FROM workspaces
     WHERE workspaces.owner_id = $1
+),
+workspace_api_key_usage AS (
+    SELECT 
+    	COUNT(*) AS workspace_api_keys_used
+    FROM api_keys ak, workspaces w
+    WHERE w.owner_id = $1 AND ak.status = 'active'
 )
 SELECT
     f.total_files,
@@ -116,8 +124,9 @@ SELECT
     s.public_shares,
     s.active_shares,
     r.total_received,
-    w.owned_workspaces
-FROM file_usage f, share_usage s, received_usage r, workspace_usage w;
+    w.owned_workspaces,
+    wk.workspace_api_keys_used
+FROM file_usage f, share_usage s, received_usage r, workspace_usage w, workspace_api_key_usage wk;
 
 -- name: GetUserDailyUploads :many
 SELECT

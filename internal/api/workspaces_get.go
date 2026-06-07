@@ -153,9 +153,11 @@ func (s *APIServer) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 		"total_bytes":                       row.TotalBytes,
 		"folder_count":                      row.FolderCount,
 		"member_count":                      row.MemberCount,
+		"api_key_count":                     row.ApiKeyCount,
 		"max_files_workspace":               row.MaxFilesWorkspace,
 		"max_total_storage_bytes_workspace": row.MaxTotalStorageBytesWorkspace,
 		"max_users_workspace":               row.MaxUsersWorkspace,
 		"max_workspace_folders":             row.MaxWorkspaceFolders,
+		"max_workspace_api_keys":            row.MaxWorkspaceApiKeys,
 	})
 }

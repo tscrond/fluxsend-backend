@@ -32,6 +32,7 @@ type appRuntime struct {
 	UserService            service.UserService
 	WorkspaceService       service.WorkspaceService
 	WorkspaceFileService   service.WorkspaceFileService
+	ApiKeyService          service.APIKeyService
 }
 
 func (rt *appRuntime) Close(log *zap.SugaredLogger) {
@@ -152,6 +153,7 @@ func buildRuntime(log *zap.SugaredLogger, apiConfig *config.APIServerConfig) (*a
 	userSvc := service.NewUserService(log, repository.Queries(), bucketHandler)
 	workspaceSvc := service.NewWorkspaceService(log, repository.Queries(), repository)
 	workspaceFileSvc := service.NewWorkspaceFileService(log, repository.Queries(), bucketHandler)
+	apiKeySvc := service.NewAPIKeyService(log, repository)
 
 	return &appRuntime{
 		Repository:             repository,
@@ -166,6 +168,7 @@ func buildRuntime(log *zap.SugaredLogger, apiConfig *config.APIServerConfig) (*a
 		UserService:            userSvc,
 		WorkspaceService:       workspaceSvc,
 		WorkspaceFileService:   workspaceFileSvc,
+		ApiKeyService:          apiKeySvc,
 	}, nil
 }
 
@@ -191,6 +194,7 @@ func buildAPIServer(log *zap.SugaredLogger, apiConfig *config.APIServerConfig, r
 		Users:            runtime.UserService,
 		Workspaces:       runtime.WorkspaceService,
 		WorkspaceFiles:   runtime.WorkspaceFileService,
+		ApiKeys:          runtime.ApiKeyService,
 	})
 }
 

@@ -32,6 +32,7 @@ type APIServer struct {
 	users          service.UserService
 	workspaces     service.WorkspaceService
 	workspaceFiles service.WorkspaceFileService
+	apiKeys        service.APIKeyService
 }
 
 type APIServerDependencies struct {
@@ -47,6 +48,7 @@ type APIServerDependencies struct {
 	Users            service.UserService
 	Workspaces       service.WorkspaceService
 	WorkspaceFiles   service.WorkspaceFileService
+	ApiKeys          service.APIKeyService
 }
 
 func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies) *APIServer {
@@ -64,6 +66,7 @@ func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies
 		users:            deps.Users,
 		workspaces:       deps.Workspaces,
 		workspaceFiles:   deps.WorkspaceFiles,
+		apiKeys:          deps.ApiKeys,
 	}
 }
 
@@ -86,6 +89,7 @@ func (s *APIServer) Handler() http.Handler {
 	s.registerWorkspaceRoutes(r)
 	s.registerSharingRoutes(r)
 	s.registerUserRoutes(r)
+	s.registerAPIKeyRoutes(r)
 
 	return r
 }
@@ -162,4 +166,13 @@ func (s *APIServer) registerUserRoutes(r chi.Router) {
 	r.Handle("/user/private/download_token", s.authMiddleware(http.HandlerFunc(s.getUserPrivateFileByName)))
 	r.Handle("/user/account/delete", s.authMiddleware(http.HandlerFunc(s.deleteAccount)))
 	r.Handle("/user/stats", s.authMiddleware(http.HandlerFunc(s.getUserStats)))
+}
+
+func (s *APIServer) registerAPIKeyRoutes(r chi.Router) {
+	r.Handle("/api_keys/{workspace_id}/create", s.authMiddleware(http.HandlerFunc(s.createWorkspaceAPIKey)))
+	r.Handle("/api_keys/{workspace_id}/list", s.authMiddleware(http.HandlerFunc(s.listWorkspaceAPIKeys)))
+	r.Handle("/api_keys/{workspace_id}/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceAPIKey)))
+	r.Handle("/api_keys/private/create", s.authMiddleware(http.HandlerFunc(s.createPrivateAPIKey)))
+	r.Handle("/api_keys/private/list", s.authMiddleware(http.HandlerFunc(s.listPrivateAPIKeys)))
+	r.Handle("/api_keys/private/delete", s.authMiddleware(http.HandlerFunc(s.deletePrivateAPIKey)))
 }

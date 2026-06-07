@@ -44,6 +44,36 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 	return m.recorder
 }
 
+// AssignAPIKeyToPrivate mocks base method.
+func (m *MockQuerier) AssignAPIKeyToPrivate(ctx context.Context, arg sqlc.AssignAPIKeyToPrivateParams) (sqlc.ApiKeyUserAssignment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssignAPIKeyToPrivate", ctx, arg)
+	ret0, _ := ret[0].(sqlc.ApiKeyUserAssignment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssignAPIKeyToPrivate indicates an expected call of AssignAPIKeyToPrivate.
+func (mr *MockQuerierMockRecorder) AssignAPIKeyToPrivate(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssignAPIKeyToPrivate", reflect.TypeOf((*MockQuerier)(nil).AssignAPIKeyToPrivate), ctx, arg)
+}
+
+// AssignAPIKeyToWorkspace mocks base method.
+func (m *MockQuerier) AssignAPIKeyToWorkspace(ctx context.Context, arg sqlc.AssignAPIKeyToWorkspaceParams) (sqlc.ApiKeyWorkspace, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssignAPIKeyToWorkspace", ctx, arg)
+	ret0, _ := ret[0].(sqlc.ApiKeyWorkspace)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssignAPIKeyToWorkspace indicates an expected call of AssignAPIKeyToWorkspace.
+func (mr *MockQuerierMockRecorder) AssignAPIKeyToWorkspace(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssignAPIKeyToWorkspace", reflect.TypeOf((*MockQuerier)(nil).AssignAPIKeyToWorkspace), ctx, arg)
+}
+
 // CheckShareQuota mocks base method.
 func (m *MockQuerier) CheckShareQuota(ctx context.Context, arg sqlc.CheckShareQuotaParams) (bool, error) {
 	m.ctrl.T.Helper()
@@ -72,6 +102,36 @@ func (m *MockQuerier) CheckUploadQuota(ctx context.Context, arg sqlc.CheckUpload
 func (mr *MockQuerierMockRecorder) CheckUploadQuota(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUploadQuota", reflect.TypeOf((*MockQuerier)(nil).CheckUploadQuota), ctx, arg)
+}
+
+// CheckPrivateAPIKeyQuota mocks base method.
+func (m *MockQuerier) CheckPrivateAPIKeyQuota(ctx context.Context, userID uuid.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckPrivateAPIKeyQuota", ctx, userID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckPrivateAPIKeyQuota indicates an expected call of CheckPrivateAPIKeyQuota.
+func (mr *MockQuerierMockRecorder) CheckPrivateAPIKeyQuota(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckPrivateAPIKeyQuota", reflect.TypeOf((*MockQuerier)(nil).CheckPrivateAPIKeyQuota), ctx, userID)
+}
+
+// CheckWorkspaceAPIKeyQuota mocks base method.
+func (m *MockQuerier) CheckWorkspaceAPIKeyQuota(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckWorkspaceAPIKeyQuota", ctx, workspaceID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckWorkspaceAPIKeyQuota indicates an expected call of CheckWorkspaceAPIKeyQuota.
+func (mr *MockQuerierMockRecorder) CheckWorkspaceAPIKeyQuota(ctx, workspaceID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckWorkspaceAPIKeyQuota", reflect.TypeOf((*MockQuerier)(nil).CheckWorkspaceAPIKeyQuota), ctx, workspaceID)
 }
 
 // CheckWorkspaceResourceQuota mocks base method.
@@ -117,6 +177,35 @@ func (m *MockQuerier) CountUnseenShares(ctx context.Context, sharedFor sql.NullS
 func (mr *MockQuerierMockRecorder) CountUnseenShares(ctx, sharedFor any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountUnseenShares", reflect.TypeOf((*MockQuerier)(nil).CountUnseenShares), ctx, sharedFor)
+}
+
+// CreateAPIKey mocks base method.
+func (m *MockQuerier) CreateAPIKey(ctx context.Context, arg sqlc.CreateAPIKeyParams) (sqlc.ApiKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAPIKey", ctx, arg)
+	ret0, _ := ret[0].(sqlc.ApiKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAPIKey indicates an expected call of CreateAPIKey.
+func (mr *MockQuerierMockRecorder) CreateAPIKey(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAPIKey", reflect.TypeOf((*MockQuerier)(nil).CreateAPIKey), ctx, arg)
+}
+
+// CreateAPIKeyScope mocks base method.
+func (m *MockQuerier) CreateAPIKeyScope(ctx context.Context, arg sqlc.CreateAPIKeyScopeParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAPIKeyScope", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateAPIKeyScope indicates an expected call of CreateAPIKeyScope.
+func (mr *MockQuerierMockRecorder) CreateAPIKeyScope(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAPIKeyScope", reflect.TypeOf((*MockQuerier)(nil).CreateAPIKeyScope), ctx, arg)
 }
 
 // CreateIdentity mocks base method.
@@ -436,6 +525,51 @@ func (m *MockQuerier) DeleteWorkspaceMember(ctx context.Context, arg sqlc.Delete
 func (mr *MockQuerierMockRecorder) DeleteWorkspaceMember(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWorkspaceMember", reflect.TypeOf((*MockQuerier)(nil).DeleteWorkspaceMember), ctx, arg)
+}
+
+// GetAPIKey mocks base method.
+func (m *MockQuerier) GetAPIKey(ctx context.Context, id uuid.UUID) (sqlc.ApiKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAPIKey", ctx, id)
+	ret0, _ := ret[0].(sqlc.ApiKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAPIKey indicates an expected call of GetAPIKey.
+func (mr *MockQuerierMockRecorder) GetAPIKey(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAPIKey), ctx, id)
+}
+
+// ListAPIKeyScopes mocks base method.
+func (m *MockQuerier) ListAPIKeyScopes(ctx context.Context, apiKeyID uuid.UUID) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAPIKeyScopes", ctx, apiKeyID)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAPIKeyScopes indicates an expected call of ListAPIKeyScopes.
+func (mr *MockQuerierMockRecorder) ListAPIKeyScopes(ctx, apiKeyID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAPIKeyScopes", reflect.TypeOf((*MockQuerier)(nil).ListAPIKeyScopes), ctx, apiKeyID)
+}
+
+// ListWorkspaceAPIKeys mocks base method.
+func (m *MockQuerier) ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]sqlc.ListWorkspaceAPIKeysRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWorkspaceAPIKeys", ctx, workspaceID)
+	ret0, _ := ret[0].([]sqlc.ListWorkspaceAPIKeysRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWorkspaceAPIKeys indicates an expected call of ListWorkspaceAPIKeys.
+func (mr *MockQuerierMockRecorder) ListWorkspaceAPIKeys(ctx, workspaceID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWorkspaceAPIKeys", reflect.TypeOf((*MockQuerier)(nil).ListWorkspaceAPIKeys), ctx, workspaceID)
 }
 
 // GetBucketAndObjectFromToken mocks base method.
@@ -1319,6 +1453,21 @@ func (m *MockQuerier) RenameWorkspaceWithSlug(ctx context.Context, arg sqlc.Rena
 func (mr *MockQuerierMockRecorder) RenameWorkspaceWithSlug(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameWorkspaceWithSlug", reflect.TypeOf((*MockQuerier)(nil).RenameWorkspaceWithSlug), ctx, arg)
+}
+
+// RevokeWorkspaceAPIKey mocks base method.
+func (m *MockQuerier) RevokeWorkspaceAPIKey(ctx context.Context, arg sqlc.RevokeWorkspaceAPIKeyParams) (sqlc.ApiKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeWorkspaceAPIKey", ctx, arg)
+	ret0, _ := ret[0].(sqlc.ApiKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RevokeWorkspaceAPIKey indicates an expected call of RevokeWorkspaceAPIKey.
+func (mr *MockQuerierMockRecorder) RevokeWorkspaceAPIKey(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeWorkspaceAPIKey", reflect.TypeOf((*MockQuerier)(nil).RevokeWorkspaceAPIKey), ctx, arg)
 }
 
 // UpdateFileNameByID mocks base method.

@@ -309,6 +309,8 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 			MaxTotalStorageBytesWorkspace: user.MaxTotalStorageBytesWorkspace,
 			MaxUsersPerWorkspace:          user.MaxUsersWorkspace,
 			MaxWorkspaceFolders:           user.MaxWorkspaceFolders,
+			MaxPrivateAPIKeys:             user.MaxPrivateApiKeys,
+			MaxWorkspaceAPIKeys:           user.MaxWorkspaceApiKeys,
 		}
 
 		ctx := context.WithValue(

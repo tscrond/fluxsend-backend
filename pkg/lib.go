@@ -3,6 +3,7 @@ package pkg
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -198,4 +199,14 @@ func ReadConfigRequired(envVar string) string {
 		panic(envVar + " is required")
 	}
 	return value
+}
+
+func GenerateSecureAPIKey() (string, error) {
+	key := make([]byte, 32) // 256 bits
+
+	if _, err := rand.Read(key); err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(key), nil
 }

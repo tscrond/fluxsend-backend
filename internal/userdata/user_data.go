@@ -33,6 +33,8 @@ type UserPlan struct {
 	MaxWorkspaceFolders           int64  `json:"max_workspace_folders"`
 	MaxUsersPerWorkspace          int64  `json:"max_users_workspace"`
 	MaxTotalStorageBytesWorkspace int64  `json:"max_total_storage_bytes_workspace"`
+	MaxPrivateAPIKeys             int64  `json:"max_private_api_keys"`
+	MaxWorkspaceAPIKeys           int64  `json:"max_workspace_api_keys"`
 }
 
 // Info gathered after successful oauth2 callback

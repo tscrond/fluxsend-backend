@@ -13,11 +13,17 @@ import (
 )
 
 type Querier interface {
+	AssignAPIKeyToPrivate(ctx context.Context, arg AssignAPIKeyToPrivateParams) (ApiKeyUserAssignment, error)
+	AssignAPIKeyToWorkspace(ctx context.Context, arg AssignAPIKeyToWorkspaceParams) (ApiKeyWorkspace, error)
+	CheckPrivateAPIKeyQuota(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckShareQuota(ctx context.Context, arg CheckShareQuotaParams) (bool, error)
 	CheckUploadQuota(ctx context.Context, arg CheckUploadQuotaParams) (CheckUploadQuotaRow, error)
+	CheckWorkspaceAPIKeyQuota(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	CheckWorkspaceResourceQuota(ctx context.Context, id uuid.UUID) (CheckWorkspaceResourceQuotaRow, error)
 	CheckWorkspacesPerUserQuota(ctx context.Context, ownerID uuid.UUID) (bool, error)
 	CountUnseenShares(ctx context.Context, sharedFor sql.NullString) (int64, error)
+	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
+	CreateAPIKeyScope(ctx context.Context, arg CreateAPIKeyScopeParams) error
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (Identity, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, userEmail string) (User, error)
@@ -40,6 +46,7 @@ type Querier interface {
 	DeleteWorkspaceInvite(ctx context.Context, id uuid.UUID) error
 	DeleteWorkspaceInviteByToken(ctx context.Context, token string) error
 	DeleteWorkspaceMember(ctx context.Context, arg DeleteWorkspaceMemberParams) error
+	GetAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error)
 	GetBucketAndObjectFromToken(ctx context.Context, sharingToken string) (GetBucketAndObjectFromTokenRow, error)
 	GetBucketObjectAndOwnerFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (GetBucketObjectAndOwnerFromPrivateTokenRow, error)
 	GetExistingPublicShare(ctx context.Context, arg GetExistingPublicShareParams) (Share, error)
@@ -56,8 +63,6 @@ type Querier interface {
 	GetFilesByOwner(ctx context.Context, ownerID uuid.UUID) ([]File, error)
 	GetFilesSharedByUser(ctx context.Context, sharedBy sql.NullString) ([]GetFilesSharedByUserRow, error)
 	GetFilesSharedWithUser(ctx context.Context, sharedFor sql.NullString) ([]GetFilesSharedWithUserRow, error)
-	//- PLACEHOLDER FOR QUERY
-	GetIdentityByAPIKey(ctx context.Context, userID uuid.UUID) (Identity, error)
 	GetIdentityByProvider(ctx context.Context, arg GetIdentityByProviderParams) (Identity, error)
 	GetIdentityByUserID(ctx context.Context, userID uuid.UUID) (Identity, error)
 	GetNoteForFileById(ctx context.Context, arg GetNoteForFileByIdParams) (Note, error)
@@ -100,12 +105,15 @@ type Querier interface {
 	InsertPublicSharePasswordProtected(ctx context.Context, arg InsertPublicSharePasswordProtectedParams) (Share, error)
 	InsertShare(ctx context.Context, arg InsertShareParams) (Share, error)
 	InsertShareWithPassword(ctx context.Context, arg InsertShareWithPasswordParams) (Share, error)
+	ListAPIKeyScopes(ctx context.Context, apiKeyID uuid.UUID) ([]string, error)
 	ListFileIDsWithoutPrivateToken(ctx context.Context) ([]int32, error)
+	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceAPIKeysRow, error)
 	MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (Share, error)
 	MoveWorkspaceFile(ctx context.Context, arg MoveWorkspaceFileParams) error
 	MoveWorkspaceFilesByPathPrefix(ctx context.Context, arg MoveWorkspaceFilesByPathPrefixParams) error
 	RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error)
 	RenameWorkspaceWithSlug(ctx context.Context, arg RenameWorkspaceWithSlugParams) (Workspace, error)
+	RevokeWorkspaceAPIKey(ctx context.Context, arg RevokeWorkspaceAPIKeyParams) (ApiKey, error)
 	UpdateFileNameByID(ctx context.Context, arg UpdateFileNameByIDParams) error
 	UpdateFileNameByOwnerAndName(ctx context.Context, arg UpdateFileNameByOwnerAndNameParams) error
 	UpdateNoteForFile(ctx context.Context, arg UpdateNoteForFileParams) (Note, error)

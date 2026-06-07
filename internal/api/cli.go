@@ -44,11 +44,13 @@ func (s *CLIServer) Handler() http.Handler {
 	r.Use(chimiddleware.RequestLogger(s.log))
 
 	r.Route(s.routePrefix, func(r chi.Router) {
-		// r.Handle("/auth/login", s.authMiddleware(http.HandlerFunc(s.loginHandler)))
 		// r.Handle("/files/tree", s.authMiddleware(http.HandlerFunc(s.getFilesTree)))
 		// r.Handle("/user/data", s.authMiddleware(http.HandlerFunc(s.getUserData)))
 		r.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			pkg.WriteJSONResponse(w, http.StatusOK, "fluxsend developer api", nil)
+		}))
+		r.Handle("/user/data", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			pkg.WriteJSONResponse(w, http.StatusOK, "fluxsend developer api xDDDDDDDDDDDDDD", nil)
 		}))
 		// CLI routes will be mounted here as the transport surface stabilizes.
 	})
