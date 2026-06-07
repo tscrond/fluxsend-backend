@@ -229,7 +229,7 @@ func (s *apiKeyService) CreatePrivateAPIKey(ctx context.Context, akd *apikeydata
 		Status:          "active",
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create api key: %s", err)
+		return nil, fmt.Errorf("create api key: %w", err)
 	}
 
 	for _, scope := range akd.Scopes {
