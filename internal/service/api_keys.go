@@ -248,7 +248,7 @@ func (s *apiKeyService) CreatePrivateAPIKey(ctx context.Context, akd *apikeydata
 	if err != nil {
 		return nil, fmt.Errorf("assign api key to private user: %w", err)
 	}
-	s.log.Info("api_key_id_assigned", assignment.ApiKeyID, "assigned_to_user", assignment.UserID, "api_key_name", result.Name)
+	s.log.Infow("api_key_id_assigned", "api_key_id", assignment.ApiKeyID, "assigned_to_user", assignment.UserID, "api_key_name", result.Name)
 
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit api key transaction: %w", err)
