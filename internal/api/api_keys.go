@@ -214,7 +214,7 @@ func (s *APIServer) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Request
 func (s *APIServer) createPrivateAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
-		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
 	}
 
