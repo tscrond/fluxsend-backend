@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +21,10 @@ var ErrWorkspaceAPIKeyNotFound = errors.New("workspace api key not found")
 type APIKeyService interface {
 	CreateWorkspaceAPIKey(ctx context.Context, akd *apikeydata.APIKeyData) (*CreateAPIKeyResult, error)
 	DeleteWorkspaceAPIKey(ctx context.Context, workspaceID, apiKeyID, revokedBy uuid.UUID) error
-	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceAPIKeyResult, error)
+	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]APIKeyResult, error)
+	CreatePrivateAPIKey(ctx context.Context, akd *apikeydata.APIKeyData) (*CreateAPIKeyResult, error)
+	DeletePrivateAPIKey(ctx context.Context, userID, apiKeyID uuid.UUID) error
+	ListPrivateAPIKeys(ctx context.Context, userID uuid.UUID) ([]APIKeyResult, error)
 }
 
 type apiKeyService struct {
@@ -42,11 +46,12 @@ type CreateAPIKeyResult struct {
 	Key         string   `json:"key"`
 	Scopes      []string `json:"scopes"`
 	WorkspaceID string   `json:"workspace_id"`
+	UserID      string   `json:"user_id"`
 	CreatedBy   string   `json:"created_by"`
 	CreatedAt   string   `json:"created_at"`
 }
 
-type WorkspaceAPIKeyResult struct {
+type APIKeyResult struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
@@ -113,23 +118,35 @@ func (s *apiKeyService) CreateWorkspaceAPIKey(ctx context.Context, akd *apikeyda
 	}
 	committed = true
 
-	return NewCreateAPIKeyResult(result, akd.Key, akd.WorkspaceID, akd.Scopes), nil
+	return NewCreateAPIKeyResult(result, akd.Key, &akd.WorkspaceID, nil, akd.Scopes), nil
 }
 
-func NewCreateAPIKeyResult(result sqlc.ApiKey, rawKey string, workspaceID uuid.UUID, scopes []string) *CreateAPIKeyResult {
+func NewCreateAPIKeyResult(result sqlc.ApiKey, rawKey string, workspaceID *uuid.UUID, userID *uuid.UUID, scopes []string) *CreateAPIKeyResult {
+	if workspaceID == nil && userID == nil {
+		log.Println("function expects workspaceID or userID")
+		return nil
+	}
 	responseScopes := make([]string, len(scopes))
 	copy(responseScopes, scopes)
 
-	return &CreateAPIKeyResult{
+	createAPIKeyResult := &CreateAPIKeyResult{
 		ID:          result.ID.String(),
 		Name:        result.Name,
 		Description: result.Description.String,
 		Key:         rawKey,
 		Scopes:      responseScopes,
-		WorkspaceID: workspaceID.String(),
 		CreatedBy:   result.CreatedByUserID.String(),
 		CreatedAt:   result.CreatedAt.UTC().Format(time.RFC3339),
 	}
+
+	if workspaceID != nil {
+		createAPIKeyResult.WorkspaceID = workspaceID.String()
+	}
+	if userID != nil {
+		createAPIKeyResult.UserID = userID.String()
+	}
+
+	return createAPIKeyResult
 }
 
 func (s *apiKeyService) DeleteWorkspaceAPIKey(ctx context.Context, workspaceID, apiKeyID, revokedBy uuid.UUID) error {
@@ -147,13 +164,13 @@ func (s *apiKeyService) DeleteWorkspaceAPIKey(ctx context.Context, workspaceID, 
 	return nil
 }
 
-func (s *apiKeyService) ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceAPIKeyResult, error) {
+func (s *apiKeyService) ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]APIKeyResult, error) {
 	rows, err := s.repository.Queries().ListWorkspaceAPIKeys(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("list workspace api keys: %w", err)
 	}
 
-	results := make([]WorkspaceAPIKeyResult, 0, len(rows))
+	results := make([]APIKeyResult, 0, len(rows))
 	for _, row := range rows {
 		scopes, err := s.repository.Queries().ListAPIKeyScopes(ctx, row.ID)
 		if err != nil {
@@ -166,7 +183,7 @@ func (s *apiKeyService) ListWorkspaceAPIKeys(ctx context.Context, workspaceID uu
 			lastUsedAt = &formatted
 		}
 
-		results = append(results, WorkspaceAPIKeyResult{
+		results = append(results, APIKeyResult{
 			ID:          row.ID.String(),
 			Name:        row.Name,
 			Description: row.Description.String,
@@ -179,4 +196,113 @@ func (s *apiKeyService) ListWorkspaceAPIKeys(ctx context.Context, workspaceID uu
 	}
 
 	return results, nil
+}
+
+func (s *apiKeyService) CreatePrivateAPIKey(ctx context.Context, akd *apikeydata.APIKeyData) (*CreateAPIKeyResult, error) {
+	if akd == nil {
+		return nil, errors.New("api key data is required")
+	}
+	keyHash, err := bcrypt.GenerateFromPassword([]byte(akd.Key), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hashing api key: %w", err)
+	}
+
+	tx, err := s.repository.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin api key transaction: %w", err)
+	}
+
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	queries := s.repository.Queries().WithTx(tx)
+
+	result, err := queries.CreateAPIKey(ctx, sqlc.CreateAPIKeyParams{
+		CreatedByUserID: akd.CreatedByUserID,
+		Name:            akd.Name,
+		KeyHash:         string(keyHash),
+		Description:     sql.NullString{String: akd.Description, Valid: akd.Description != ""},
+		Status:          "active",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create api key: %s", err)
+	}
+
+	for _, scope := range akd.Scopes {
+		if err := queries.CreateAPIKeyScope(ctx, sqlc.CreateAPIKeyScopeParams{
+			ApiKeyID: result.ID,
+			Scope:    scope,
+		}); err != nil {
+			return nil, fmt.Errorf("create api key scope %q: %w", scope, err)
+		}
+	}
+
+	assignment, err := queries.AssignAPIKeyToPrivate(ctx, sqlc.AssignAPIKeyToPrivateParams{
+		ApiKeyID: result.ID,
+		UserID:   akd.CreatedByUserID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("assign api key to private user: %s", err)
+	}
+	s.log.Info("api_key_id_assigned", assignment.ApiKeyID, "assigned_to_user", assignment.UserID, "api_key_name", result.Name)
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit api key transaction: %w", err)
+	}
+	committed = true
+
+	return NewCreateAPIKeyResult(result, akd.Key, nil, &akd.CreatedByUserID, akd.Scopes), nil
+}
+
+func (s *apiKeyService) ListPrivateAPIKeys(ctx context.Context, userID uuid.UUID) ([]APIKeyResult, error) {
+	rows, err := s.repository.Queries().ListPrivateAPIKeysByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list workspace api keys: %w", err)
+	}
+
+	results := make([]APIKeyResult, 0, len(rows))
+	for _, row := range rows {
+		scopes, err := s.repository.Queries().ListAPIKeyScopes(ctx, row.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list api key scopes for %s: %w", row.ID, err)
+		}
+
+		var lastUsedAt *string
+		if row.LastUsedAt.Valid {
+			formatted := row.LastUsedAt.Time.UTC().Format(time.RFC3339)
+			lastUsedAt = &formatted
+		}
+
+		results = append(results, APIKeyResult{
+			ID:          row.ID.String(),
+			Name:        row.Name,
+			Description: row.Description.String,
+			Status:      row.Status,
+			Scopes:      scopes,
+			CreatedBy:   row.CreatedByUserID.String(),
+			CreatedAt:   row.CreatedAt.UTC().Format(time.RFC3339),
+			LastUsedAt:  lastUsedAt,
+		})
+	}
+
+	return results, nil
+}
+
+func (s *apiKeyService) DeletePrivateAPIKey(ctx context.Context, userID, apiKeyID uuid.UUID) error {
+	_, err := s.repository.Queries().RevokePrivateAPIKey(ctx, sqlc.RevokePrivateAPIKeyParams{
+		ID:              apiKeyID,
+		UserID:          userID,
+		RevokedByUserID: uuid.NullUUID{UUID: userID, Valid: true},
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrWorkspaceAPIKeyNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("revoke workspace api key: %w", err)
+	}
+	return nil
 }

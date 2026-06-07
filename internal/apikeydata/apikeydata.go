@@ -110,7 +110,7 @@ func normalizeScopes(scopes []string, allowedScopes map[string]struct{}) ([]stri
 			return nil, fmt.Errorf("scope cannot be empty")
 		}
 		if _, ok := allowedScopes[scope]; !ok {
-			return nil, fmt.Errorf("invalid workspace scope: %s", scope)
+			return nil, fmt.Errorf("invalid api key scope: %s", scope)
 		}
 		if _, ok := seen[scope]; ok {
 			continue

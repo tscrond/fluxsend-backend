@@ -107,12 +107,14 @@ type Querier interface {
 	InsertShareWithPassword(ctx context.Context, arg InsertShareWithPasswordParams) (Share, error)
 	ListAPIKeyScopes(ctx context.Context, apiKeyID uuid.UUID) ([]string, error)
 	ListFileIDsWithoutPrivateToken(ctx context.Context) ([]int32, error)
+	ListPrivateAPIKeysByUserID(ctx context.Context, userID uuid.UUID) ([]ListPrivateAPIKeysByUserIDRow, error)
 	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceAPIKeysRow, error)
 	MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (Share, error)
 	MoveWorkspaceFile(ctx context.Context, arg MoveWorkspaceFileParams) error
 	MoveWorkspaceFilesByPathPrefix(ctx context.Context, arg MoveWorkspaceFilesByPathPrefixParams) error
 	RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error)
 	RenameWorkspaceWithSlug(ctx context.Context, arg RenameWorkspaceWithSlugParams) (Workspace, error)
+	RevokePrivateAPIKey(ctx context.Context, arg RevokePrivateAPIKeyParams) (ApiKey, error)
 	RevokeWorkspaceAPIKey(ctx context.Context, arg RevokeWorkspaceAPIKeyParams) (ApiKey, error)
 	UpdateFileNameByID(ctx context.Context, arg UpdateFileNameByIDParams) error
 	UpdateFileNameByOwnerAndName(ctx context.Context, arg UpdateFileNameByOwnerAndNameParams) error
