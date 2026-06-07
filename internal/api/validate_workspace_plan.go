@@ -105,3 +105,7 @@ func wsNormalizePathParam(p string) string {
 func wsCanWrite(role string) bool {
 	return role == "owner" || role == "admin" || role == "editor"
 }
+
+func wsCanWriteAPIKeys(role string) bool {
+	return role == "owner" || role == "admin"
+}

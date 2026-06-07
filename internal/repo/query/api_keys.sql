@@ -1,0 +1,65 @@
+-- name: CreateAPIKey :one
+INSERT INTO api_keys (created_by_user_id, name, key_hash, description, status)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
+
+-- name: CreateAPIKeyScope :exec
+INSERT INTO api_key_scopes (api_key_id, scope) VALUES ($1,$2);
+
+-- name: AssignAPIKeyToPrivate :one
+INSERT INTO api_key_user_assignments (api_key_id, user_id)
+VALUES ($1, $2)
+RETURNING *;
+
+-- name: AssignAPIKeyToWorkspace :one
+INSERT INTO api_key_workspaces (api_key_id, workspace_id)
+VALUES ($1, $2)
+RETURNING *;
+
+-- name: ListWorkspaceAPIKeys :many
+SELECT
+	ak.id,
+	ak.created_by_user_id,
+	ak.created_at,
+	ak.name,
+	ak.description,
+	ak.status,
+	ak.last_used_at
+FROM api_keys ak
+JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
+WHERE akw.workspace_id = $1
+	AND ak.revoked_at IS NULL
+ORDER BY ak.created_at DESC;
+
+-- name: ListAPIKeyScopes :many
+SELECT scope
+FROM api_key_scopes
+WHERE api_key_id = $1
+ORDER BY scope;
+
+-- name: RevokeWorkspaceAPIKey :one
+UPDATE api_keys ak
+SET status = 'revoked',
+	revoked_at = now(),
+	revoked_by_user_id = $3
+FROM api_key_workspaces akw
+WHERE ak.id = $1
+	AND akw.api_key_id = ak.id
+	AND akw.workspace_id = $2
+	AND ak.revoked_at IS NULL
+RETURNING ak.*;
+
+-- name: CheckPrivateAPIKeyQuota :one
+SELECT (
+	SELECT COUNT(*)
+	FROM api_key_user_assignments a
+	JOIN api_keys ak ON ak.id = a.api_key_id
+	WHERE a.user_id = $1
+		AND ak.revoked_at IS NULL
+) >= p.max_private_api_keys AS api_keys_exceeded
+FROM users u
+JOIN plans p ON u.plan_id = p.id
+WHERE u.id = $1;
+
+-- name: GetAPIKey :one
+SELECT * FROM api_keys WHERE id = $1;

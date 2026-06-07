@@ -11,6 +11,35 @@ import (
 	"github.com/google/uuid"
 )
 
+type ApiKey struct {
+	ID              uuid.UUID      `json:"id"`
+	CreatedByUserID uuid.UUID      `json:"created_by_user_id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	Name            string         `json:"name"`
+	KeyHash         string         `json:"key_hash"`
+	Description     sql.NullString `json:"description"`
+	Status          string         `json:"status"`
+	LastUsedAt      sql.NullTime   `json:"last_used_at"`
+	RevokedAt       sql.NullTime   `json:"revoked_at"`
+	RevokedByUserID uuid.NullUUID  `json:"revoked_by_user_id"`
+}
+
+type ApiKeyScope struct {
+	ApiKeyID uuid.UUID `json:"api_key_id"`
+	Scope    string    `json:"scope"`
+}
+
+type ApiKeyUserAssignment struct {
+	ApiKeyID   uuid.UUID `json:"api_key_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	AssignedAt time.Time `json:"assigned_at"`
+}
+
+type ApiKeyWorkspace struct {
+	ApiKeyID    uuid.UUID `json:"api_key_id"`
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+}
+
 type File struct {
 	ID                   int32          `json:"id"`
 	FileName             string         `json:"file_name"`
@@ -56,6 +85,8 @@ type Plan struct {
 	MaxTotalStorageBytesWorkspace int64     `json:"max_total_storage_bytes_workspace"`
 	MaxUsersWorkspace             int64     `json:"max_users_workspace"`
 	MaxWorkspaceFolders           int64     `json:"max_workspace_folders"`
+	MaxPrivateApiKeys             int64     `json:"max_private_api_keys"`
+	MaxWorkspaceApiKeys           int64     `json:"max_workspace_api_keys"`
 }
 
 type PlanFeature struct {

@@ -3,16 +3,33 @@ package pkg
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 	"unicode"
 )
+
+func GetEnvBool(name string, defaultValue bool) (bool, error) {
+	rawValue := strings.TrimSpace(os.Getenv(name))
+	if rawValue == "" {
+		return defaultValue, nil
+	}
+
+	parsedValue, err := strconv.ParseBool(rawValue)
+	if err != nil {
+		return false, fmt.Errorf("invalid %s value %q: %w", name, rawValue, err)
+	}
+
+	return parsedValue, nil
+}
 
 func GetUserBucketName(bucketBaseName, userID string) string {
 	return fmt.Sprintf("%s-%s", bucketBaseName, userID)
@@ -172,4 +189,23 @@ func WriteJSONResponse(w http.ResponseWriter, responseStatus int, customMessage 
 	}
 
 	JSON(w, resp)
+}
+
+func ReadConfigRequired(envVar string) string {
+	value := os.Getenv(envVar)
+	log.Printf("env var: %s read", envVar)
+	if value == "" {
+		panic(envVar + " is required")
+	}
+	return value
+}
+
+func GenerateSecureAPIKey() (string, error) {
+	key := make([]byte, 32) // 256 bits
+
+	if _, err := rand.Read(key); err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(key), nil
 }

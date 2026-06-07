@@ -47,21 +47,16 @@ func newTestServer(ctrl *gomock.Controller) (*APIServer, *testDeps) {
 		stor:       mocks.NewMockObjectStorage(ctrl),
 	}
 
-	srv := NewAPIServer(
-		zap.NewNop().Sugar(),
-		config.BackendConfig{},
-		nil, // email sender — not needed for these tests
-		deps.stor,
-		nil, // CloudFrontSigner — not needed
-		deps.repo,
-		nil, // authProviders — not needed
-		nil, // tokenEncryptor — not needed
-		deps.files,
-		deps.shares,
-		deps.users,
-		deps.workspaces,
-		deps.wsFiles,
-	)
+	srv := NewAPIServer(config.BackendConfig{}, APIServerDependencies{
+		Log:            zap.NewNop().Sugar(),
+		BucketHandler:  deps.stor,
+		Repository:     deps.repo,
+		Files:          deps.files,
+		Shares:         deps.shares,
+		Users:          deps.users,
+		Workspaces:     deps.workspaces,
+		WorkspaceFiles: deps.wsFiles,
+	})
 	return srv, deps
 }
 

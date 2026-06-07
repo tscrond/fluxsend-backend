@@ -109,7 +109,8 @@ WITH plan AS (
         p.max_files_workspace,
         p.max_total_storage_bytes_workspace,
         p.max_users_workspace,
-        p.max_workspace_folders
+	        p.max_workspace_folders,
+	        p.max_workspace_api_keys
     FROM workspaces w
     JOIN users u ON u.id = w.owner_id
     JOIN plans p ON u.plan_id = p.id
@@ -127,13 +128,21 @@ members AS (
     SELECT COUNT(*) AS member_count
     FROM workspace_members
     WHERE workspace_id = $1
+),
+api_keys AS (
+    SELECT COUNT(*) AS api_key_count
+    FROM api_key_workspaces akw
+    JOIN api_keys ak ON ak.id = akw.api_key_id
+    WHERE akw.workspace_id = $1
+		AND ak.revoked_at IS NULL
 )
 SELECT
     (u.file_count   >= pl.max_files_workspace)               AS files_exceeded,
     (u.total_bytes  >= pl.max_total_storage_bytes_workspace) AS storage_exceeded,
     (u.folder_count >= pl.max_workspace_folders)             AS folders_exceeded,
-    (m.member_count >= pl.max_users_workspace)               AS users_exceeded
-FROM usage u, plan pl, members m;
+	    (m.member_count >= pl.max_users_workspace)               AS users_exceeded,
+	    (a.api_key_count >= pl.max_workspace_api_keys)           AS api_keys_exceeded
+FROM usage u, plan pl, members m, api_keys a;
 
 -- name: GetWorkspaceQuotaDetails :one
 WITH plan AS (
@@ -141,7 +150,8 @@ WITH plan AS (
         p.max_files_workspace,
         p.max_total_storage_bytes_workspace,
         p.max_users_workspace,
-        p.max_workspace_folders
+	        p.max_workspace_folders,
+	        p.max_workspace_api_keys
     FROM workspaces w
     JOIN users u ON u.id = w.owner_id
     JOIN plans p ON u.plan_id = p.id
@@ -159,14 +169,36 @@ members AS (
     SELECT COUNT(*) AS member_count
     FROM workspace_members
     WHERE workspace_id = $1
+),
+api_keys AS (
+    SELECT COUNT(*) AS api_key_count
+    FROM api_key_workspaces akw
+    JOIN api_keys ak ON ak.id = akw.api_key_id
+    WHERE akw.workspace_id = $1
+		AND ak.revoked_at IS NULL
 )
 SELECT
     u.file_count,
     u.total_bytes,
     u.folder_count,
     m.member_count,
+	a.api_key_count,
     pl.max_files_workspace,
     pl.max_total_storage_bytes_workspace,
     pl.max_users_workspace,
-    pl.max_workspace_folders
-FROM usage u, plan pl, members m;
+	pl.max_workspace_folders,
+	pl.max_workspace_api_keys
+FROM usage u, plan pl, members m, api_keys a;
+
+-- name: CheckWorkspaceAPIKeyQuota :one
+SELECT (
+    SELECT COUNT(*)
+    FROM api_key_workspaces akw
+    JOIN api_keys ak ON ak.id = akw.api_key_id
+    WHERE akw.workspace_id = $1
+		AND ak.revoked_at IS NULL
+) >= p.max_workspace_api_keys AS api_keys_exceeded
+FROM workspaces w
+JOIN users u ON u.id = w.owner_id
+JOIN plans p ON u.plan_id = p.id
+WHERE w.id = $1;

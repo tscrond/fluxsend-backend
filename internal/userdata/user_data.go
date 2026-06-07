@@ -3,13 +3,20 @@ package userdata
 type planContextKey struct{}
 type authorizedUserContextKey struct{}
 type verifiedUserContextKey struct{}
+type authorizedCLIUserWithPlanContextKey struct{}
 
 var VerifiedUserContextKey = verifiedUserContextKey{}
 var AuthorizedUserContextKey = authorizedUserContextKey{}
 var AuthorizedUserWithPlanContextKey = planContextKey{}
+var AuthorizedCLIUserWithPlanContextKey = authorizedCLIUserWithPlanContextKey{}
 
 type AuthorizedUserWithPlan struct {
 	AuthorizedUserInfo
+	UserPlan
+}
+
+type AuthorizedCLIUserWithPlan struct {
+	AuthorizedCLIUserInfo
 	UserPlan
 }
 
@@ -26,6 +33,8 @@ type UserPlan struct {
 	MaxWorkspaceFolders           int64  `json:"max_workspace_folders"`
 	MaxUsersPerWorkspace          int64  `json:"max_users_workspace"`
 	MaxTotalStorageBytesWorkspace int64  `json:"max_total_storage_bytes_workspace"`
+	MaxPrivateAPIKeys             int64  `json:"max_private_api_keys"`
+	MaxWorkspaceAPIKeys           int64  `json:"max_workspace_api_keys"`
 }
 
 // Info gathered after successful oauth2 callback
@@ -41,27 +50,8 @@ type AuthorizedUserInfo struct {
 	Provider   string `json:"provider"`
 }
 
-// Sample google oauth2 token verification response:
-//
-//	{
-//		"azp": "asodfkasdofkao-rasdkfkaosdfpasodfkg.apps.googleusercontent.com",
-//		"aud": "asodfkasdofkao-rasdkfkaosdfpasodfkg.apps.googleusercontent.com",
-//		"sub": "1065436339302349807",
-//		"scope": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
-//		"exp": "1111432532",
-//		"expires_in": "4432",
-//		"email": "abc.bca@gmail.com",
-//		"email_verified": "true",
-//		"access_type": "offline"
-//	  }
-type VerifiedUserInfo struct {
-	Azp           string `json:"azp"`
-	Aud           string `json:"aud"`
-	Sub           string `json:"sub"`
-	Scope         string `json:"scope"`
-	Exp           string `json:"exp"`
-	ExpiresIn     string `json:"expires_in"`
-	Email         string `json:"email"`
-	EmailVerified string `json:"email_verified"`
-	AccessType    string `json:"access_type"`
+type AuthorizedCLIUserInfo struct {
+	InternalID string `json:"internal_id"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
 }

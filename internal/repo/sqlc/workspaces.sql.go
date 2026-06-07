@@ -12,13 +12,35 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkWorkspaceAPIKeyQuota = `-- name: CheckWorkspaceAPIKeyQuota :one
+SELECT (
+    SELECT COUNT(*)
+    FROM api_key_workspaces akw
+    JOIN api_keys ak ON ak.id = akw.api_key_id
+    WHERE akw.workspace_id = $1
+		AND ak.revoked_at IS NULL
+) >= p.max_workspace_api_keys AS api_keys_exceeded
+FROM workspaces w
+JOIN users u ON u.id = w.owner_id
+JOIN plans p ON u.plan_id = p.id
+WHERE w.id = $1
+`
+
+func (q *Queries) CheckWorkspaceAPIKeyQuota(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkWorkspaceAPIKeyQuota, workspaceID)
+	var api_keys_exceeded bool
+	err := row.Scan(&api_keys_exceeded)
+	return api_keys_exceeded, err
+}
+
 const checkWorkspaceResourceQuota = `-- name: CheckWorkspaceResourceQuota :one
 WITH plan AS (
     SELECT
         p.max_files_workspace,
         p.max_total_storage_bytes_workspace,
         p.max_users_workspace,
-        p.max_workspace_folders
+	        p.max_workspace_folders,
+	        p.max_workspace_api_keys
     FROM workspaces w
     JOIN users u ON u.id = w.owner_id
     JOIN plans p ON u.plan_id = p.id
@@ -36,13 +58,21 @@ members AS (
     SELECT COUNT(*) AS member_count
     FROM workspace_members
     WHERE workspace_id = $1
+),
+api_keys AS (
+    SELECT COUNT(*) AS api_key_count
+    FROM api_key_workspaces akw
+    JOIN api_keys ak ON ak.id = akw.api_key_id
+    WHERE akw.workspace_id = $1
+		AND ak.revoked_at IS NULL
 )
 SELECT
     (u.file_count   >= pl.max_files_workspace)               AS files_exceeded,
     (u.total_bytes  >= pl.max_total_storage_bytes_workspace) AS storage_exceeded,
     (u.folder_count >= pl.max_workspace_folders)             AS folders_exceeded,
-    (m.member_count >= pl.max_users_workspace)               AS users_exceeded
-FROM usage u, plan pl, members m
+	    (m.member_count >= pl.max_users_workspace)               AS users_exceeded,
+	    (a.api_key_count >= pl.max_workspace_api_keys)           AS api_keys_exceeded
+FROM usage u, plan pl, members m, api_keys a
 `
 
 type CheckWorkspaceResourceQuotaRow struct {
@@ -50,6 +80,7 @@ type CheckWorkspaceResourceQuotaRow struct {
 	StorageExceeded bool `json:"storage_exceeded"`
 	FoldersExceeded bool `json:"folders_exceeded"`
 	UsersExceeded   bool `json:"users_exceeded"`
+	ApiKeysExceeded bool `json:"api_keys_exceeded"`
 }
 
 func (q *Queries) CheckWorkspaceResourceQuota(ctx context.Context, id uuid.UUID) (CheckWorkspaceResourceQuotaRow, error) {
@@ -60,6 +91,7 @@ func (q *Queries) CheckWorkspaceResourceQuota(ctx context.Context, id uuid.UUID)
 		&i.StorageExceeded,
 		&i.FoldersExceeded,
 		&i.UsersExceeded,
+		&i.ApiKeysExceeded,
 	)
 	return i, err
 }
@@ -494,7 +526,8 @@ WITH plan AS (
         p.max_files_workspace,
         p.max_total_storage_bytes_workspace,
         p.max_users_workspace,
-        p.max_workspace_folders
+	        p.max_workspace_folders,
+	        p.max_workspace_api_keys
     FROM workspaces w
     JOIN users u ON u.id = w.owner_id
     JOIN plans p ON u.plan_id = p.id
@@ -512,17 +545,26 @@ members AS (
     SELECT COUNT(*) AS member_count
     FROM workspace_members
     WHERE workspace_id = $1
+),
+api_keys AS (
+    SELECT COUNT(*) AS api_key_count
+    FROM api_key_workspaces akw
+    JOIN api_keys ak ON ak.id = akw.api_key_id
+    WHERE akw.workspace_id = $1
+		AND ak.revoked_at IS NULL
 )
 SELECT
     u.file_count,
     u.total_bytes,
     u.folder_count,
     m.member_count,
+	a.api_key_count,
     pl.max_files_workspace,
     pl.max_total_storage_bytes_workspace,
     pl.max_users_workspace,
-    pl.max_workspace_folders
-FROM usage u, plan pl, members m
+	pl.max_workspace_folders,
+	pl.max_workspace_api_keys
+FROM usage u, plan pl, members m, api_keys a
 `
 
 type GetWorkspaceQuotaDetailsRow struct {
@@ -530,10 +572,12 @@ type GetWorkspaceQuotaDetailsRow struct {
 	TotalBytes                    int64 `json:"total_bytes"`
 	FolderCount                   int64 `json:"folder_count"`
 	MemberCount                   int64 `json:"member_count"`
+	ApiKeyCount                   int64 `json:"api_key_count"`
 	MaxFilesWorkspace             int64 `json:"max_files_workspace"`
 	MaxTotalStorageBytesWorkspace int64 `json:"max_total_storage_bytes_workspace"`
 	MaxUsersWorkspace             int64 `json:"max_users_workspace"`
 	MaxWorkspaceFolders           int64 `json:"max_workspace_folders"`
+	MaxWorkspaceApiKeys           int64 `json:"max_workspace_api_keys"`
 }
 
 func (q *Queries) GetWorkspaceQuotaDetails(ctx context.Context, id uuid.UUID) (GetWorkspaceQuotaDetailsRow, error) {
@@ -544,10 +588,12 @@ func (q *Queries) GetWorkspaceQuotaDetails(ctx context.Context, id uuid.UUID) (G
 		&i.TotalBytes,
 		&i.FolderCount,
 		&i.MemberCount,
+		&i.ApiKeyCount,
 		&i.MaxFilesWorkspace,
 		&i.MaxTotalStorageBytesWorkspace,
 		&i.MaxUsersWorkspace,
 		&i.MaxWorkspaceFolders,
+		&i.MaxWorkspaceApiKeys,
 	)
 	return i, err
 }
