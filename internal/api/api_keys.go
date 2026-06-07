@@ -239,7 +239,7 @@ func (s *APIServer) createPrivateAPIKey(w http.ResponseWriter, r *http.Request) 
 		if errors.Is(err, ErrPrivateAPIKeysLimitExceeded) {
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
-			log.Errorw("api keys per workspace count check failed", "user_id", callerID, "error", err)
+			log.Errorw("api keys per user count check failed", "user_id", callerID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
 		return
