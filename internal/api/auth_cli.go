@@ -67,7 +67,7 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 
 			planUserID := principalUserID
 			if bindingType == apiKeyBindingWorkspace {
-				workspaceOwnerID, ok := parseUUIDValue(authorizedCLIUser.WorkspaceOwnerUserID)
+				workspaceOwnerID, ok := pkg.ParseUUIDValue(authorizedCLIUser.WorkspaceOwnerUserID)
 				if !ok || authorizedCLIUser.WorkspaceOwnerCount != 1 {
 					log.Errorw("invalid workspace owner binding for api key", "api_key_id", authorizedCLIUser.ApiKeyID)
 					pkg.WriteJSONResponse(w, http.StatusForbidden, "invalid_api_key_binding", "Unauthorized")
@@ -152,9 +152,9 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 }
 
 func parseAPIKeyBinding(authorizedCLIUser sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow) (apiKeyBindingType, uuid.UUID, uuid.UUID, bool) {
-	privateUserID, hasPrivateUserID := parseUUIDValue(authorizedCLIUser.PrivateUserID)
-	workspaceID, hasWorkspaceID := parseUUIDValue(authorizedCLIUser.WorkspaceID)
-	internalID, hasInternalID := parseUUIDValue(authorizedCLIUser.InternalID)
+	privateUserID, hasPrivateUserID := pkg.ParseUUIDValue(authorizedCLIUser.PrivateUserID)
+	workspaceID, hasWorkspaceID := pkg.ParseUUIDValue(authorizedCLIUser.WorkspaceID)
+	internalID, hasInternalID := pkg.ParseUUIDValue(authorizedCLIUser.InternalID)
 
 	privateBound := authorizedCLIUser.PrivateBindingCount == 1 && hasPrivateUserID
 	workspaceBound := authorizedCLIUser.WorkspaceBindingCount == 1 && hasWorkspaceID
@@ -176,32 +176,6 @@ func parseAPIKeyBinding(authorizedCLIUser sqlc.GetAuthorizedCLIUserInfoByAPIKeyR
 	}
 
 	return apiKeyBindingWorkspace, internalID, workspaceID, true
-}
-
-func parseUUIDValue(v interface{}) (uuid.UUID, bool) {
-	switch val := v.(type) {
-	case nil:
-		return uuid.Nil, false
-	case uuid.UUID:
-		if val == uuid.Nil {
-			return uuid.Nil, false
-		}
-		return val, true
-	case string:
-		parsed, err := uuid.Parse(strings.TrimSpace(val))
-		if err != nil || parsed == uuid.Nil {
-			return uuid.Nil, false
-		}
-		return parsed, true
-	case []byte:
-		parsed, err := uuid.Parse(strings.TrimSpace(string(val)))
-		if err != nil || parsed == uuid.Nil {
-			return uuid.Nil, false
-		}
-		return parsed, true
-	default:
-		return uuid.Nil, false
-	}
 }
 
 func bindingAllowsDomain(binding apiKeyBindingType, domain routeDomain) bool {
