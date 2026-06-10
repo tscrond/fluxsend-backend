@@ -144,34 +144,56 @@ func (q *Queries) GetAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) {
 }
 
 const getAuthorizedCLIUserInfoByAPIKey = `-- name: GetAuthorizedCLIUserInfoByAPIKey :one
-SELECT
+WITH key_binding AS (
+	SELECT
 		ak.id AS api_key_id,
-		COALESCE(akua.user_id, ak.created_by_user_id) AS internal_id,
-		u.user_email AS email,
-		(
-			SELECT i.name
-			FROM identities i
-			WHERE i.user_id = u.id
-			LIMIT 1
-		) AS name,
-		akua.user_id AS private_user_id,
-		akw.workspace_id AS workspace_id
-FROM api_keys ak
-LEFT JOIN api_key_user_assignments akua ON akua.api_key_id = ak.id
-LEFT JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
-JOIN users u ON u.id = COALESCE(akua.user_id, ak.created_by_user_id)
-WHERE ak.key_hash = crypt($1, ak.key_hash)
-	AND ak.revoked_at IS NULL
-	AND ak.status = 'active'
+		ak.created_by_user_id,
+		(ARRAY_AGG(akua.user_id ORDER BY akua.user_id))[1] AS private_user_id,
+		COUNT(DISTINCT akua.user_id) AS private_binding_count,
+		(ARRAY_AGG(akw.workspace_id ORDER BY akw.workspace_id))[1] AS workspace_id,
+		COUNT(DISTINCT akw.workspace_id) AS workspace_binding_count,
+		(ARRAY_AGG(w.owner_id ORDER BY w.owner_id))[1] AS workspace_owner_user_id,
+		COUNT(DISTINCT w.owner_id) AS workspace_owner_count
+	FROM api_keys ak
+	LEFT JOIN api_key_user_assignments akua ON akua.api_key_id = ak.id
+	LEFT JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
+	LEFT JOIN workspaces w ON w.id = akw.workspace_id
+	WHERE ak.key_hash = crypt($1, ak.key_hash)
+	  AND ak.revoked_at IS NULL
+	  AND ak.status = 'active'
+	GROUP BY ak.id, ak.created_by_user_id
+)
+SELECT
+	kb.api_key_id,
+	COALESCE(kb.private_user_id, kb.created_by_user_id) AS internal_id,
+	u.user_email AS email,
+	(
+		SELECT i.name
+		FROM identities i
+		WHERE i.user_id = u.id
+		LIMIT 1
+	) AS name,
+	kb.private_user_id,
+	kb.workspace_id,
+	kb.private_binding_count,
+	kb.workspace_binding_count,
+	kb.workspace_owner_user_id,
+	kb.workspace_owner_count
+FROM key_binding kb
+JOIN users u ON u.id = COALESCE(kb.private_user_id, kb.created_by_user_id)
 `
 
 type GetAuthorizedCLIUserInfoByAPIKeyRow struct {
-	ApiKeyID      uuid.UUID      `json:"api_key_id"`
-	InternalID    uuid.UUID      `json:"internal_id"`
-	Email         string         `json:"email"`
-	Name          sql.NullString `json:"name"`
-	PrivateUserID uuid.NullUUID  `json:"private_user_id"`
-	WorkspaceID   uuid.NullUUID  `json:"workspace_id"`
+	ApiKeyID              uuid.UUID      `json:"api_key_id"`
+	InternalID            interface{}    `json:"internal_id"`
+	Email                 string         `json:"email"`
+	Name                  sql.NullString `json:"name"`
+	PrivateUserID         interface{}    `json:"private_user_id"`
+	WorkspaceID           interface{}    `json:"workspace_id"`
+	PrivateBindingCount   int64          `json:"private_binding_count"`
+	WorkspaceBindingCount int64          `json:"workspace_binding_count"`
+	WorkspaceOwnerUserID  interface{}    `json:"workspace_owner_user_id"`
+	WorkspaceOwnerCount   int64          `json:"workspace_owner_count"`
 }
 
 func (q *Queries) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
@@ -184,6 +206,10 @@ func (q *Queries) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt st
 		&i.Name,
 		&i.PrivateUserID,
 		&i.WorkspaceID,
+		&i.PrivateBindingCount,
+		&i.WorkspaceBindingCount,
+		&i.WorkspaceOwnerUserID,
+		&i.WorkspaceOwnerCount,
 	)
 	return i, err
 }

@@ -78,11 +78,21 @@ func (q *Queries) GetFileByOwnerAndName(ctx context.Context, arg GetFileByOwnerA
 }
 
 const getFileFromChecksum = `-- name: GetFileFromChecksum :one
-SELECT id FROM files WHERE md5_checksum = $1
+SELECT id
+FROM files
+WHERE owner_id = $1
+	AND md5_checksum = $2
+ORDER BY id
+LIMIT 1
 `
 
-func (q *Queries) GetFileFromChecksum(ctx context.Context, md5Checksum string) (int32, error) {
-	row := q.db.QueryRowContext(ctx, getFileFromChecksum, md5Checksum)
+type GetFileFromChecksumParams struct {
+	OwnerID     uuid.UUID `json:"owner_id"`
+	Md5Checksum string    `json:"md5_checksum"`
+}
+
+func (q *Queries) GetFileFromChecksum(ctx context.Context, arg GetFileFromChecksumParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getFileFromChecksum, arg.OwnerID, arg.Md5Checksum)
 	var id int32
 	err := row.Scan(&id)
 	return id, err

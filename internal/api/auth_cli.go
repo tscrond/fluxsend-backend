@@ -65,6 +65,17 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
+			planUserID := principalUserID
+			if bindingType == apiKeyBindingWorkspace {
+				workspaceOwnerID, ok := parseUUIDValue(authorizedCLIUser.WorkspaceOwnerUserID)
+				if !ok || authorizedCLIUser.WorkspaceOwnerCount != 1 {
+					log.Errorw("invalid workspace owner binding for api key", "api_key_id", authorizedCLIUser.ApiKeyID)
+					pkg.WriteJSONResponse(w, http.StatusForbidden, "invalid_api_key_binding", "Unauthorized")
+					return
+				}
+				planUserID = workspaceOwnerID
+			}
+
 			scopes, err := s.repository.Queries().ListAPIKeyScopes(r.Context(), authorizedCLIUser.ApiKeyID)
 			if err != nil {
 				log.Errorw("cannot get api key scopes", "error", err)
@@ -80,7 +91,7 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 				}
 			}
 
-			userPlan, err := s.repository.Queries().GetUserPlan(r.Context(), principalUserID)
+			userPlan, err := s.repository.Queries().GetUserPlan(r.Context(), planUserID)
 			if err != nil {
 				log.Errorw("cannot get user plan", "error", err)
 				pkg.WriteJSONResponse(w, http.StatusInternalServerError, "cannot_get_user_plan", "Internal server error")
@@ -113,7 +124,7 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 				}
 			case apiKeyBindingWorkspace:
 				if mappedUserPlan.MaxWorkspaceAPIKeys == 0 {
-					log.Errorw("user not allowed to use workspace api keys", "user_id", principalUserID)
+					log.Errorw("user not allowed to use workspace api keys", "user_id", planUserID)
 					pkg.WriteJSONResponse(w, http.StatusForbidden, "api_usage_not_allowed", "Your plan does not allow API key usage")
 					return
 				}
@@ -141,18 +152,56 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 }
 
 func parseAPIKeyBinding(authorizedCLIUser sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow) (apiKeyBindingType, uuid.UUID, uuid.UUID, bool) {
-	privateBound := authorizedCLIUser.PrivateUserID.Valid
-	workspaceBound := authorizedCLIUser.WorkspaceID.Valid
+	privateUserID, hasPrivateUserID := parseUUIDValue(authorizedCLIUser.PrivateUserID)
+	workspaceID, hasWorkspaceID := parseUUIDValue(authorizedCLIUser.WorkspaceID)
+	internalID, hasInternalID := parseUUIDValue(authorizedCLIUser.InternalID)
+
+	privateBound := authorizedCLIUser.PrivateBindingCount == 1 && hasPrivateUserID
+	workspaceBound := authorizedCLIUser.WorkspaceBindingCount == 1 && hasWorkspaceID
+
+	if authorizedCLIUser.PrivateBindingCount > 1 || authorizedCLIUser.WorkspaceBindingCount > 1 {
+		return "", uuid.Nil, uuid.Nil, false
+	}
 
 	if privateBound == workspaceBound {
 		return "", uuid.Nil, uuid.Nil, false
 	}
 
 	if privateBound {
-		return apiKeyBindingPrivate, authorizedCLIUser.PrivateUserID.UUID, uuid.Nil, true
+		return apiKeyBindingPrivate, privateUserID, uuid.Nil, true
 	}
 
-	return apiKeyBindingWorkspace, authorizedCLIUser.InternalID, authorizedCLIUser.WorkspaceID.UUID, true
+	if !hasInternalID {
+		return "", uuid.Nil, uuid.Nil, false
+	}
+
+	return apiKeyBindingWorkspace, internalID, workspaceID, true
+}
+
+func parseUUIDValue(v interface{}) (uuid.UUID, bool) {
+	switch val := v.(type) {
+	case nil:
+		return uuid.Nil, false
+	case uuid.UUID:
+		if val == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return val, true
+	case string:
+		parsed, err := uuid.Parse(strings.TrimSpace(val))
+		if err != nil || parsed == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return parsed, true
+	case []byte:
+		parsed, err := uuid.Parse(strings.TrimSpace(string(val)))
+		if err != nil || parsed == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return parsed, true
+	default:
+		return uuid.Nil, false
+	}
 }
 
 func bindingAllowsDomain(binding apiKeyBindingType, domain routeDomain) bool {
@@ -263,8 +312,8 @@ func (s *CLIServer) requireScope(requiredScope scope.Scope) func(http.Handler) h
 				return
 			}
 
-			for _, s := range scopes {
-				if s == requiredScope.String() {
+			for _, grantedScope := range scopes {
+				if grantedScope == requiredScope.String() {
 					next.ServeHTTP(w, r)
 					return
 				}

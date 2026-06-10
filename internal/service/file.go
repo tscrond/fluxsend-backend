@@ -392,16 +392,10 @@ func (s *fileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum
 }
 
 func (s *fileService) findOwnedFileIDByChecksum(ctx context.Context, userID uuid.UUID, checksum string) (int32, error) {
-	filesByOwner, err := s.queries.GetFilesByOwner(ctx, userID)
-	if err != nil {
-		return 0, err
-	}
-	for _, file := range filesByOwner {
-		if file.Md5Checksum == checksum {
-			return file.ID, nil
-		}
-	}
-	return 0, sql.ErrNoRows
+	return s.queries.GetFileFromChecksum(ctx, sqlc.GetFileFromChecksumParams{
+		OwnerID:     userID,
+		Md5Checksum: checksum,
+	})
 }
 
 // resolveUserBucketName resolves the stored bucket name for a user, falling back

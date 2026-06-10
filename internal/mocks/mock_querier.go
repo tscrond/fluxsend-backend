@@ -543,18 +543,18 @@ func (mr *MockQuerierMockRecorder) GetAPIKey(ctx, id any) *gomock.Call {
 }
 
 // GetAuthorizedCLIUserInfoByAPIKey mocks base method.
-func (m *MockQuerier) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, keyHash string) (sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
+func (m *MockQuerier) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthorizedCLIUserInfoByAPIKey", ctx, keyHash)
+	ret := m.ctrl.Call(m, "GetAuthorizedCLIUserInfoByAPIKey", ctx, crypt)
 	ret0, _ := ret[0].(sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAuthorizedCLIUserInfoByAPIKey indicates an expected call of GetAuthorizedCLIUserInfoByAPIKey.
-func (mr *MockQuerierMockRecorder) GetAuthorizedCLIUserInfoByAPIKey(ctx, keyHash any) *gomock.Call {
+func (mr *MockQuerierMockRecorder) GetAuthorizedCLIUserInfoByAPIKey(ctx, crypt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizedCLIUserInfoByAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAuthorizedCLIUserInfoByAPIKey), ctx, keyHash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizedCLIUserInfoByAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAuthorizedCLIUserInfoByAPIKey), ctx, crypt)
 }
 
 // GetBucketAndObjectFromToken mocks base method.
@@ -633,18 +633,18 @@ func (mr *MockQuerierMockRecorder) GetFileByOwnerAndName(ctx, arg any) *gomock.C
 }
 
 // GetFileFromChecksum mocks base method.
-func (m *MockQuerier) GetFileFromChecksum(ctx context.Context, md5Checksum string) (int32, error) {
+func (m *MockQuerier) GetFileFromChecksum(ctx context.Context, arg sqlc.GetFileFromChecksumParams) (int32, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFileFromChecksum", ctx, md5Checksum)
+	ret := m.ctrl.Call(m, "GetFileFromChecksum", ctx, arg)
 	ret0, _ := ret[0].(int32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFileFromChecksum indicates an expected call of GetFileFromChecksum.
-func (mr *MockQuerierMockRecorder) GetFileFromChecksum(ctx, md5Checksum any) *gomock.Call {
+func (mr *MockQuerierMockRecorder) GetFileFromChecksum(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileFromChecksum", reflect.TypeOf((*MockQuerier)(nil).GetFileFromChecksum), ctx, md5Checksum)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileFromChecksum", reflect.TypeOf((*MockQuerier)(nil).GetFileFromChecksum), ctx, arg)
 }
 
 // GetFileFromPrivateToken mocks base method.

@@ -53,7 +53,7 @@ type Querier interface {
 	GetExistingPublicShare(ctx context.Context, arg GetExistingPublicShareParams) (Share, error)
 	GetFileById(ctx context.Context, id int32) (File, error)
 	GetFileByOwnerAndName(ctx context.Context, arg GetFileByOwnerAndNameParams) (GetFileByOwnerAndNameRow, error)
-	GetFileFromChecksum(ctx context.Context, md5Checksum string) (int32, error)
+	GetFileFromChecksum(ctx context.Context, arg GetFileFromChecksumParams) (int32, error)
 	GetFileFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (File, error)
 	GetFileIdFromToken(ctx context.Context, privateDownloadToken sql.NullString) (int32, error)
 	// -- name: InsertFileReturningID :one
