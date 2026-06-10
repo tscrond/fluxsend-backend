@@ -13,7 +13,7 @@ import (
 
 // ── PATCH /workspaces/{workspace_id}/files/move  (editor own / admin+) ───────
 
-func (s *APIServer) moveWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) moveWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -68,7 +68,7 @@ func (s *APIServer) moveWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 
 // ── PATCH /workspaces/{workspace_id}/files/folder/move  (editor own / admin+) ──
 
-func (s *APIServer) moveWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) moveWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return

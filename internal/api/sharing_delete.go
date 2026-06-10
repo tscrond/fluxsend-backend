@@ -10,7 +10,7 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) revokeShare(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) revokeShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")

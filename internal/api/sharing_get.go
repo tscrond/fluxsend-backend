@@ -15,7 +15,7 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
@@ -58,7 +58,7 @@ func (s *APIServer) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.
 	s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
 }
 
-func (s *APIServer) publicShareInfo(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
@@ -92,7 +92,7 @@ func (s *APIServer) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "", info)
 }
 
-func (s *APIServer) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
@@ -152,7 +152,7 @@ func (s *APIServer) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
@@ -205,7 +205,7 @@ func (s *APIServer) downloadThroughProxy(w http.ResponseWriter, r *http.Request)
 	s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
 }
 
-func (s *APIServer) handleDownloadResponse(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) {
+func (s *CoreHandlers) handleDownloadResponse(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) {
 	if mode == "download" && s.cloudFrontSigner != nil {
 		s.proxyDownload(w, r, signedUrl, filename)
 		return
@@ -213,7 +213,7 @@ func (s *APIServer) handleDownloadResponse(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, signedUrl, http.StatusFound)
 }
 
-func (s *APIServer) proxyDownload(w http.ResponseWriter, r *http.Request, signedUrl, filename string) {
+func (s *CoreHandlers) proxyDownload(w http.ResponseWriter, r *http.Request, signedUrl, filename string) {
 	log := logger.FromContext(r.Context())
 	resp, err := http.Get(signedUrl)
 	if err != nil {
@@ -260,7 +260,7 @@ func sanitizeDownloadFilename(filename string) string {
 	return name
 }
 
-func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
@@ -285,7 +285,7 @@ func (s *APIServer) getDataSharedForUser(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func (s *APIServer) getDataSharedByUser(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getDataSharedByUser(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")

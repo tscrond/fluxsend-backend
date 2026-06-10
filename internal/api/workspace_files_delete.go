@@ -11,7 +11,7 @@ import (
 
 // ── DELETE /workspaces/{workspace_id}/files/delete  (editor own / admin+) ────
 
-func (s *APIServer) deleteWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -57,7 +57,7 @@ func (s *APIServer) deleteWorkspaceFile(w http.ResponseWriter, r *http.Request) 
 
 // ── DELETE /workspaces/{workspace_id}/files/folder/delete  (editor own empty / admin+) ──
 
-func (s *APIServer) deleteWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return

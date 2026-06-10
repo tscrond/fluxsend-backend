@@ -343,7 +343,10 @@ func TestFileService_GetNote_HappyPath(t *testing.T) {
 	const checksum = "abc123"
 	const noteContent = "This is a note"
 
-	q.EXPECT().GetFileFromChecksum(gomock.Any(), checksum).Return(fileID, nil)
+	q.EXPECT().GetFilesByOwner(gomock.Any(), userID).Return([]sqlc.File{{
+		ID:          fileID,
+		Md5Checksum: checksum,
+	}}, nil)
 	q.EXPECT().GetNoteForFileById(gomock.Any(), sqlc.GetNoteForFileByIdParams{
 		UserID: userID,
 		FileID: sql.NullInt32{Valid: true, Int32: fileID},
@@ -360,7 +363,10 @@ func TestFileService_GetNote_FileNotFound(t *testing.T) {
 	stor := mocks.NewMockObjectStorage(ctrl)
 	svc := newFileTestSvc(q, stor)
 
-	q.EXPECT().GetFileFromChecksum(gomock.Any(), "bad-checksum").Return(int32(0), sql.ErrNoRows)
+	q.EXPECT().GetFilesByOwner(gomock.Any(), gomock.Any()).Return([]sqlc.File{{
+		ID:          11,
+		Md5Checksum: "different-checksum",
+	}}, nil)
 
 	_, err := svc.GetNote(context.Background(), uuid.New(), "bad-checksum")
 	assert.ErrorIs(t, err, sql.ErrNoRows)
@@ -377,7 +383,10 @@ func TestFileService_UpsertNote_HappyPath(t *testing.T) {
 	const checksum = "abc123"
 	const content = "My note"
 
-	q.EXPECT().GetFileFromChecksum(gomock.Any(), checksum).Return(fileID, nil)
+	q.EXPECT().GetFilesByOwner(gomock.Any(), userID).Return([]sqlc.File{{
+		ID:          fileID,
+		Md5Checksum: checksum,
+	}}, nil)
 	q.EXPECT().UpdateNoteForFile(gomock.Any(), sqlc.UpdateNoteForFileParams{
 		UserID:  userID,
 		FileID:  sql.NullInt32{Valid: true, Int32: fileID},

@@ -47,6 +47,7 @@ type Querier interface {
 	DeleteWorkspaceInviteByToken(ctx context.Context, token string) error
 	DeleteWorkspaceMember(ctx context.Context, arg DeleteWorkspaceMemberParams) error
 	GetAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error)
+	GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (GetAuthorizedCLIUserInfoByAPIKeyRow, error)
 	GetBucketAndObjectFromToken(ctx context.Context, sharingToken string) (GetBucketAndObjectFromTokenRow, error)
 	GetBucketObjectAndOwnerFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (GetBucketObjectAndOwnerFromPrivateTokenRow, error)
 	GetExistingPublicShare(ctx context.Context, arg GetExistingPublicShareParams) (Share, error)
@@ -66,6 +67,7 @@ type Querier interface {
 	GetIdentityByProvider(ctx context.Context, arg GetIdentityByProviderParams) (Identity, error)
 	GetIdentityByUserID(ctx context.Context, userID uuid.UUID) (Identity, error)
 	GetNoteForFileById(ctx context.Context, arg GetNoteForFileByIdParams) (Note, error)
+	GetPlanByID(ctx context.Context, id uuid.UUID) (Plan, error)
 	GetPlanByName(ctx context.Context, name string) (Plan, error)
 	GetPlanFeatures(ctx context.Context, planID uuid.UUID) ([]PlanFeature, error)
 	GetPlans(ctx context.Context) ([]Plan, error)
@@ -80,6 +82,7 @@ type Querier interface {
 	GetUserDailyShares(ctx context.Context, id uuid.UUID) ([]GetUserDailySharesRow, error)
 	GetUserDailyUploads(ctx context.Context, ownerID uuid.UUID) ([]GetUserDailyUploadsRow, error)
 	GetUserInvitesByEmail(ctx context.Context, email string) ([]GetUserInvitesByEmailRow, error)
+	GetUserPlan(ctx context.Context, id uuid.UUID) (Plan, error)
 	GetUserStats(ctx context.Context, ownerID uuid.UUID) (GetUserStatsRow, error)
 	GetUserWithPlan(ctx context.Context, id uuid.UUID) (GetUserWithPlanRow, error)
 	GetUserWorkspaceRole(ctx context.Context, arg GetUserWorkspaceRoleParams) (string, error)

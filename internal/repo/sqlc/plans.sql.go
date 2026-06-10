@@ -101,6 +101,33 @@ func (q *Queries) DeleteUserPlan(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getPlanByID = `-- name: GetPlanByID :one
+SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at, max_files_workspace, max_user_workspaces, max_total_storage_bytes_workspace, max_users_workspace, max_workspace_folders, max_private_api_keys, max_workspace_api_keys FROM plans WHERE id = $1
+`
+
+func (q *Queries) GetPlanByID(ctx context.Context, id uuid.UUID) (Plan, error) {
+	row := q.db.QueryRowContext(ctx, getPlanByID, id)
+	var i Plan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.MaxTotalStorageBytes,
+		&i.MaxFileSizeBytes,
+		&i.MaxFiles,
+		&i.MaxFilesSentPerDay,
+		&i.MaxSharesPerDay,
+		&i.CreatedAt,
+		&i.MaxFilesWorkspace,
+		&i.MaxUserWorkspaces,
+		&i.MaxTotalStorageBytesWorkspace,
+		&i.MaxUsersWorkspace,
+		&i.MaxWorkspaceFolders,
+		&i.MaxPrivateApiKeys,
+		&i.MaxWorkspaceApiKeys,
+	)
+	return i, err
+}
+
 const getPlanByName = `-- name: GetPlanByName :one
 SELECT id, name, max_total_storage_bytes, max_file_size_bytes, max_files, max_files_sent_per_day, max_shares_per_day, created_at, max_files_workspace, max_user_workspaces, max_total_storage_bytes_workspace, max_users_workspace, max_workspace_folders, max_private_api_keys, max_workspace_api_keys FROM plans WHERE name = $1
 `
@@ -274,6 +301,36 @@ func (q *Queries) GetUserDailyUploads(ctx context.Context, ownerID uuid.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getUserPlan = `-- name: GetUserPlan :one
+SELECT p.id, p.name, p.max_total_storage_bytes, p.max_file_size_bytes, p.max_files, p.max_files_sent_per_day, p.max_shares_per_day, p.created_at, p.max_files_workspace, p.max_user_workspaces, p.max_total_storage_bytes_workspace, p.max_users_workspace, p.max_workspace_folders, p.max_private_api_keys, p.max_workspace_api_keys
+FROM plans p
+JOIN users u ON p.id = u.plan_id
+WHERE u.id = $1
+`
+
+func (q *Queries) GetUserPlan(ctx context.Context, id uuid.UUID) (Plan, error) {
+	row := q.db.QueryRowContext(ctx, getUserPlan, id)
+	var i Plan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.MaxTotalStorageBytes,
+		&i.MaxFileSizeBytes,
+		&i.MaxFiles,
+		&i.MaxFilesSentPerDay,
+		&i.MaxSharesPerDay,
+		&i.CreatedAt,
+		&i.MaxFilesWorkspace,
+		&i.MaxUserWorkspaces,
+		&i.MaxTotalStorageBytesWorkspace,
+		&i.MaxUsersWorkspace,
+		&i.MaxWorkspaceFolders,
+		&i.MaxPrivateApiKeys,
+		&i.MaxWorkspaceApiKeys,
+	)
+	return i, err
 }
 
 const getUserStats = `-- name: GetUserStats :one

@@ -12,7 +12,7 @@ import (
 var ErrPrivateAPIKeysLimitExceeded = errors.New("private api keys limit exceeded")
 var ErrWorkspaceAPIKeysLimitExceeded = errors.New("workspace api keys limit exceeded")
 
-func (s *APIServer) validatePrivateAPIKeyLimit(ctx context.Context, userID uuid.UUID, userPlan userdata.UserPlan) (map[string]any, error) {
+func (s *CoreHandlers) validatePrivateAPIKeyLimit(ctx context.Context, userID uuid.UUID, userPlan userdata.UserPlan) (map[string]any, error) {
 	log := logger.FromContext(ctx)
 	exceeded, err := s.repository.Queries().CheckPrivateAPIKeyQuota(ctx, userID)
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *APIServer) validatePrivateAPIKeyLimit(ctx context.Context, userID uuid.
 	return nil, nil
 }
 
-func (s *APIServer) validateWorkspaceAPIKeyLimit(ctx context.Context, workspaceID uuid.UUID) (map[string]any, error) {
+func (s *CoreHandlers) validateWorkspaceAPIKeyLimit(ctx context.Context, workspaceID uuid.UUID) (map[string]any, error) {
 	log := logger.FromContext(ctx)
 	exceeded, err := s.repository.Queries().CheckWorkspaceAPIKeyQuota(ctx, workspaceID)
 	if err != nil {

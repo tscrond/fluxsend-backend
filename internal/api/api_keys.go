@@ -52,7 +52,7 @@ func getDeleteAPIKeyParameters(r *http.Request) (*deleteApiKeyRequest, error) {
 	return &req, nil
 }
 
-func (s *APIServer) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -126,7 +126,7 @@ func (s *APIServer) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (s *APIServer) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -162,7 +162,7 @@ func (s *APIServer) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Request)
 
 }
 
-func (s *APIServer) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -211,7 +211,7 @@ func (s *APIServer) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Request
 	pkg.WriteJSONResponse(w, http.StatusOK, "deleted", nil)
 }
 
-func (s *APIServer) createPrivateAPIKey(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -285,7 +285,7 @@ func (s *APIServer) createPrivateAPIKey(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-func (s *APIServer) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -310,7 +310,7 @@ func (s *APIServer) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) deletePrivateAPIKey(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deletePrivateAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

@@ -25,7 +25,7 @@ type workspaceQuotaChecks struct {
 
 // validateWorkspacesPerUserLimit checks whether the owner has hit their plan's
 // workspace count cap. Call this before creating a new workspace.
-func (s *APIServer) validateWorkspacesPerUserLimit(ctx context.Context, ownerID uuid.UUID) (exceedInfo map[string]any, err error) {
+func (s *CoreHandlers) validateWorkspacesPerUserLimit(ctx context.Context, ownerID uuid.UUID) (exceedInfo map[string]any, err error) {
 	log := logger.FromContext(ctx)
 	exceeded, err := s.repository.Queries().CheckWorkspacesPerUserQuota(ctx, ownerID)
 	if err != nil {
@@ -44,7 +44,7 @@ func (s *APIServer) validateWorkspacesPerUserLimit(ctx context.Context, ownerID 
 // validateWorkspaceResourceLimits checks the requested per-workspace resource
 // caps for a specific operation. pendingBytes is the size of the incoming
 // upload (0 for non-upload operations).
-func (s *APIServer) validateWorkspaceResourceLimits(ctx context.Context, workspaceID uuid.UUID, pendingBytes int64, checks workspaceQuotaChecks) (exceedInfo map[string]any, err error) {
+func (s *CoreHandlers) validateWorkspaceResourceLimits(ctx context.Context, workspaceID uuid.UUID, pendingBytes int64, checks workspaceQuotaChecks) (exceedInfo map[string]any, err error) {
 	log := logger.FromContext(ctx)
 	quota, err := s.repository.Queries().GetWorkspaceQuotaDetails(ctx, workspaceID)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *APIServer) validateWorkspaceResourceLimits(ctx context.Context, workspa
 
 // resolveWorkspaceRole fetches the caller's role in the workspace identified by
 // the {workspace_id} URL param. Returns ("", false) on any error.
-func (s *APIServer) resolveWorkspaceRole(r *http.Request, callerID uuid.UUID) (workspaceID uuid.UUID, role string, ok bool) {
+func (s *CoreHandlers) resolveWorkspaceRole(r *http.Request, callerID uuid.UUID) (workspaceID uuid.UUID, role string, ok bool) {
 	rawID := chi.URLParam(r, "workspace_id")
 	workspaceID, err := uuid.Parse(rawID)
 	if err != nil {

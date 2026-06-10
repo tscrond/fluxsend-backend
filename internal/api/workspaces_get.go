@@ -8,7 +8,7 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) listWorkspaces(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -29,7 +29,7 @@ func (s *APIServer) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", workspaces)
 }
 
-func (s *APIServer) getWorkspaceMembers(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getWorkspaceMembers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -62,7 +62,7 @@ func (s *APIServer) getWorkspaceMembers(w http.ResponseWriter, r *http.Request) 
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", members)
 }
 
-func (s *APIServer) getWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -96,7 +96,7 @@ func (s *APIServer) getWorkspaceInvites(w http.ResponseWriter, r *http.Request) 
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", invites)
 }
 
-func (s *APIServer) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -118,7 +118,7 @@ func (s *APIServer) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Request
 }
 
 // GET /workspaces/{workspace_id}/quota  (admin/owner only)
-func (s *APIServer) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

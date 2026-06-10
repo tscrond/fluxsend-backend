@@ -4,11 +4,13 @@ type planContextKey struct{}
 type authorizedUserContextKey struct{}
 type verifiedUserContextKey struct{}
 type authorizedCLIUserWithPlanContextKey struct{}
+type apiKeyScopesContextKey struct{}
 
 var VerifiedUserContextKey = verifiedUserContextKey{}
 var AuthorizedUserContextKey = authorizedUserContextKey{}
 var AuthorizedUserWithPlanContextKey = planContextKey{}
 var AuthorizedCLIUserWithPlanContextKey = authorizedCLIUserWithPlanContextKey{}
+var APIKeyScopesContextKey = apiKeyScopesContextKey{}
 
 type AuthorizedUserWithPlan struct {
 	AuthorizedUserInfo

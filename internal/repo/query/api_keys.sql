@@ -90,3 +90,24 @@ WHERE u.id = $1;
 
 -- name: GetAPIKey :one
 SELECT * FROM api_keys WHERE id = $1;
+
+-- name: GetAuthorizedCLIUserInfoByAPIKey :one
+SELECT
+		ak.id AS api_key_id,
+		COALESCE(akua.user_id, ak.created_by_user_id) AS internal_id,
+		u.user_email AS email,
+		(
+			SELECT i.name
+			FROM identities i
+			WHERE i.user_id = u.id
+			LIMIT 1
+		) AS name,
+		akua.user_id AS private_user_id,
+		akw.workspace_id AS workspace_id
+FROM api_keys ak
+LEFT JOIN api_key_user_assignments akua ON akua.api_key_id = ak.id
+LEFT JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
+JOIN users u ON u.id = COALESCE(akua.user_id, ak.created_by_user_id)
+WHERE ak.key_hash = crypt($1, ak.key_hash)
+	AND ak.revoked_at IS NULL
+	AND ak.status = 'active';

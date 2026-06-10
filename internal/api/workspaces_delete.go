@@ -9,7 +9,7 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -48,7 +48,7 @@ func (s *APIServer) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -90,7 +90,7 @@ func (s *APIServer) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (s *APIServer) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -123,7 +123,7 @@ func (s *APIServer) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Request
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_rejected", nil)
 }
 
-func (s *APIServer) removeWorkspaceMember(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) removeWorkspaceMember(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return

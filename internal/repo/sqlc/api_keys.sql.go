@@ -143,6 +143,51 @@ func (q *Queries) GetAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) {
 	return i, err
 }
 
+const getAuthorizedCLIUserInfoByAPIKey = `-- name: GetAuthorizedCLIUserInfoByAPIKey :one
+SELECT
+		ak.id AS api_key_id,
+		COALESCE(akua.user_id, ak.created_by_user_id) AS internal_id,
+		u.user_email AS email,
+		(
+			SELECT i.name
+			FROM identities i
+			WHERE i.user_id = u.id
+			LIMIT 1
+		) AS name,
+		akua.user_id AS private_user_id,
+		akw.workspace_id AS workspace_id
+FROM api_keys ak
+LEFT JOIN api_key_user_assignments akua ON akua.api_key_id = ak.id
+LEFT JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
+JOIN users u ON u.id = COALESCE(akua.user_id, ak.created_by_user_id)
+WHERE ak.key_hash = crypt($1, ak.key_hash)
+	AND ak.revoked_at IS NULL
+	AND ak.status = 'active'
+`
+
+type GetAuthorizedCLIUserInfoByAPIKeyRow struct {
+	ApiKeyID      uuid.UUID      `json:"api_key_id"`
+	InternalID    uuid.UUID      `json:"internal_id"`
+	Email         string         `json:"email"`
+	Name          sql.NullString `json:"name"`
+	PrivateUserID uuid.NullUUID  `json:"private_user_id"`
+	WorkspaceID   uuid.NullUUID  `json:"workspace_id"`
+}
+
+func (q *Queries) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
+	row := q.db.QueryRowContext(ctx, getAuthorizedCLIUserInfoByAPIKey, crypt)
+	var i GetAuthorizedCLIUserInfoByAPIKeyRow
+	err := row.Scan(
+		&i.ApiKeyID,
+		&i.InternalID,
+		&i.Email,
+		&i.Name,
+		&i.PrivateUserID,
+		&i.WorkspaceID,
+	)
+	return i, err
+}
+
 const listAPIKeyScopes = `-- name: ListAPIKeyScopes :many
 SELECT scope
 FROM api_key_scopes

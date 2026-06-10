@@ -10,7 +10,7 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) renameWorkspace(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -74,7 +74,7 @@ func (s *APIServer) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "workspace_renamed", updated)
 }
 
-func (s *APIServer) changeMemberRole(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) changeMemberRole(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return

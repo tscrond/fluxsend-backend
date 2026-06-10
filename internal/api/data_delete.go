@@ -10,7 +10,7 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return
@@ -43,7 +43,7 @@ func (s *APIServer) deleteFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return
@@ -81,7 +81,7 @@ func (s *APIServer) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) deleteAccount(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return

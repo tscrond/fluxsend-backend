@@ -542,6 +542,21 @@ func (mr *MockQuerierMockRecorder) GetAPIKey(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAPIKey), ctx, id)
 }
 
+// GetAuthorizedCLIUserInfoByAPIKey mocks base method.
+func (m *MockQuerier) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, keyHash string) (sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthorizedCLIUserInfoByAPIKey", ctx, keyHash)
+	ret0, _ := ret[0].(sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAuthorizedCLIUserInfoByAPIKey indicates an expected call of GetAuthorizedCLIUserInfoByAPIKey.
+func (mr *MockQuerierMockRecorder) GetAuthorizedCLIUserInfoByAPIKey(ctx, keyHash any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizedCLIUserInfoByAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAuthorizedCLIUserInfoByAPIKey), ctx, keyHash)
+}
+
 // GetBucketAndObjectFromToken mocks base method.
 func (m *MockQuerier) GetBucketAndObjectFromToken(ctx context.Context, sharingToken string) (sqlc.GetBucketAndObjectFromTokenRow, error) {
 	m.ctrl.T.Helper()
@@ -752,6 +767,21 @@ func (mr *MockQuerierMockRecorder) GetNoteForFileById(ctx, arg any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNoteForFileById", reflect.TypeOf((*MockQuerier)(nil).GetNoteForFileById), ctx, arg)
 }
 
+// GetPlanByID mocks base method.
+func (m *MockQuerier) GetPlanByID(ctx context.Context, id uuid.UUID) (sqlc.Plan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlanByID", ctx, id)
+	ret0, _ := ret[0].(sqlc.Plan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPlanByID indicates an expected call of GetPlanByID.
+func (mr *MockQuerierMockRecorder) GetPlanByID(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlanByID", reflect.TypeOf((*MockQuerier)(nil).GetPlanByID), ctx, id)
+}
+
 // GetPlanByName mocks base method.
 func (m *MockQuerier) GetPlanByName(ctx context.Context, name string) (sqlc.Plan, error) {
 	m.ctrl.T.Helper()
@@ -960,6 +990,21 @@ func (m *MockQuerier) GetUserInvitesByEmail(ctx context.Context, email string) (
 func (mr *MockQuerierMockRecorder) GetUserInvitesByEmail(ctx, email any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserInvitesByEmail", reflect.TypeOf((*MockQuerier)(nil).GetUserInvitesByEmail), ctx, email)
+}
+
+// GetUserPlan mocks base method.
+func (m *MockQuerier) GetUserPlan(ctx context.Context, id uuid.UUID) (sqlc.Plan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserPlan", ctx, id)
+	ret0, _ := ret[0].(sqlc.Plan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserPlan indicates an expected call of GetUserPlan.
+func (mr *MockQuerierMockRecorder) GetUserPlan(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserPlan", reflect.TypeOf((*MockQuerier)(nil).GetUserPlan), ctx, id)
 }
 
 // GetUserStats mocks base method.

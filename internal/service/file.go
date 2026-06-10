@@ -358,7 +358,7 @@ func (s *fileService) MoveFolder(ctx context.Context, userID uuid.UUID, source, 
 }
 
 func (s *fileService) GetNote(ctx context.Context, userID uuid.UUID, checksum string) (string, error) {
-	fileID, err := s.queries.GetFileFromChecksum(ctx, checksum)
+	fileID, err := s.findOwnedFileIDByChecksum(ctx, userID, checksum)
 	if err != nil {
 		return "", err
 	}
@@ -377,7 +377,7 @@ func (s *fileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum
 	if utf8.RuneCountInString(sanitized) > 500 {
 		return "", ErrNoteTooLong
 	}
-	fileID, err := s.queries.GetFileFromChecksum(ctx, checksum)
+	fileID, err := s.findOwnedFileIDByChecksum(ctx, userID, checksum)
 	if err != nil {
 		return "", err
 	}
@@ -389,6 +389,19 @@ func (s *fileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum
 		return "", err
 	}
 	return sanitized, nil
+}
+
+func (s *fileService) findOwnedFileIDByChecksum(ctx context.Context, userID uuid.UUID, checksum string) (int32, error) {
+	filesByOwner, err := s.queries.GetFilesByOwner(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	for _, file := range filesByOwner {
+		if file.Md5Checksum == checksum {
+			return file.ID, nil
+		}
+	}
+	return 0, sql.ErrNoRows
 }
 
 // resolveUserBucketName resolves the stored bucket name for a user, falling back

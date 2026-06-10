@@ -13,7 +13,7 @@ import (
 
 // ── POST /workspaces/{workspace_id}/files/upload  (editor+) ──────────────────
 
-func (s *APIServer) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -66,7 +66,7 @@ func (s *APIServer) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) 
 
 // ── POST /workspaces/{workspace_id}/files/mkdir  (editor+) ───────────────────
 
-func (s *APIServer) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

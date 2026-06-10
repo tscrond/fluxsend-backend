@@ -7,7 +7,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) getUserData(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getUserData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
 		return
@@ -26,7 +26,7 @@ func (s *APIServer) getUserData(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) getUserBucketData(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getUserBucketData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
 		return
@@ -53,7 +53,7 @@ func (s *APIServer) getUserBucketData(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) getUserPrivateFileByName(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getUserPrivateFileByName(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
 		return
@@ -79,7 +79,7 @@ func (s *APIServer) getUserPrivateFileByName(w http.ResponseWriter, r *http.Requ
 }
 
 // GET /user/stats — personal usage analytics
-func (s *APIServer) getUserStats(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getUserStats(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
