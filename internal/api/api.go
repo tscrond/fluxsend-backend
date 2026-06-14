@@ -17,15 +17,13 @@ import (
 	"go.uber.org/zap"
 )
 
-type APIServer struct {
+type CoreHandlers struct {
 	log              *zap.SugaredLogger
 	backendConfig    config.BackendConfig
 	bucketHandler    storagetypes.ObjectStorage
 	cloudFrontSigner *cdn.CloudFrontURLSigner
 	emailSender      mailtypes.EmailSender
 	repository       repo.Repository
-	authProviders    map[string]auth.AuthProvider
-	tokenEncryptor   *tokencrypto.Encryptor
 
 	files          service.FileService
 	shares         service.ShareService
@@ -35,14 +33,20 @@ type APIServer struct {
 	apiKeys        service.APIKeyService
 }
 
-type APIServerDependencies struct {
+type APIServer struct {
+	*CoreHandlers
+	authProviders  map[string]auth.AuthProvider
+	tokenEncryptor *tokencrypto.Encryptor
+}
+
+type routeMiddleware func(http.Handler) http.Handler
+
+type CoreHandlersDependencies struct {
 	Log              *zap.SugaredLogger
 	EmailSender      mailtypes.EmailSender
 	BucketHandler    storagetypes.ObjectStorage
 	CloudFrontSigner *cdn.CloudFrontURLSigner
 	Repository       repo.Repository
-	AuthProviders    map[string]auth.AuthProvider
-	TokenEncryptor   *tokencrypto.Encryptor
 	Files            service.FileService
 	Shares           service.ShareService
 	Users            service.UserService
@@ -51,22 +55,111 @@ type APIServerDependencies struct {
 	ApiKeys          service.APIKeyService
 }
 
-func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies) *APIServer {
-	return &APIServer{
+type APIServerDependencies struct {
+	CoreHandlersDependencies
+	AuthProviders  map[string]auth.AuthProvider
+	TokenEncryptor *tokencrypto.Encryptor
+}
+
+func NewCoreHandlers(backendConfig config.BackendConfig, deps CoreHandlersDependencies) *CoreHandlers {
+	return &CoreHandlers{
 		log:              deps.Log,
 		backendConfig:    backendConfig,
 		bucketHandler:    deps.BucketHandler,
 		cloudFrontSigner: deps.CloudFrontSigner,
 		emailSender:      deps.EmailSender,
 		repository:       deps.Repository,
-		authProviders:    deps.AuthProviders,
-		tokenEncryptor:   deps.TokenEncryptor,
 		files:            deps.Files,
 		shares:           deps.Shares,
 		users:            deps.Users,
 		workspaces:       deps.Workspaces,
 		workspaceFiles:   deps.WorkspaceFiles,
 		apiKeys:          deps.ApiKeys,
+	}
+}
+
+func applyRouteMiddleware(handler http.HandlerFunc, middleware routeMiddleware) http.Handler {
+	if middleware == nil {
+		return handler
+	}
+	return middleware(handler)
+}
+
+func (s *CoreHandlers) registerFileRoutes(r chi.Router, protected routeMiddleware) {
+	r.Handle("/files/upload", applyRouteMiddleware(s.uploadHandler, protected))
+	r.Handle("/files/share", applyRouteMiddleware(s.shareWith, protected))
+	r.Handle("/files/tree", applyRouteMiddleware(s.getFilesTree, protected))
+	r.Handle("/files/move", applyRouteMiddleware(s.moveFile, protected))
+
+	r.Handle("/files/received", applyRouteMiddleware(s.getDataSharedForUser, protected))
+	r.Handle("/files/received/unseen_count", applyRouteMiddleware(s.getUnseenReceivedCount, protected))
+	r.Handle("/files/received/mark_seen", applyRouteMiddleware(s.markReceivedSeen, protected))
+	r.Handle("/files/shared_by_user", applyRouteMiddleware(s.getDataSharedByUser, protected))
+	r.Handle("/files/quick_share", applyRouteMiddleware(s.quickShare, protected))
+	r.Handle("/files/delete", applyRouteMiddleware(s.deleteFile, protected))
+	r.Handle("/files/delete/batch", applyRouteMiddleware(s.deleteFilesBatch, protected))
+	r.Handle("/files/{checksum}/note", applyRouteMiddleware(s.fileNotesHandler, protected))
+
+	r.Handle("/folders", applyRouteMiddleware(s.foldersHandler, protected))
+	r.Handle("/folders/move", applyRouteMiddleware(s.moveFolder, protected))
+}
+
+func (s *CoreHandlers) registerWorkspaceRoutes(r chi.Router, protected routeMiddleware) {
+	r.Handle("/workspaces/create", applyRouteMiddleware(s.createWorkspace, protected))
+	r.Handle("/workspaces/list", applyRouteMiddleware(s.listWorkspaces, protected))
+	r.Handle("/workspaces/members", applyRouteMiddleware(s.getWorkspaceMembers, protected))
+	r.Handle("/workspaces/members/remove", applyRouteMiddleware(s.removeWorkspaceMember, protected))
+	r.Handle("/workspaces/invites", applyRouteMiddleware(s.getWorkspaceInvites, protected))
+	r.Handle("/workspaces/invites/mine", applyRouteMiddleware(s.getMyWorkspaceInvites, protected))
+	r.Handle("/workspaces/invites/create", applyRouteMiddleware(s.createWorkspaceInvite, protected))
+	r.Handle("/workspaces/invites/accept", applyRouteMiddleware(s.acceptWorkspaceInvite, protected))
+	r.Handle("/workspaces/invites/reject", applyRouteMiddleware(s.rejectWorkspaceInvite, protected))
+	r.Handle("/workspaces/invites/delete", applyRouteMiddleware(s.deleteWorkspaceInvite, protected))
+	r.Handle("/workspaces/delete", applyRouteMiddleware(s.deleteWorkspace, protected))
+	r.Handle("/workspaces/rename", applyRouteMiddleware(s.renameWorkspace, protected))
+	r.Handle("/workspaces/members/role", applyRouteMiddleware(s.changeMemberRole, protected))
+
+	r.Handle("/workspaces/{workspace_id}/files/tree", applyRouteMiddleware(s.getWorkspaceFilesTree, protected))
+	r.Handle("/workspaces/{workspace_id}/files/upload", applyRouteMiddleware(s.uploadWorkspaceFile, protected))
+	r.Handle("/workspaces/{workspace_id}/files/mkdir", applyRouteMiddleware(s.mkdirWorkspace, protected))
+	r.Handle("/workspaces/{workspace_id}/files/delete", applyRouteMiddleware(s.deleteWorkspaceFile, protected))
+	r.Handle("/workspaces/{workspace_id}/files/folder/delete", applyRouteMiddleware(s.deleteWorkspaceFolder, protected))
+	r.Handle("/workspaces/{workspace_id}/files/move", applyRouteMiddleware(s.moveWorkspaceFile, protected))
+	r.Handle("/workspaces/{workspace_id}/files/folder/move", applyRouteMiddleware(s.moveWorkspaceFolder, protected))
+	r.Handle("/workspaces/{workspace_id}/files/download", applyRouteMiddleware(s.downloadWorkspaceFile, protected))
+	r.Handle("/workspaces/{workspace_id}/quota", applyRouteMiddleware(s.getWorkspaceQuota, protected))
+}
+
+func (s *CoreHandlers) registerSharingRoutes(r chi.Router, protected routeMiddleware) {
+	r.Handle("/d/private/{token}", applyRouteMiddleware(s.downloadThroughProxyPersonal, protected))
+	r.Handle("/d/{token}", applyRouteMiddleware(s.downloadThroughProxy, nil))
+	r.Handle("/share/info/{token}", applyRouteMiddleware(s.publicShareInfo, nil))
+	r.Handle("/share/resolve/{token}", applyRouteMiddleware(s.resolvePublicShare, nil))
+	r.Handle("/share/revoke/{token}", applyRouteMiddleware(s.revokeShare, protected))
+}
+
+func (s *CoreHandlers) registerUserRoutes(r chi.Router, protected routeMiddleware) {
+	r.Handle("/user/data", applyRouteMiddleware(s.getUserData, protected))
+	r.Handle("/user/bucket", applyRouteMiddleware(s.getUserBucketData, protected))
+	r.Handle("/user/private/download_token", applyRouteMiddleware(s.getUserPrivateFileByName, protected))
+	r.Handle("/user/account/delete", applyRouteMiddleware(s.deleteAccount, protected))
+	r.Handle("/user/stats", applyRouteMiddleware(s.getUserStats, protected))
+}
+
+func (s *CoreHandlers) registerAPIKeyRoutes(r chi.Router, protected routeMiddleware) {
+	r.Handle("/api_keys/{workspace_id}/create", applyRouteMiddleware(s.createWorkspaceAPIKey, protected))
+	r.Handle("/api_keys/{workspace_id}/list", applyRouteMiddleware(s.listWorkspaceAPIKeys, protected))
+	r.Handle("/api_keys/{workspace_id}/delete", applyRouteMiddleware(s.deleteWorkspaceAPIKey, protected))
+	r.Handle("/api_keys/private/create", applyRouteMiddleware(s.createPrivateAPIKey, protected))
+	r.Handle("/api_keys/private/list", applyRouteMiddleware(s.listPrivateAPIKeys, protected))
+	r.Handle("/api_keys/private/delete", applyRouteMiddleware(s.deletePrivateAPIKey, protected))
+}
+
+func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies) *APIServer {
+	return &APIServer{
+		CoreHandlers:   NewCoreHandlers(backendConfig, deps.CoreHandlersDependencies),
+		authProviders:  deps.AuthProviders,
+		tokenEncryptor: deps.TokenEncryptor,
 	}
 }
 
@@ -85,11 +178,11 @@ func (s *APIServer) Handler() http.Handler {
 	r.Use(c.Handler)
 
 	s.registerAuthRoutes(r)
-	s.registerFileRoutes(r)
-	s.registerWorkspaceRoutes(r)
-	s.registerSharingRoutes(r)
-	s.registerUserRoutes(r)
-	s.registerAPIKeyRoutes(r)
+	s.registerFileRoutes(r, s.authMiddleware)
+	s.registerWorkspaceRoutes(r, s.authMiddleware)
+	s.registerSharingRoutes(r, s.authMiddleware)
+	s.registerUserRoutes(r, s.authMiddleware)
+	s.registerAPIKeyRoutes(r, s.authMiddleware)
 
 	return r
 }
@@ -105,74 +198,4 @@ func (s *APIServer) registerAuthRoutes(r chi.Router) {
 	r.Handle("/auth/{provider}/callback", http.HandlerFunc(s.authCallbackHandler))
 	r.Handle("/auth/is_valid", http.HandlerFunc(s.isValid))
 	r.Handle("/auth/logout", http.HandlerFunc(s.logout))
-}
-
-func (s *APIServer) registerFileRoutes(r chi.Router) {
-	r.Handle("/files/upload", s.authMiddleware(http.HandlerFunc(s.uploadHandler)))
-	r.Handle("/files/share", s.authMiddleware(http.HandlerFunc(s.shareWith)))
-	r.Handle("/files/tree", s.authMiddleware(http.HandlerFunc(s.getFilesTree)))
-	r.Handle("/files/move", s.authMiddleware(http.HandlerFunc(s.moveFile)))
-
-	r.Handle("/files/received", s.authMiddleware(http.HandlerFunc(s.getDataSharedForUser)))
-	r.Handle("/files/received/unseen_count", s.authMiddleware(http.HandlerFunc(s.getUnseenReceivedCount)))
-	r.Handle("/files/received/mark_seen", s.authMiddleware(http.HandlerFunc(s.markReceivedSeen)))
-	r.Handle("/files/shared_by_user", s.authMiddleware(http.HandlerFunc(s.getDataSharedByUser)))
-	r.Handle("/files/quick_share", s.authMiddleware(http.HandlerFunc(s.quickShare)))
-	r.Handle("/files/delete", s.authMiddleware(http.HandlerFunc(s.deleteFile)))
-	r.Handle("/files/delete/batch", s.authMiddleware(http.HandlerFunc(s.deleteFilesBatch)))
-	r.Handle("/files/{checksum}/note", s.authMiddleware(http.HandlerFunc(s.fileNotesHandler)))
-
-	r.Handle("/folders", s.authMiddleware(http.HandlerFunc(s.foldersHandler)))
-	r.Handle("/folders/move", s.authMiddleware(http.HandlerFunc(s.moveFolder)))
-}
-
-func (s *APIServer) registerWorkspaceRoutes(r chi.Router) {
-	r.Handle("/workspaces/create", s.authMiddleware(http.HandlerFunc(s.createWorkspace)))
-	r.Handle("/workspaces/list", s.authMiddleware(http.HandlerFunc(s.listWorkspaces)))
-	r.Handle("/workspaces/members", s.authMiddleware(http.HandlerFunc(s.getWorkspaceMembers)))
-	r.Handle("/workspaces/members/remove", s.authMiddleware(http.HandlerFunc(s.removeWorkspaceMember)))
-	r.Handle("/workspaces/invites", s.authMiddleware(http.HandlerFunc(s.getWorkspaceInvites)))
-	r.Handle("/workspaces/invites/mine", s.authMiddleware(http.HandlerFunc(s.getMyWorkspaceInvites)))
-	r.Handle("/workspaces/invites/create", s.authMiddleware(http.HandlerFunc(s.createWorkspaceInvite)))
-	r.Handle("/workspaces/invites/accept", s.authMiddleware(http.HandlerFunc(s.acceptWorkspaceInvite)))
-	r.Handle("/workspaces/invites/reject", s.authMiddleware(http.HandlerFunc(s.rejectWorkspaceInvite)))
-	r.Handle("/workspaces/invites/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceInvite)))
-	r.Handle("/workspaces/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspace)))
-	r.Handle("/workspaces/rename", s.authMiddleware(http.HandlerFunc(s.renameWorkspace)))
-	r.Handle("/workspaces/members/role", s.authMiddleware(http.HandlerFunc(s.changeMemberRole)))
-
-	r.Handle("/workspaces/{workspace_id}/files/tree", s.authMiddleware(http.HandlerFunc(s.getWorkspaceFilesTree)))
-	r.Handle("/workspaces/{workspace_id}/files/upload", s.authMiddleware(http.HandlerFunc(s.uploadWorkspaceFile)))
-	r.Handle("/workspaces/{workspace_id}/files/mkdir", s.authMiddleware(http.HandlerFunc(s.mkdirWorkspace)))
-	r.Handle("/workspaces/{workspace_id}/files/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceFile)))
-	r.Handle("/workspaces/{workspace_id}/files/folder/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceFolder)))
-	r.Handle("/workspaces/{workspace_id}/files/move", s.authMiddleware(http.HandlerFunc(s.moveWorkspaceFile)))
-	r.Handle("/workspaces/{workspace_id}/files/folder/move", s.authMiddleware(http.HandlerFunc(s.moveWorkspaceFolder)))
-	r.Handle("/workspaces/{workspace_id}/files/download", s.authMiddleware(http.HandlerFunc(s.downloadWorkspaceFile)))
-	r.Handle("/workspaces/{workspace_id}/quota", s.authMiddleware(http.HandlerFunc(s.getWorkspaceQuota)))
-}
-
-func (s *APIServer) registerSharingRoutes(r chi.Router) {
-	r.Handle("/d/private/{token}", s.authMiddleware(http.HandlerFunc(s.downloadThroughProxyPersonal)))
-	r.Handle("/d/{token}", http.HandlerFunc(s.downloadThroughProxy))
-	r.Handle("/share/info/{token}", http.HandlerFunc(s.publicShareInfo))
-	r.Handle("/share/resolve/{token}", http.HandlerFunc(s.resolvePublicShare))
-	r.Handle("/share/revoke/{token}", s.authMiddleware(http.HandlerFunc(s.revokeShare)))
-}
-
-func (s *APIServer) registerUserRoutes(r chi.Router) {
-	r.Handle("/user/data", s.authMiddleware(http.HandlerFunc(s.getUserData)))
-	r.Handle("/user/bucket", s.authMiddleware(http.HandlerFunc(s.getUserBucketData)))
-	r.Handle("/user/private/download_token", s.authMiddleware(http.HandlerFunc(s.getUserPrivateFileByName)))
-	r.Handle("/user/account/delete", s.authMiddleware(http.HandlerFunc(s.deleteAccount)))
-	r.Handle("/user/stats", s.authMiddleware(http.HandlerFunc(s.getUserStats)))
-}
-
-func (s *APIServer) registerAPIKeyRoutes(r chi.Router) {
-	r.Handle("/api_keys/{workspace_id}/create", s.authMiddleware(http.HandlerFunc(s.createWorkspaceAPIKey)))
-	r.Handle("/api_keys/{workspace_id}/list", s.authMiddleware(http.HandlerFunc(s.listWorkspaceAPIKeys)))
-	r.Handle("/api_keys/{workspace_id}/delete", s.authMiddleware(http.HandlerFunc(s.deleteWorkspaceAPIKey)))
-	r.Handle("/api_keys/private/create", s.authMiddleware(http.HandlerFunc(s.createPrivateAPIKey)))
-	r.Handle("/api_keys/private/list", s.authMiddleware(http.HandlerFunc(s.listPrivateAPIKeys)))
-	r.Handle("/api_keys/private/delete", s.authMiddleware(http.HandlerFunc(s.deletePrivateAPIKey)))
 }

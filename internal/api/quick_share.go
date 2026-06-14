@@ -12,7 +12,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
@@ -74,7 +74,7 @@ func (s *APIServer) quickShare(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "", result)
 }
 
-func (s *APIServer) getUnseenReceivedCount(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getUnseenReceivedCount(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
@@ -99,7 +99,7 @@ func (s *APIServer) getUnseenReceivedCount(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-func (s *APIServer) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")

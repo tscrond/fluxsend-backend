@@ -149,3 +149,12 @@ WHERE shares.shared_by = (SELECT user_email FROM users WHERE users.id = $1)
   AND shares.created_at >= NOW() - INTERVAL '7 days'
 GROUP BY shares.created_at::date
 ORDER BY day;
+
+-- name: GetPlanByID :one
+SELECT * FROM plans WHERE id = $1;
+
+-- name: GetUserPlan :one
+SELECT p.*
+FROM plans p
+JOIN users u ON p.id = u.plan_id
+WHERE u.id = $1;

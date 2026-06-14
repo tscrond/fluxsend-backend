@@ -16,7 +16,7 @@ var ErrStorageQuotaExceeded = errors.New("storage quota exceeded")
 var ErrDailyUploadLimitExceeded = errors.New("daily upload limit exceeded")
 var ErrDailyShareLimitExceeded = errors.New("daily share limit exceeded")
 
-func (s *APIServer) validateClassicUploadPlan(ctx context.Context, userUUID uuid.UUID, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
+func (s *CoreHandlers) validateClassicUploadPlan(ctx context.Context, userUUID uuid.UUID, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
 	log := logger.FromContext(ctx)
 	quota, err := s.repository.Queries().CheckUploadQuota(ctx, sqlc.CheckUploadQuotaParams{
 		OwnerID: userUUID,
@@ -50,7 +50,7 @@ func (s *APIServer) validateClassicUploadPlan(ctx context.Context, userUUID uuid
 	return nil, nil
 }
 
-func (s *APIServer) validateClassicSharePlan(ctx context.Context, sharedByEmail string, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
+func (s *CoreHandlers) validateClassicSharePlan(ctx context.Context, sharedByEmail string, userPlan userdata.UserPlan) (exceedInfo map[string]any, err error) {
 	log := logger.FromContext(ctx)
 	sharesExceeded, err := s.repository.Queries().CheckShareQuota(ctx, sqlc.CheckShareQuotaParams{
 		SharedBy: sql.NullString{String: sharedByEmail, Valid: true},
@@ -71,7 +71,7 @@ func (s *APIServer) validateClassicSharePlan(ctx context.Context, sharedByEmail 
 	return nil, nil
 }
 
-func (s *APIServer) checkForClassicPlanErrorType(quota sqlc.CheckUploadQuotaRow) error {
+func (s *CoreHandlers) checkForClassicPlanErrorType(quota sqlc.CheckUploadQuotaRow) error {
 	switch {
 	case quota.FilesExceeded:
 		return ErrFileLimitExceeded

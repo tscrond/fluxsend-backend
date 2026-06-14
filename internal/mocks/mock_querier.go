@@ -542,6 +542,21 @@ func (mr *MockQuerierMockRecorder) GetAPIKey(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAPIKey), ctx, id)
 }
 
+// GetAuthorizedCLIUserInfoByAPIKey mocks base method.
+func (m *MockQuerier) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthorizedCLIUserInfoByAPIKey", ctx, crypt)
+	ret0, _ := ret[0].(sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAuthorizedCLIUserInfoByAPIKey indicates an expected call of GetAuthorizedCLIUserInfoByAPIKey.
+func (mr *MockQuerierMockRecorder) GetAuthorizedCLIUserInfoByAPIKey(ctx, crypt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizedCLIUserInfoByAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAuthorizedCLIUserInfoByAPIKey), ctx, crypt)
+}
+
 // GetBucketAndObjectFromToken mocks base method.
 func (m *MockQuerier) GetBucketAndObjectFromToken(ctx context.Context, sharingToken string) (sqlc.GetBucketAndObjectFromTokenRow, error) {
 	m.ctrl.T.Helper()
@@ -618,18 +633,18 @@ func (mr *MockQuerierMockRecorder) GetFileByOwnerAndName(ctx, arg any) *gomock.C
 }
 
 // GetFileFromChecksum mocks base method.
-func (m *MockQuerier) GetFileFromChecksum(ctx context.Context, md5Checksum string) (int32, error) {
+func (m *MockQuerier) GetFileFromChecksum(ctx context.Context, arg sqlc.GetFileFromChecksumParams) (int32, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFileFromChecksum", ctx, md5Checksum)
+	ret := m.ctrl.Call(m, "GetFileFromChecksum", ctx, arg)
 	ret0, _ := ret[0].(int32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFileFromChecksum indicates an expected call of GetFileFromChecksum.
-func (mr *MockQuerierMockRecorder) GetFileFromChecksum(ctx, md5Checksum any) *gomock.Call {
+func (mr *MockQuerierMockRecorder) GetFileFromChecksum(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileFromChecksum", reflect.TypeOf((*MockQuerier)(nil).GetFileFromChecksum), ctx, md5Checksum)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileFromChecksum", reflect.TypeOf((*MockQuerier)(nil).GetFileFromChecksum), ctx, arg)
 }
 
 // GetFileFromPrivateToken mocks base method.
@@ -750,6 +765,21 @@ func (m *MockQuerier) GetNoteForFileById(ctx context.Context, arg sqlc.GetNoteFo
 func (mr *MockQuerierMockRecorder) GetNoteForFileById(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNoteForFileById", reflect.TypeOf((*MockQuerier)(nil).GetNoteForFileById), ctx, arg)
+}
+
+// GetPlanByID mocks base method.
+func (m *MockQuerier) GetPlanByID(ctx context.Context, id uuid.UUID) (sqlc.Plan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlanByID", ctx, id)
+	ret0, _ := ret[0].(sqlc.Plan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPlanByID indicates an expected call of GetPlanByID.
+func (mr *MockQuerierMockRecorder) GetPlanByID(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlanByID", reflect.TypeOf((*MockQuerier)(nil).GetPlanByID), ctx, id)
 }
 
 // GetPlanByName mocks base method.
@@ -960,6 +990,21 @@ func (m *MockQuerier) GetUserInvitesByEmail(ctx context.Context, email string) (
 func (mr *MockQuerierMockRecorder) GetUserInvitesByEmail(ctx, email any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserInvitesByEmail", reflect.TypeOf((*MockQuerier)(nil).GetUserInvitesByEmail), ctx, email)
+}
+
+// GetUserPlan mocks base method.
+func (m *MockQuerier) GetUserPlan(ctx context.Context, id uuid.UUID) (sqlc.Plan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserPlan", ctx, id)
+	ret0, _ := ret[0].(sqlc.Plan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserPlan indicates an expected call of GetUserPlan.
+func (mr *MockQuerierMockRecorder) GetUserPlan(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserPlan", reflect.TypeOf((*MockQuerier)(nil).GetUserPlan), ctx, id)
 }
 
 // GetUserStats mocks base method.

@@ -27,7 +27,12 @@ SELECT id FROM files WHERE private_download_token = $1;
 DELETE FROM files WHERE owner_id = $1 AND file_name = $2;
 
 -- name: GetFileFromChecksum :one
-SELECT id FROM files WHERE md5_checksum = $1;
+SELECT id
+FROM files
+WHERE owner_id = $1
+	AND md5_checksum = $2
+ORDER BY id
+LIMIT 1;
 
 -- name: UpdateFileNameByOwnerAndName :exec
 UPDATE files

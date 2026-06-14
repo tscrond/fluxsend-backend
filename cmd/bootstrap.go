@@ -182,19 +182,21 @@ func buildAPIServer(log *zap.SugaredLogger, apiConfig *config.APIServerConfig, r
 	}
 
 	return api.NewAPIServer(backendConfig, api.APIServerDependencies{
-		Log:              log,
-		EmailSender:      runtime.EmailSender,
-		BucketHandler:    runtime.BucketHandler,
-		CloudFrontSigner: runtime.CloudFrontSigner,
-		Repository:       runtime.Repository,
-		AuthProviders:    runtime.AuthProviders,
-		TokenEncryptor:   runtime.TokenEncryptor,
-		Files:            runtime.FileService,
-		Shares:           runtime.ShareService,
-		Users:            runtime.UserService,
-		Workspaces:       runtime.WorkspaceService,
-		WorkspaceFiles:   runtime.WorkspaceFileService,
-		ApiKeys:          runtime.ApiKeyService,
+		CoreHandlersDependencies: api.CoreHandlersDependencies{
+			Log:              log,
+			EmailSender:      runtime.EmailSender,
+			BucketHandler:    runtime.BucketHandler,
+			CloudFrontSigner: runtime.CloudFrontSigner,
+			Repository:       runtime.Repository,
+			Files:            runtime.FileService,
+			Shares:           runtime.ShareService,
+			Users:            runtime.UserService,
+			Workspaces:       runtime.WorkspaceService,
+			WorkspaceFiles:   runtime.WorkspaceFileService,
+			ApiKeys:          runtime.ApiKeyService,
+		},
+		AuthProviders:  runtime.AuthProviders,
+		TokenEncryptor: runtime.TokenEncryptor,
 	})
 }
 
@@ -205,9 +207,18 @@ func buildCLIServer(log *zap.SugaredLogger, cliConfig *config.CLIServerConfig, r
 	}
 
 	return api.NewCLIServer(backendConfig, cliConfig.RoutePrefix, api.CLIServerDependencies{
-		Log:        log,
-		Repository: runtime.Repository,
-		Files:      runtime.FileService,
-		Users:      runtime.UserService,
+		CoreHandlersDependencies: api.CoreHandlersDependencies{
+			Log:              log,
+			EmailSender:      runtime.EmailSender,
+			BucketHandler:    runtime.BucketHandler,
+			CloudFrontSigner: runtime.CloudFrontSigner,
+			Repository:       runtime.Repository,
+			Files:            runtime.FileService,
+			Shares:           runtime.ShareService,
+			Users:            runtime.UserService,
+			Workspaces:       runtime.WorkspaceService,
+			WorkspaceFiles:   runtime.WorkspaceFileService,
+			ApiKeys:          runtime.ApiKeyService,
+		},
 	})
 }

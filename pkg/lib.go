@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/google/uuid"
 )
 
 func GetEnvBool(name string, defaultValue bool) (bool, error) {
@@ -208,4 +210,30 @@ func GenerateSecureAPIKey() (string, error) {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(key), nil
+}
+
+func ParseUUIDValue(v interface{}) (uuid.UUID, bool) {
+	switch val := v.(type) {
+	case nil:
+		return uuid.Nil, false
+	case uuid.UUID:
+		if val == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return val, true
+	case string:
+		parsed, err := uuid.Parse(strings.TrimSpace(val))
+		if err != nil || parsed == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return parsed, true
+	case []byte:
+		parsed, err := uuid.Parse(strings.TrimSpace(string(val)))
+		if err != nil || parsed == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return parsed, true
+	default:
+		return uuid.Nil, false
+	}
 }

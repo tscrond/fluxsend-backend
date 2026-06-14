@@ -90,3 +90,42 @@ WHERE u.id = $1;
 
 -- name: GetAPIKey :one
 SELECT * FROM api_keys WHERE id = $1;
+
+-- name: GetAuthorizedCLIUserInfoByAPIKey :one
+WITH key_binding AS (
+	SELECT
+		ak.id AS api_key_id,
+		ak.created_by_user_id,
+		(ARRAY_AGG(akua.user_id ORDER BY akua.user_id))[1] AS private_user_id,
+		COUNT(DISTINCT akua.user_id) AS private_binding_count,
+		(ARRAY_AGG(akw.workspace_id ORDER BY akw.workspace_id))[1] AS workspace_id,
+		COUNT(DISTINCT akw.workspace_id) AS workspace_binding_count,
+		(ARRAY_AGG(w.owner_id ORDER BY w.owner_id))[1] AS workspace_owner_user_id,
+		COUNT(DISTINCT w.owner_id) AS workspace_owner_count
+	FROM api_keys ak
+	LEFT JOIN api_key_user_assignments akua ON akua.api_key_id = ak.id
+	LEFT JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
+	LEFT JOIN workspaces w ON w.id = akw.workspace_id
+	WHERE ak.key_hash = crypt($1, ak.key_hash)
+	  AND ak.revoked_at IS NULL
+	  AND ak.status = 'active'
+	GROUP BY ak.id, ak.created_by_user_id
+)
+SELECT
+	kb.api_key_id,
+	COALESCE(kb.private_user_id, kb.created_by_user_id) AS internal_id,
+	u.user_email AS email,
+	(
+		SELECT i.name
+		FROM identities i
+		WHERE i.user_id = u.id
+		LIMIT 1
+	) AS name,
+	kb.private_user_id,
+	kb.workspace_id,
+	kb.private_binding_count,
+	kb.workspace_binding_count,
+	kb.workspace_owner_user_id,
+	kb.workspace_owner_count
+FROM key_binding kb
+JOIN users u ON u.id = COALESCE(kb.private_user_id, kb.created_by_user_id);

@@ -5,26 +5,12 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/tscrond/fluxsend-backend/internal/scope"
 )
 
-var allowedWorkspaceScopes = map[string]struct{}{
-	"workspaces:read":           {},
-	"workspaces:write":          {},
-	"workspaces:delete":         {},
-	"workspaces:members:read":   {},
-	"workspaces:members:manage": {},
-	"workspaces:invites:manage": {},
-	"workspaces:files:read":     {},
-	"workspaces:files:write":    {},
-	"workspaces:files:delete":   {},
-}
+var allowedWorkspaceScopes = scope.ToSet(scope.Workspace())
 
-var allowedPrivateScopes = map[string]struct{}{
-	"private_files:read":   {},
-	"private_files:write":  {},
-	"private_files:delete": {},
-	"private_files:share":  {},
-}
+var allowedPrivateScopes = scope.ToSet(scope.Private())
 
 type APIKeyData struct {
 	CreatedByUserID uuid.UUID

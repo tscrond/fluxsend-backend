@@ -12,7 +12,7 @@ import (
 
 // ── GET /workspaces/{workspace_id}/files/tree  (viewer+) ─────────────────────
 
-func (s *APIServer) getWorkspaceFilesTree(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getWorkspaceFilesTree(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -41,7 +41,7 @@ func (s *APIServer) getWorkspaceFilesTree(w http.ResponseWriter, r *http.Request
 
 // ── GET /workspaces/{workspace_id}/files/download  (viewer+) ─────────────────
 
-func (s *APIServer) downloadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) downloadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return

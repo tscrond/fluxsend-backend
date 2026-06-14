@@ -13,7 +13,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -87,7 +87,7 @@ func (s *APIServer) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -162,7 +162,7 @@ func (s *APIServer) createWorkspaceInvite(w http.ResponseWriter, r *http.Request
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_created", invite)
 }
 
-func (s *APIServer) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
 		return
@@ -202,7 +202,7 @@ func (s *APIServer) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Request
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_accepted", nil)
 }
 
-func (s *APIServer) checkIfCanSendInvites(ctx context.Context, userUUID uuid.UUID, workspaceID uuid.UUID) error {
+func (s *CoreHandlers) checkIfCanSendInvites(ctx context.Context, userUUID uuid.UUID, workspaceID uuid.UUID) error {
 	log := logger.FromContext(ctx)
 	role, err := s.workspaces.GetUserWorkspaceRole(ctx, userUUID, workspaceID)
 	if err != nil {

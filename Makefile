@@ -8,6 +8,7 @@ db-down:
 
 .PHONY: build
 FRONTEND_DIR ?= ../fluxsend-frontend
+BUILD_VERSION ?= latest
 build:
 	cd $(FRONTEND_DIR) &&\
 	docker build -t fluxsend-frontend:dev . &&\
@@ -21,3 +22,12 @@ deploy:
 .PHONY: logs
 logs:
 	docker logs -f backend
+
+.PHONY: bleedingedge
+bleedingedge:
+	cd $(FRONTEND_DIR) &&\
+	docker build -t bobaklabs/fluxsend-frontend:$(BUILD_VERSION)-bleeding-edge . &&\
+	docker push bobaklabs/fluxsend-frontend:$(BUILD_VERSION)-bleeding-edge &&\
+	cd - &&\
+	docker build -t bobaklabs/fluxsend-backend:$(BUILD_VERSION)-bleeding-edge . &&\
+	docker push bobaklabs/fluxsend-backend:$(BUILD_VERSION)-bleeding-edge

@@ -50,15 +50,45 @@ func newTestServer(ctrl *gomock.Controller) (*APIServer, *testDeps) {
 	}
 
 	srv := NewAPIServer(config.BackendConfig{}, APIServerDependencies{
-		Log:            zap.NewNop().Sugar(),
-		BucketHandler:  deps.stor,
-		Repository:     deps.repo,
-		Files:          deps.files,
-		Shares:         deps.shares,
-		Users:          deps.users,
-		Workspaces:     deps.workspaces,
-		WorkspaceFiles: deps.wsFiles,
-		ApiKeys:        deps.apiKeys,
+		CoreHandlersDependencies: CoreHandlersDependencies{
+			Log:            zap.NewNop().Sugar(),
+			BucketHandler:  deps.stor,
+			Repository:     deps.repo,
+			Files:          deps.files,
+			Shares:         deps.shares,
+			Users:          deps.users,
+			Workspaces:     deps.workspaces,
+			WorkspaceFiles: deps.wsFiles,
+			ApiKeys:        deps.apiKeys,
+		},
+	})
+	return srv, deps
+}
+
+func newTestCLIServer(ctrl *gomock.Controller, routePrefix string) (*CLIServer, *testDeps) {
+	deps := &testDeps{
+		files:      apimocks.NewMockFileService(ctrl),
+		shares:     apimocks.NewMockShareService(ctrl),
+		workspaces: apimocks.NewMockWorkspaceService(ctrl),
+		users:      apimocks.NewMockUserService(ctrl),
+		wsFiles:    apimocks.NewMockWorkspaceFileService(ctrl),
+		apiKeys:    apimocks.NewMockAPIKeyService(ctrl),
+		repo:       mocks.NewMockRepository(ctrl),
+		stor:       mocks.NewMockObjectStorage(ctrl),
+	}
+
+	srv := NewCLIServer(config.BackendConfig{}, routePrefix, CLIServerDependencies{
+		CoreHandlersDependencies: CoreHandlersDependencies{
+			Log:            zap.NewNop().Sugar(),
+			BucketHandler:  deps.stor,
+			Repository:     deps.repo,
+			Files:          deps.files,
+			Shares:         deps.shares,
+			Users:          deps.users,
+			Workspaces:     deps.workspaces,
+			WorkspaceFiles: deps.wsFiles,
+			ApiKeys:        deps.apiKeys,
+		},
 	})
 	return srv, deps
 }
@@ -110,6 +140,86 @@ func TestUploadHandler_NoAuth(t *testing.T) {
 	srv.uploadHandler(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestServerHandlers_ProtectedRoutesRequireAuth(t *testing.T) {
+	tests := []struct {
+		name       string
+		handler    func(*gomock.Controller) http.Handler
+		path       string
+		statusCode int
+	}{
+		{
+			name: "api server",
+			handler: func(ctrl *gomock.Controller) http.Handler {
+				srv, _ := newTestServer(ctrl)
+				return srv.Handler()
+			},
+			path:       "/files/tree",
+			statusCode: http.StatusForbidden,
+		},
+		{
+			name: "cli server",
+			handler: func(ctrl *gomock.Controller) http.Handler {
+				srv, _ := newTestCLIServer(ctrl, "/api")
+				return srv.Handler()
+			},
+			path:       "/api/files/tree",
+			statusCode: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			w := httptest.NewRecorder()
+
+			tt.handler(ctrl).ServeHTTP(w, req)
+
+			assert.Equal(t, tt.statusCode, w.Code)
+		})
+	}
+}
+
+func TestServerHandlers_PublicShareRoutesBypassAuth(t *testing.T) {
+	tests := []struct {
+		name       string
+		handler    func(*gomock.Controller) http.Handler
+		path       string
+		statusCode int
+	}{
+		{
+			name: "api server",
+			handler: func(ctrl *gomock.Controller) http.Handler {
+				srv, _ := newTestServer(ctrl)
+				return srv.Handler()
+			},
+			path:       "/share/info/test-token",
+			statusCode: http.StatusMethodNotAllowed,
+		},
+		{
+			name: "cli server",
+			handler: func(ctrl *gomock.Controller) http.Handler {
+				srv, _ := newTestCLIServer(ctrl, "/api")
+				return srv.Handler()
+			},
+			path:       "/api/share/info/test-token",
+			statusCode: http.StatusMethodNotAllowed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			req := httptest.NewRequest(http.MethodPost, tt.path, nil)
+			w := httptest.NewRecorder()
+
+			tt.handler(ctrl).ServeHTTP(w, req)
+
+			assert.Equal(t, tt.statusCode, w.Code)
+		})
+	}
 }
 
 func TestUploadHandler_FileTooLarge(t *testing.T) {

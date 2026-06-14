@@ -26,10 +26,23 @@ func normalizePath(path string) string {
 
 func parseAuthorizedUserWithPlan(r *http.Request) (*userdata.AuthorizedUserWithPlan, bool) {
 	uwp, ok := r.Context().Value(userdata.AuthorizedUserWithPlanContextKey).(*userdata.AuthorizedUserWithPlan)
+	if ok {
+		return uwp, true
+	}
+
+	cliUserWithPlan, ok := r.Context().Value(userdata.AuthorizedCLIUserWithPlanContextKey).(*userdata.AuthorizedCLIUserWithPlan)
 	if !ok {
 		return nil, false
 	}
-	return uwp, true
+
+	return &userdata.AuthorizedUserWithPlan{
+		AuthorizedUserInfo: userdata.AuthorizedUserInfo{
+			InternalID: cliUserWithPlan.InternalID,
+			Email:      cliUserWithPlan.Email,
+			Name:       cliUserWithPlan.Name,
+		},
+		UserPlan: cliUserWithPlan.UserPlan,
+	}, true
 }
 
 func parseAuthorizedUser(r *http.Request) (*userdata.AuthorizedUserInfo, bool) {
@@ -52,7 +65,7 @@ func parseAuthorizedUserUUID(r *http.Request) (*userdata.AuthorizedUserInfo, uui
 	return authUserData, parsedUUID, true
 }
 
-func (s *APIServer) getFilesTree(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getFilesTree(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return
@@ -74,7 +87,7 @@ func (s *APIServer) getFilesTree(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "", tree)
 }
 
-func (s *APIServer) foldersHandler(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) foldersHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		s.getFolders(w, r)
@@ -85,7 +98,7 @@ func (s *APIServer) foldersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *APIServer) getFolders(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getFolders(w http.ResponseWriter, r *http.Request) {
 	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
@@ -105,7 +118,7 @@ func (s *APIServer) getFolders(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	authUserData, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
@@ -138,7 +151,7 @@ func (s *APIServer) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
@@ -180,7 +193,7 @@ func (s *APIServer) moveFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) moveFolder(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) moveFolder(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)

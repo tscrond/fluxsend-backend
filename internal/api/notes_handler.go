@@ -11,7 +11,7 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-func (s *APIServer) fileNotesHandler(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) fileNotesHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPut:
 		s.editFileNotes(w, r)
@@ -20,7 +20,7 @@ func (s *APIServer) fileNotesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *APIServer) editFileNotes(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPut {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
@@ -60,7 +60,7 @@ func (s *APIServer) editFileNotes(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) getFileNotes(w http.ResponseWriter, r *http.Request) {
+func (s *CoreHandlers) getFileNotes(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
