@@ -10,6 +10,16 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// revokeShare revokes a share token owned by the authenticated user.
+// @Summary Revoke share
+// @Description Revokes a previously created public share token.
+// @Tags Sharing
+// @Param token path string true "Share token"
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/share/revoke/{token} [post]
 func (s *CoreHandlers) revokeShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {

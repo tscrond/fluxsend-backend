@@ -15,6 +15,17 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// downloadThroughProxyPersonal resolves a private download token for the owner.
+// @Summary Download private file
+// @Description Resolves a private download token for the authenticated file owner and redirects to the download URL.
+// @Tags Downloads
+// @Param token path string true "Download token"
+// @Param mode query string false "inline or download"
+// @Success 302 "Redirect to the signed URL"
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/d/private/{token} [get]
 func (s *CoreHandlers) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
@@ -58,6 +69,16 @@ func (s *CoreHandlers) downloadThroughProxyPersonal(w http.ResponseWriter, r *ht
 	s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
 }
 
+// publicShareInfo returns metadata for a public share token.
+// @Summary Get public share info
+// @Description Returns public metadata for a share token without requiring authentication.
+// @Tags Sharing
+// @Param token path string true "Share token"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/share/info/{token} [get]
 func (s *CoreHandlers) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
@@ -92,6 +113,21 @@ func (s *CoreHandlers) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "", info)
 }
 
+// resolvePublicShare validates a public share token and returns a signed URL.
+// @Summary Resolve public share
+// @Description Resolves a public share token and returns a signed download URL.
+// @Tags Sharing
+// @Accept json
+// @Produce json
+// @Param token path string true "Share token"
+// @Param mode query string false "inline or download"
+// @Param request body object false "Optional password payload"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/share/resolve/{token} [post]
 func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -152,6 +188,18 @@ func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request
 	})
 }
 
+// downloadThroughProxy resolves a public share token and returns the file content.
+// @Summary Download public share
+// @Description Resolves a public share token and either redirects or proxies the file content.
+// @Tags Downloads
+// @Param token path string true "Share token"
+// @Param mode query string false "inline or download"
+// @Success 302 "Redirect to the signed URL"
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/d/{token} [get]
 func (s *CoreHandlers) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
@@ -260,6 +308,14 @@ func sanitizeDownloadFilename(filename string) string {
 	return name
 }
 
+// getDataSharedForUser lists files shared with the authenticated user.
+// @Summary List received shares
+// @Description Returns all files shared with the current user.
+// @Tags Sharing
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/received [get]
 func (s *CoreHandlers) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
@@ -285,6 +341,14 @@ func (s *CoreHandlers) getDataSharedForUser(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// getDataSharedByUser lists files shared by the authenticated user.
+// @Summary List outgoing shares
+// @Description Returns all files that the current user has shared with others.
+// @Tags Sharing
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/shared_by_user [get]
 func (s *CoreHandlers) getDataSharedByUser(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {

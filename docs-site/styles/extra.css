@@ -1,0 +1,21 @@
+.md-typeset .swagger-frame {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--md-default-bg-color);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+}
+
+.md-typeset .swagger-frame iframe {
+  display: block;
+  width: 100%;
+  min-height: 80vh;
+  border: 0;
+}
+
+.md-typeset .docs-callout {
+  padding: 1rem 1.25rem;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, rgba(158, 158, 158, 0.14), rgba(96, 125, 139, 0.14));
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}

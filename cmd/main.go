@@ -14,6 +14,25 @@ type namedHTTPServer struct {
 	srv  *http.Server
 }
 
+// @title           FluxSend Developer API
+// @version         1.7.0
+// @description     Fluxsend API endpoints
+
+// @contact.name   tscrond
+// @contact.url    https://github.com/tscrond
+
+// @license.name  MIT
+// @license.url   https://mit-license.org/
+
+// @host      fluxsend.win
+// @BasePath  /
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @name X-API-Key
+// @in header
+
+// @externalDocs.description  OpenAPI
+// @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
 	log := logger.New()
 	defer log.Sync() //nolint:errcheck

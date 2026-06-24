@@ -1,0 +1,18 @@
+FROM python:3.11-alpine AS builder
+
+WORKDIR /docs
+
+RUN pip install --no-cache-dir mkdocs mkdocs-material
+
+COPY mkdocs.yml .
+COPY docs-site/ docs-site/
+
+RUN mkdocs build --config-file mkdocs.yml
+
+FROM nginx:alpine
+
+COPY --from=builder /docs/site /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

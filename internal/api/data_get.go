@@ -7,6 +7,14 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// getUserData returns the authenticated user's account and plan information.
+// @Summary Get current user data
+// @Description Returns the authenticated user's profile and plan details.
+// @Tags User
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/user/data [get]
 func (s *CoreHandlers) getUserData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
@@ -26,6 +34,14 @@ func (s *CoreHandlers) getUserData(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// getUserBucketData returns bucket-level metadata for the authenticated user.
+// @Summary Get user bucket data
+// @Description Returns the current user's bucket metadata and usage details.
+// @Tags User
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/user/bucket [get]
 func (s *CoreHandlers) getUserBucketData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "bad_request")
@@ -53,6 +69,16 @@ func (s *CoreHandlers) getUserBucketData(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// getUserPrivateFileByName generates a personal download token for a private file.
+// @Summary Create private download token
+// @Description Generates a download token for a private file name.
+// @Tags User
+// @Param file query string true "File name"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/user/private/download_token [post]
 func (s *CoreHandlers) getUserPrivateFileByName(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
@@ -79,6 +105,14 @@ func (s *CoreHandlers) getUserPrivateFileByName(w http.ResponseWriter, r *http.R
 }
 
 // GET /user/stats — personal usage analytics
+// getUserStats returns aggregate usage statistics for the authenticated user.
+// @Summary Get user statistics
+// @Description Returns aggregate file, share, and workspace statistics for the current user.
+// @Tags User
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/user/stats [get]
 func (s *CoreHandlers) getUserStats(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {

@@ -65,6 +65,16 @@ func parseAuthorizedUserUUID(r *http.Request) (*userdata.AuthorizedUserInfo, uui
 	return authUserData, parsedUUID, true
 }
 
+// getFilesTree returns the personal file tree for the supplied path.
+// @Summary Get file tree
+// @Description Returns the authenticated user's personal file tree for a given path prefix.
+// @Tags Files
+// @Param path query string false "Path prefix"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/tree [get]
 func (s *CoreHandlers) getFilesTree(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
@@ -98,6 +108,15 @@ func (s *CoreHandlers) foldersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getFolders lists folders at the supplied path.
+// @Summary List folders
+// @Description Returns the folders that exist at the supplied personal path.
+// @Tags Files
+// @Param path query string false "Path prefix"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/folders [get]
 func (s *CoreHandlers) getFolders(w http.ResponseWriter, r *http.Request) {
 	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
@@ -118,6 +137,16 @@ func (s *CoreHandlers) getFolders(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// deleteFolder removes a folder, optionally recursively.
+// @Summary Delete folder
+// @Description Deletes a personal folder and optionally all nested files and folders when recursive is true.
+// @Tags Files
+// @Param path query string true "Folder path"
+// @Param recursive query boolean false "Delete recursively"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/folders [delete]
 func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	authUserData, userUUID, ok := parseAuthorizedUserUUID(r)
@@ -151,6 +180,17 @@ func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// moveFile relocates a file within the user's personal storage.
+// @Summary Move file
+// @Description Moves a personal file from one path to another.
+// @Tags Files
+// @Accept json
+// @Produce json
+// @Param request body object true "Move request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/move [post]
 func (s *CoreHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -193,6 +233,17 @@ func (s *CoreHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// moveFolder relocates a folder within the user's personal storage.
+// @Summary Move folder
+// @Description Moves a personal folder to another path.
+// @Tags Files
+// @Accept json
+// @Produce json
+// @Param request body object true "Move request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/folders/move [post]
 func (s *CoreHandlers) moveFolder(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {

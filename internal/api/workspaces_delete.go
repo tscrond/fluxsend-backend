@@ -9,6 +9,17 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// deleteWorkspace deletes a workspace owned by the current user.
+// @Summary Delete workspace
+// @Description Deletes a workspace owned by the authenticated user.
+// @Tags Workspaces
+// @Param workspace_id query string true "Workspace ID"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/delete [delete]
 func (s *CoreHandlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -48,6 +59,17 @@ func (s *CoreHandlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// deleteWorkspaceInvite deletes a pending invite from a workspace.
+// @Summary Delete workspace invite
+// @Description Deletes a pending workspace invite when the caller can manage the workspace.
+// @Tags Workspaces
+// @Param workspace_id query string true "Workspace ID"
+// @Param invite_id query string true "Invite ID"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/workspaces/invites/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -90,6 +112,17 @@ func (s *CoreHandlers) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 	})
 }
 
+// rejectWorkspaceInvite rejects a workspace invite for the current user.
+// @Summary Reject workspace invite
+// @Description Rejects a workspace invite using its token.
+// @Tags Workspaces
+// @Param token query string true "Invite token"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/invites/reject [delete]
 func (s *CoreHandlers) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -123,6 +156,17 @@ func (s *CoreHandlers) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_rejected", nil)
 }
 
+// removeWorkspaceMember removes a member from a workspace.
+// @Summary Remove workspace member
+// @Description Removes a member from a workspace when the caller has permission.
+// @Tags Workspaces
+// @Param workspace_id query string true "Workspace ID"
+// @Param user_id query string true "Member user ID"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/workspaces/members/remove [delete]
 func (s *CoreHandlers) removeWorkspaceMember(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

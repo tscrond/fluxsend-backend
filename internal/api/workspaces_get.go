@@ -8,6 +8,14 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// listWorkspaces returns all workspaces visible to the current user.
+// @Summary List workspaces
+// @Description Returns all workspaces visible to the authenticated user.
+// @Tags Workspaces
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/workspaces/list [get]
 func (s *CoreHandlers) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -29,6 +37,17 @@ func (s *CoreHandlers) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", workspaces)
 }
 
+// getWorkspaceMembers lists members in a workspace.
+// @Summary List workspace members
+// @Description Returns the members of a workspace when the caller has access to it.
+// @Tags Workspaces
+// @Param workspace_id query string true "Workspace ID"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/workspaces/members [get]
 func (s *CoreHandlers) getWorkspaceMembers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -62,6 +81,17 @@ func (s *CoreHandlers) getWorkspaceMembers(w http.ResponseWriter, r *http.Reques
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", members)
 }
 
+// getWorkspaceInvites lists pending invites for a workspace.
+// @Summary List workspace invites
+// @Description Returns pending invites for a workspace when the caller is allowed to view them.
+// @Tags Workspaces
+// @Param workspace_id query string true "Workspace ID"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/workspaces/invites [get]
 func (s *CoreHandlers) getWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -96,6 +126,14 @@ func (s *CoreHandlers) getWorkspaceInvites(w http.ResponseWriter, r *http.Reques
 	pkg.WriteJSONResponse(w, http.StatusOK, "ok", invites)
 }
 
+// getMyWorkspaceInvites lists workspace invites for the current user.
+// @Summary List my workspace invites
+// @Description Returns all workspace invites associated with the authenticated user.
+// @Tags Workspaces
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/workspaces/invites/mine [get]
 func (s *CoreHandlers) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -118,6 +156,16 @@ func (s *CoreHandlers) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Requ
 }
 
 // GET /workspaces/{workspace_id}/quota  (admin/owner only)
+// getWorkspaceQuota returns workspace usage and quota details.
+// @Summary Get workspace quota
+// @Description Returns storage, file, folder, member, and API key quota information for a workspace.
+// @Tags Workspaces
+// @Param workspace_id path string true "Workspace ID"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/quota [get]
 func (s *CoreHandlers) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {

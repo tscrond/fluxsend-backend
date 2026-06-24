@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"github.com/tscrond/fluxsend-backend/docs"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	chimiddleware "github.com/tscrond/fluxsend-backend/internal/middleware"
 	"github.com/tscrond/fluxsend-backend/internal/scope"
@@ -30,6 +32,13 @@ func (s *CLIServer) Handler() http.Handler {
 	r.Use(chimiddleware.RequestLogger(s.log))
 
 	r.Route(s.routePrefix, func(r chi.Router) {
+		r.Get("/swagger/json", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(docs.SwaggerInfo.ReadDoc()))
+		})
+		r.Get("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("/api/swagger/json"),
+		))
 		s.registerCLIFileRoutes(r)
 		s.registerCLIWorkspaceRoutes(r)
 		s.registerCLISharingRoutes(r)

@@ -1,0 +1,53 @@
+site_name: FluxSend Docs
+site_description: Public product and API documentation for FluxSend
+site_dir: site
+docs_dir: docs-site
+
+theme:
+  name: material
+  logo: assets/images/logo.png
+  favicon: assets/images/logo.png
+  palette:
+    - scheme: default
+      primary: grey
+      accent: blue-grey
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue-grey
+      accent: grey
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Authentication: authentication.md
+  - File Workflows: file-workflows.md
+  - Deployment: deployment.md
+  - API Reference:
+      - Overview: api/index.md
+      - Endpoint Reference: api/reference.md
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+
+extra_css:
+  - styles/extra.css

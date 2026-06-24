@@ -11,8 +11,20 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-// ── PATCH /workspaces/{workspace_id}/files/move  (editor own / admin+) ───────
-
+// moveWorkspaceFile moves a file within a workspace.
+// @Summary Move workspace file
+// @Description Moves a file to another path within the same workspace.
+// @Tags Workspace Files
+// @Accept json
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param request body object true "Move request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/move [patch]
 func (s *CoreHandlers) moveWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -66,8 +78,20 @@ func (s *CoreHandlers) moveWorkspaceFile(w http.ResponseWriter, r *http.Request)
 	pkg.WriteJSONResponse(w, http.StatusOK, "moved", nil)
 }
 
-// ── PATCH /workspaces/{workspace_id}/files/folder/move  (editor own / admin+) ──
-
+// moveWorkspaceFolder moves a workspace folder.
+// @Summary Move workspace folder
+// @Description Moves a folder to a new location inside the workspace.
+// @Tags Workspace Files
+// @Accept json
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param request body object true "Move request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/folder/move [patch]
 func (s *CoreHandlers) moveWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

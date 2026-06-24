@@ -169,6 +169,30 @@ This will build the Docker image and start the backend service.
 - `Dockerfile`: Docker configuration for the backend service.
 - `docker-compose.yaml`: Docker Compose configuration for multi-container setup.
 
+## Documentation
+
+The public docs site lives in `mkdocs.yml` and `docs-site/`.
+
+Generate the API spec and derived docs:
+
+```bash
+make swagger
+```
+
+Build the docs site locally:
+
+```bash
+make docs-build
+```
+
+Preview the docs site locally:
+
+```bash
+make docs-serve
+```
+
+The API reference is generated from the Go annotations in `cmd/main.go` and the handler comments under `internal/api/`.
+
 ## License
 
 This project is licensed under the MIT License.
