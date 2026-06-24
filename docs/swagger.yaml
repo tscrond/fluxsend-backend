@@ -2,7 +2,7 @@ basePath: /
 externalDocs:
   description: OpenAPI
   url: https://swagger.io/resources/open-api/
-host: test.fluxsend.win
+host: fluxsend.win
 info:
   contact:
     name: tscrond
@@ -232,111 +232,6 @@ paths:
       summary: List private API keys
       tags:
       - API Keys
-  /api/auth/{provider}/callback:
-    get:
-      description: Validates the OAuth state, creates or links the user, and redirects
-        back to the frontend.
-      parameters:
-      - description: OAuth provider
-        in: path
-        name: provider
-        required: true
-        type: string
-      - description: OAuth authorization code
-        in: query
-        name: code
-        type: string
-      - description: OAuth state token
-        in: query
-        name: state
-        type: string
-      responses:
-        "302":
-          description: Redirect back to the frontend
-        "400":
-          description: Unknown provider or invalid state
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Session creation failure
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Complete OAuth login
-      tags:
-      - Authentication
-  /api/auth/{provider}/login:
-    get:
-      description: Redirects the caller to the configured OAuth provider login page.
-      parameters:
-      - description: OAuth provider
-        in: path
-        name: provider
-        required: true
-        type: string
-      responses:
-        "302":
-          description: Redirect to the provider authorization URL
-        "400":
-          description: Unknown provider
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: OAuth state generation failure
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Start OAuth login
-      tags:
-      - Authentication
-  /api/auth/is_valid:
-    get:
-      description: Returns the current authentication state and user profile derived
-        from the session cookie.
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Validate session
-      tags:
-      - Authentication
-  /api/auth/logout:
-    post:
-      description: Invalidates the current session, clears the session cookie, and
-        revokes the provider token when possible.
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Log out
-      tags:
-      - Authentication
   /api/d/{token}:
     get:
       description: Resolves a public share token and either redirects or proxies the

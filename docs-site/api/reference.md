@@ -13,15 +13,6 @@ This page is generated from the current OpenAPI 3 document. Regenerate it with `
 | DELETE | /api/api_keys/{workspace_id}/delete | Delete workspace API key | Deletes a workspace-scoped API key by ID. |
 | POST | /api/api_keys/{workspace_id}/create | Create workspace API key | Creates a workspace-scoped API key for users allowed to manage workspace API keys. |
 
-## Authentication
-
-| Method | Path | Summary | Description |
-| --- | --- | --- | --- |
-| POST | /api/auth/logout | Log out | Invalidates the current session, clears the session cookie, and revokes the provider token when possible. |
-| GET | /api/auth/is_valid | Validate session | Returns the current authentication state and user profile derived from the session cookie. |
-| GET | /api/auth/{provider}/login | Start OAuth login | Redirects the caller to the configured OAuth provider login page. |
-| GET | /api/auth/{provider}/callback | Complete OAuth login | Validates the OAuth state, creates or links the user, and redirects back to the frontend. |
-
 ## Downloads
 
 | Method | Path | Summary | Description |
