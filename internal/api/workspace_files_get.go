@@ -12,6 +12,18 @@ import (
 
 // ── GET /workspaces/{workspace_id}/files/tree  (viewer+) ─────────────────────
 
+// getWorkspaceFilesTree returns the tree for a workspace path.
+// @Summary Get workspace file tree
+// @Description Returns the file tree for a workspace path visible to the caller.
+// @Tags Workspace Files
+// @Param workspace_id path string true "Workspace ID"
+// @Param path query string false "Path prefix"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/tree [get]
 func (s *CoreHandlers) getWorkspaceFilesTree(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -41,6 +53,19 @@ func (s *CoreHandlers) getWorkspaceFilesTree(w http.ResponseWriter, r *http.Requ
 
 // ── GET /workspaces/{workspace_id}/files/download  (viewer+) ─────────────────
 
+// downloadWorkspaceFile creates a signed download URL for a workspace file.
+// @Summary Download workspace file
+// @Description Creates a signed download URL for a workspace file and redirects or proxies based on mode.
+// @Tags Workspace Files
+// @Param workspace_id path string true "Workspace ID"
+// @Param file_id query string true "File ID"
+// @Param mode query string false "inline or download"
+// @Success 302 "Redirect to the signed URL"
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/download [get]
 func (s *CoreHandlers) downloadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

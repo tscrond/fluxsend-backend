@@ -32,3 +32,15 @@ jobs:
         with:
            go-version-input: 1.26
            go-package: ./...
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install MkDocs tooling
+        run: pip install mkdocs mkdocs-material
+      - name: Generate docs artifacts
+        run: make swagger
+      - name: Build docs site
+        run: python3 -m mkdocs build --config-file mkdocs.yml
+      - name: Verify generated docs are committed
+        run: git diff --exit-code -- docs/swagger.json docs/swagger.yaml docs/docs.go docs-site/api/openapi.json docs-site/api/openapi.yaml docs-site/api/reference.md

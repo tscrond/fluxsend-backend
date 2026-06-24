@@ -30,3 +30,5 @@ tmp
 
 .DS_Store
 config/bucket-auth.json
+integration
+site/

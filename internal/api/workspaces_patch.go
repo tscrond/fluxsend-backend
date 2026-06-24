@@ -10,6 +10,19 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// renameWorkspace updates a workspace name or slug.
+// @Summary Rename workspace
+// @Description Updates the name and optionally the slug of a workspace owned by the current user.
+// @Tags Workspaces
+// @Accept json
+// @Produce json
+// @Param request body object true "Workspace rename request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/rename [patch]
 func (s *CoreHandlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -74,6 +87,19 @@ func (s *CoreHandlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "workspace_renamed", updated)
 }
 
+// changeMemberRole updates the role of a workspace member.
+// @Summary Change member role
+// @Description Updates the role of a workspace member when the caller has permission to manage members.
+// @Tags Workspaces
+// @Accept json
+// @Produce json
+// @Param request body object true "Member role change request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/members/role [patch]
 func (s *CoreHandlers) changeMemberRole(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

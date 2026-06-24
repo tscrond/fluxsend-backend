@@ -11,6 +11,18 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// shareWith creates one or more shares for the supplied files.
+// @Summary Share files
+// @Description Shares one or more personal files with another user, optionally emailing the recipient.
+// @Tags Sharing
+// @Accept json
+// @Produce json
+// @Param request body object true "Share request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 429 {object} map[string]any
+// @Router /api/files/share [post]
 func (s *CoreHandlers) shareWith(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {

@@ -52,6 +52,20 @@ func getDeleteAPIKeyParameters(r *http.Request) (*deleteApiKeyRequest, error) {
 	return &req, nil
 }
 
+// createWorkspaceAPIKey creates an API key for a workspace.
+// @Summary Create workspace API key
+// @Description Creates a workspace-scoped API key for users allowed to manage workspace API keys.
+// @Tags API Keys
+// @Accept json
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param request body object true "API key create request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 429 {object} map[string]any
+// @Router /api/api_keys/{workspace_id}/create [post]
 func (s *CoreHandlers) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -126,6 +140,16 @@ func (s *CoreHandlers) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 	})
 }
 
+// listWorkspaceAPIKeys lists API keys for a workspace.
+// @Summary List workspace API keys
+// @Description Returns the API keys created for the selected workspace.
+// @Tags API Keys
+// @Param workspace_id path string true "Workspace ID"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Router /api/api_keys/{workspace_id}/list [get]
 func (s *CoreHandlers) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
@@ -162,6 +186,19 @@ func (s *CoreHandlers) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Reque
 
 }
 
+// deleteWorkspaceAPIKey deletes a workspace-scoped API key.
+// @Summary Delete workspace API key
+// @Description Deletes a workspace-scoped API key by ID.
+// @Tags API Keys
+// @Accept json
+// @Param workspace_id path string true "Workspace ID"
+// @Param request body object true "Delete API key request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/api_keys/{workspace_id}/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodDelete {
@@ -211,6 +248,18 @@ func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 	pkg.WriteJSONResponse(w, http.StatusOK, "deleted", nil)
 }
 
+// createPrivateAPIKey creates a personal API key.
+// @Summary Create private API key
+// @Description Creates a private API key for the current user.
+// @Tags API Keys
+// @Accept json
+// @Produce json
+// @Param request body object true "API key create request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 429 {object} map[string]any
+// @Router /api/api_keys/private/create [post]
 func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -285,6 +334,14 @@ func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+// listPrivateAPIKeys lists personal API keys.
+// @Summary List private API keys
+// @Description Returns all private API keys created by the authenticated user.
+// @Tags API Keys
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/api_keys/private/list [get]
 func (s *CoreHandlers) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
@@ -310,6 +367,17 @@ func (s *CoreHandlers) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request
 	})
 }
 
+// deletePrivateAPIKey deletes a personal API key.
+// @Summary Delete private API key
+// @Description Deletes a private API key owned by the authenticated user.
+// @Tags API Keys
+// @Accept json
+// @Param request body object true "Delete API key request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/api_keys/private/delete [delete]
 func (s *CoreHandlers) deletePrivateAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodDelete {

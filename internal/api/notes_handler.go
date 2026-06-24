@@ -20,6 +20,18 @@ func (s *CoreHandlers) fileNotesHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// editFileNotes updates the note attached to a file.
+// @Summary Edit file note
+// @Description Updates or creates the note for a file checksum.
+// @Tags Files
+// @Accept json
+// @Produce json
+// @Param checksum path string true "File checksum"
+// @Param request body object true "Note content request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/{checksum}/note [put]
 func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPut {
@@ -60,6 +72,16 @@ func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// getFileNotes returns the note attached to a file.
+// @Summary Get file note
+// @Description Returns the note content for a file checksum.
+// @Tags Files
+// @Param checksum path string true "File checksum"
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/{checksum}/note [get]
 func (s *CoreHandlers) getFileNotes(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {

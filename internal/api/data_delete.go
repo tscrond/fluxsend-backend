@@ -10,6 +10,16 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// deleteFile removes a personal file by path.
+// @Summary Delete a file
+// @Description Deletes a file from the authenticated user's personal storage.
+// @Tags Files
+// @Param file query string true "File path"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/files/delete [delete]
 func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
@@ -43,6 +53,17 @@ func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// deleteFilesBatch removes multiple personal files in one request.
+// @Summary Delete multiple files
+// @Description Deletes several personal files in one request.
+// @Tags Files
+// @Accept json
+// @Produce json
+// @Param request body object true "Files to delete"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/delete/batch [delete]
 func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
@@ -81,6 +102,17 @@ func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// deleteAccount removes the authenticated user's account and optional data.
+// @Summary Delete account
+// @Description Deletes the authenticated user's account and optionally keeps or removes bucket data.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param request body object true "Delete account request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/user/account/delete [delete]
 func (s *CoreHandlers) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)

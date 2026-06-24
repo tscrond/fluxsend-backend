@@ -12,6 +12,19 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// uploadHandler uploads a file to the user's personal storage.
+// @Summary Upload a file
+// @Description Uploads a file to the current user's personal storage and optionally stores it in a folder.
+// @Tags Files
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "File to upload"
+// @Param folder formData string false "Destination folder"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 409 {object} map[string]any
+// @Router /api/files/upload [post]
 func (s *CoreHandlers) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {

@@ -12,6 +12,17 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// quickShare creates a short-lived public share for a personal file.
+// @Summary Create quick share
+// @Description Creates a public share token for a personal file.
+// @Tags Sharing
+// @Accept json
+// @Produce json
+// @Param request body object true "Quick share request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/quick_share [post]
 func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -74,6 +85,14 @@ func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusOK, "", result)
 }
 
+// getUnseenReceivedCount returns the number of unseen received shares.
+// @Summary Count unseen received files
+// @Description Returns how many received shares have not yet been marked as seen.
+// @Tags Sharing
+// @Produce json
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/received/unseen_count [get]
 func (s *CoreHandlers) getUnseenReceivedCount(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodGet {
@@ -99,6 +118,17 @@ func (s *CoreHandlers) getUnseenReceivedCount(w http.ResponseWriter, r *http.Req
 	})
 }
 
+// markReceivedSeen marks a received share token as seen.
+// @Summary Mark received share as seen
+// @Description Marks a received share as seen by token.
+// @Tags Sharing
+// @Accept json
+// @Produce json
+// @Param request body object true "Mark seen request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Router /api/files/received/mark_seen [post]
 func (s *CoreHandlers) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {

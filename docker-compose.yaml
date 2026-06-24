@@ -69,7 +69,16 @@ services:
       - ./config/bucket-auth.json:/config/bucket-auth.json:ro
       - /home/tskr/wazne/fluxsend_private_key.pem:/config/fluxsend_private_key.pem:ro
 
-    
+
+  docs:
+    image: fluxsend-docs:dev
+    container_name: docs
+    build:
+      context: .
+      dockerfile: Dockerfile.docs
+    ports:
+      - 8080:80/tcp
+
 # networks:
 #   proxy:
 #     external: true

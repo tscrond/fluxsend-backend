@@ -11,8 +11,21 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-// ── POST /workspaces/{workspace_id}/files/upload  (editor+) ──────────────────
-
+// uploadWorkspaceFile uploads a file into a workspace.
+// @Summary Upload workspace file
+// @Description Uploads a file into a workspace folder for users with write access.
+// @Tags Workspace Files
+// @Accept multipart/form-data
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param file formData file true "File to upload"
+// @Param folder formData string false "Destination folder"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 429 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/upload [post]
 func (s *CoreHandlers) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -64,8 +77,20 @@ func (s *CoreHandlers) uploadWorkspaceFile(w http.ResponseWriter, r *http.Reques
 	pkg.WriteJSONResponse(w, http.StatusOK, "uploaded", results)
 }
 
-// ── POST /workspaces/{workspace_id}/files/mkdir  (editor+) ───────────────────
-
+// mkdirWorkspace creates a new folder in a workspace.
+// @Summary Create workspace folder
+// @Description Creates a new folder inside the selected workspace.
+// @Tags Workspace Files
+// @Accept json
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param request body object true "Folder creation request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 429 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/mkdir [post]
 func (s *CoreHandlers) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {

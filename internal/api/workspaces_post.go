@@ -13,6 +13,18 @@ import (
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// createWorkspace creates a new workspace for the current user.
+// @Summary Create workspace
+// @Description Creates a new workspace using the authenticated user's account.
+// @Tags Workspaces
+// @Accept json
+// @Produce json
+// @Param request body object true "Workspace create request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 429 {object} map[string]any
+// @Router /api/workspaces/create [post]
 func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -87,6 +99,19 @@ func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// createWorkspaceInvite creates a pending workspace invite.
+// @Summary Create workspace invite
+// @Description Creates a workspace invite for a specific email and role.
+// @Tags Workspaces
+// @Accept json
+// @Produce json
+// @Param request body object true "Workspace invite request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 429 {object} map[string]any
+// @Router /api/workspaces/invites/create [post]
 func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -162,6 +187,19 @@ func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_created", invite)
 }
 
+// acceptWorkspaceInvite accepts a workspace invite token for the current user.
+// @Summary Accept workspace invite
+// @Description Accepts a workspace invite token for the authenticated user.
+// @Tags Workspaces
+// @Accept json
+// @Produce json
+// @Param request body object true "Invite acceptance request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/invites/accept [post]
 func (s *CoreHandlers) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")

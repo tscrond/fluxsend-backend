@@ -9,8 +9,18 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-// ── DELETE /workspaces/{workspace_id}/files/delete  (editor own / admin+) ────
-
+// deleteWorkspaceFile deletes a single file from a workspace.
+// @Summary Delete workspace file
+// @Description Deletes a workspace file when the caller has write access.
+// @Tags Workspace Files
+// @Param workspace_id path string true "Workspace ID"
+// @Param file_id query string true "File ID"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
@@ -55,8 +65,18 @@ func (s *CoreHandlers) deleteWorkspaceFile(w http.ResponseWriter, r *http.Reques
 	pkg.WriteJSONResponse(w, http.StatusOK, "deleted", nil)
 }
 
-// ── DELETE /workspaces/{workspace_id}/files/folder/delete  (editor own empty / admin+) ──
-
+// deleteWorkspaceFolder deletes a workspace folder.
+// @Summary Delete workspace folder
+// @Description Deletes a workspace folder when the caller has write access.
+// @Tags Workspace Files
+// @Param workspace_id path string true "Workspace ID"
+// @Param path query string true "Folder path"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
+// @Failure 404 {object} map[string]any
+// @Router /api/workspaces/{workspace_id}/files/folder/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "", "method_not_allowed")
