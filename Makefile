@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 .PHONY: db
 db: ## create db
 	docker compose up -d dev-postgres
@@ -30,11 +31,11 @@ swagger: ## generate swagger docs
 
 .PHONY: docs-build
 docs-build: swagger ## build mkdocs
-	python3 -m mkdocs build --config-file mkdocs.yml
+	. .venv/bin/activate && python3 -m mkdocs build --config-file mkdocs.yml
 
 .PHONY: docs-serve
 docs-serve: swagger ## serve docs
-	python3 -m mkdocs serve --config-file mkdocs.yml
+	. .venv/bin/activate && python3 -m mkdocs serve --config-file mkdocs.yml -a 0.0.0.0:1234
 
 .PHONY: docs-image
 docs-image: ## build docs docker image

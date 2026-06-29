@@ -2,7 +2,7 @@ FROM python:3.11-alpine AS builder
 
 WORKDIR /docs
 
-RUN pip install --no-cache-dir mkdocs mkdocs-material
+RUN pip install --no-cache-dir mkdocs mkdocs-material mkdocs-macros-plugin
 
 COPY mkdocs.yml .
 COPY docs-site/ docs-site/
