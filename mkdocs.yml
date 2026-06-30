@@ -9,14 +9,14 @@ theme:
   favicon: assets/images/logo.png
   palette:
     - scheme: default
-      primary: grey
-      accent: blue-grey
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - scheme: slate
-      primary: blue-grey
-      accent: grey
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -31,15 +31,38 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - Authentication: authentication.md
-  - File Workflows: file-workflows.md
-  - Deployment: deployment.md
+  - Introduction:
+      What is FluxSend?: introduction/01-what-is-fluxsend.md
+      Key features: introduction/02-key-features.md
+      Use cases: introduction/03-use-cases.md
+      Tech stack: introduction/04-tech-stack.md
+  - Quick Start:
+      Prerequisites: quickstart/01-prerequisites.md
+      Installing tools: quickstart/02-installing-tools.md
+  - Configuration Reference:
+      Environment variables: config-reference/01-env-vars.md
+      Storage: config-reference/02-storage.md
+      Authentication: config-reference/03-auth.md
+      Database: config-reference/04-db.md
+      CDN: config-reference/05-cdn.md
+  # - Usage:
+  #     File Management: usage/01-file-management.md
+  #     Sharing & Downloads: usage/02-sharing.md
+  #     Workspaces: usage/03-workspaces.md
+  #     API Keys: usage/04-api-keys.md
+  #     Plans & Quotas: usage/05-plans.md
+  - Deployment:
+      Production Setup: deployment/01-production-setup.md
+      Standalone: deployment/02-standalone.md
+      Docker: deployment/03-docker.md
+      Kubernetes: deployment/04-kubernetes.md
   - API Reference:
       - Overview: api/index.md
       - Endpoint Reference: api/reference.md
 plugins:
   - search
+  - macros:
+      module_name: docs-site/main
 
 markdown_extensions:
   - admonition

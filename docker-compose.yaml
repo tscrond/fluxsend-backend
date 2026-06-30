@@ -12,9 +12,9 @@ services:
       - NGINX_BACKEND_PORT=3000
       - NGINX_BACKEND_API_PORT=8091
 
-  dev-postgres:
+  postgres:
     image: postgres:16
-    container_name: dev-postgres
+    container_name: postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -25,7 +25,7 @@ services:
 
   backend:
     depends_on:
-      - dev-postgres
+      - postgres
     image: fluxsend-backend:dev
     container_name: backend
     restart: always
@@ -35,10 +35,12 @@ services:
     environment:
       - FRONTEND_ENDPOINT=http://localhost:8000
       - BACKEND_ENDPOINT=http://localhost:3000
-      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-gcs}
+      # - STORAGE_PROVIDER=${STORAGE_PROVIDER:-gcs}
+      - STORAGE_PROVIDER=gcs
       # GCS config
       - GOOGLE_APPLICATION_CREDENTIALS=/config/bucket-auth.json
       - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
+      - GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID}
       # Google OAuth config
       - GOOGLE_COOKIE_SECRET=${GOOGLE_COOKIE_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -52,21 +54,22 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      - ENABLE_CLOUDFRONT_DOWNLOADS=${ENABLE_CLOUDFRONT_DOWNLOADS:-false}
+      # - ENABLE_CLOUDFRONT_DOWNLOADS=${ENABLE_CLOUDFRONT_DOWNLOADS:-false}
+      - ENABLE_CLOUDFRONT_DOWNLOADS=false
       - CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN:-}
       - CLOUDFRONT_KEY_PAIR_ID=${CLOUDFRONT_KEY_PAIR_ID:-}
       - CLOUDFRONT_PRIVATE_KEY_PATH=${CLOUDFRONT_PRIVATE_KEY_PATH:-}
       # Mail config
-      - MAIL_FROM=${MAIL_FROM:-noreply@fluxsend.com}
+      - MAIL_FROM=${MAIL_FROM:-noreply@fluxsend.win}
       # DB config
-      - DB_HOST=dev-postgres
+      - DB_HOST=postgres
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - APP_ENV=production
 
     volumes:
-      - ./config/bucket-auth.json:/config/bucket-auth.json:ro
+      - /home/tskr/wazne/bucket-auth.json:/config/bucket-auth.json:ro
       - /home/tskr/wazne/fluxsend_private_key.pem:/config/fluxsend_private_key.pem:ro
 
 
