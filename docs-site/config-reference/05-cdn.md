@@ -47,11 +47,3 @@ Generate a CloudFront key pair via the AWS Console (CloudFront > Key Management)
 `CLOUDFRONT_DOMAIN` accepts:
 - A bare hostname: `cdn.fluxsend.win`
 - A URL: `https://cdn.fluxsend.win` (path components are rejected)
-
----
-
-## Terraform
-
-```hcl
-# TODO: paste CloudFront Terraform here
-```
