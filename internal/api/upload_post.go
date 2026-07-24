@@ -81,7 +81,7 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "created_upload_id", map[string]any{
 		"upload_id": uploadResponse.UploadId,
-		"chunkSize": func(chunkSize *int64) int64 {
+		"chunk_size": func(chunkSize *int64) int64 {
 			if chunkSize != nil {
 				return *chunkSize
 			}
