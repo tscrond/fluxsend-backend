@@ -59,6 +59,25 @@ func (b *S3BucketHandler) extractUserIdFromBucket(bucket string) string {
 	return pkg.ExtractUserIdFromBucketName(b.BaseBucketName, bucket)
 }
 
+func (b *S3BucketHandler) CreateMultipartUpload(ctx context.Context, bucket, key, contentType string) (*string, error) {
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := key
+	if userId != "" {
+		objectKey = s3Key(userId, key)
+	}
+
+	out, err := b.Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket:      aws.String(b.BaseBucketName),
+		Key:         aws.String(objectKey),
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create multipart upload: %w", err)
+	}
+
+	return out.UploadId, nil
+}
+
 func (b *S3BucketHandler) PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*types.PutObjectResult, error) {
 	userId := b.extractUserIdFromBucket(bucket)
 	objectKey := key

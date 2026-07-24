@@ -87,6 +87,9 @@ func applyRouteMiddleware(handler http.HandlerFunc, middleware routeMiddleware) 
 
 func (s *CoreHandlers) registerFileRoutes(r chi.Router, protected routeMiddleware) {
 	r.Handle("/files/upload", applyRouteMiddleware(s.uploadHandler, protected))
+	r.Handle("/files/uploads", applyRouteMiddleware(s.uploadInitHandler, protected))
+	// r.Handle("/files/uploads/{file_id}/parts/{part_id}", applyRouteMiddleware(s.uploadPartHandler, protected))
+	// r.Handle("/files/uploads/{file_id}/complete", applyRouteMiddleware(s.completeUploadHandler, protected))
 	r.Handle("/files/share", applyRouteMiddleware(s.shareWith, protected))
 	r.Handle("/files/tree", applyRouteMiddleware(s.getFilesTree, protected))
 	r.Handle("/files/move", applyRouteMiddleware(s.moveFile, protected))

@@ -237,3 +237,31 @@ func ParseUUIDValue(v interface{}) (uuid.UUID, bool) {
 		return uuid.Nil, false
 	}
 }
+
+const (
+	KiB int64 = 1024
+	MiB       = 1024 * KiB
+	GiB       = 1024 * MiB
+)
+
+// OptimalChunkSize returns an upload chunk size based on the file size.
+func OptimalChunkSize(fileSize int64) *int64 {
+	var size int64
+
+	switch {
+	case fileSize <= 10*MiB:
+		size = 1 * MiB
+	case fileSize <= 100*MiB:
+		size = 4 * MiB
+	case fileSize <= 1*GiB:
+		size = 8 * MiB
+	case fileSize <= 10*GiB:
+		size = 16 * MiB
+	case fileSize <= 100*GiB:
+		size = 32 * MiB
+	default:
+		size = 64 * MiB
+	}
+
+	return &size
+}

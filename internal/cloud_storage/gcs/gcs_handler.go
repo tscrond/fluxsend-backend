@@ -65,6 +65,10 @@ func NewGCSBucketHandler(log *zap.SugaredLogger, svcaccountPath, bucketName, pro
 	}, nil
 }
 
+func (b *GCSBucketHandler) CreateMultipartUpload(ctx context.Context, bucket, uploadPath, contentType string) (*string, error) {
+	return nil, fmt.Errorf("%w: multipart uploads are not implemented for GCS", types.ErrUploadFailed)
+}
+
 func (b *GCSBucketHandler) PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*types.PutObjectResult, error) {
 	writer := b.Client.Bucket(bucket).Object(key).NewWriter(ctx)
 	writer.ContentType = contentType

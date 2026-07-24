@@ -45,6 +45,21 @@ func (m *MockFileService) EXPECT() *MockFileServiceMockRecorder {
 	return m.recorder
 }
 
+// CreateUploadWithId mocks base method.
+func (m *MockFileService) CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUploadWithId", ctx, fd)
+	ret0, _ := ret[0].(*filedata.CreateUploadIdResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateUploadWithId indicates an expected call of CreateUploadWithId.
+func (mr *MockFileServiceMockRecorder) CreateUploadWithId(ctx, fd any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUploadWithId", reflect.TypeOf((*MockFileService)(nil).CreateUploadWithId), ctx, fd)
+}
+
 // DeleteFile mocks base method.
 func (m *MockFileService) DeleteFile(ctx context.Context, userID uuid.UUID, userInternalID, fileName string) error {
 	m.ctrl.T.Helper()

@@ -86,6 +86,21 @@ func (mr *MockObjectStorageMockRecorder) CreateBucketIfNotExists(ctx, userId any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucketIfNotExists", reflect.TypeOf((*MockObjectStorage)(nil).CreateBucketIfNotExists), ctx, userId)
 }
 
+// CreateMultipartUpload mocks base method.
+func (m *MockObjectStorage) CreateMultipartUpload(ctx context.Context, bucket, uploadPath, contentType string) (*string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateMultipartUpload", ctx, bucket, uploadPath, contentType)
+	ret0, _ := ret[0].(*string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateMultipartUpload indicates an expected call of CreateMultipartUpload.
+func (mr *MockObjectStorageMockRecorder) CreateMultipartUpload(ctx, bucket, uploadPath, contentType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultipartUpload", reflect.TypeOf((*MockObjectStorage)(nil).CreateMultipartUpload), ctx, bucket, uploadPath, contentType)
+}
+
 // DeleteBucket mocks base method.
 func (m *MockObjectStorage) DeleteBucket(ctx context.Context, bucket string) error {
 	m.ctrl.T.Helper()

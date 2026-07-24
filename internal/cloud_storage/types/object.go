@@ -13,6 +13,7 @@ type PutObjectResult struct {
 }
 
 type ObjectStorage interface {
+	CreateMultipartUpload(ctx context.Context, bucket, uploadPath, contentType string) (*string, error)
 	PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*PutObjectResult, error)
 	BucketExists(ctx context.Context, fullBucketName string) (bool, error)
 	CreateBucketIfNotExists(ctx context.Context, userId string) error

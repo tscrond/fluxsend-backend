@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,83 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/logger"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
+
+const (
+	defaultUploadChunkSize int64 = 50 * 50 * 1024
+)
+
+type CreateUploadRequest struct {
+	Filename    string `json:"filename"`
+	Size        int64  `json:"size"`
+	ContentType string `json:"content_type"`
+	Folder      string `json:"folder"`
+}
+
+func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
+	if r.Method != http.MethodPost {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+
+	var req CreateUploadRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_request", "")
+		return
+	}
+
+	if req.Size <= 0 {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_file_size", "")
+		return
+	}
+
+	authUserWithPlan, ok := parseAuthorizedUserWithPlan(r)
+	if !ok {
+		log.Errorw("failed to retrieve user data")
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "forbidden", "")
+		return
+	}
+
+	// Enforce per-file size limit
+	if authUserWithPlan.UserPlan.MaxFileSizeBytes > 0 && req.Size > authUserWithPlan.UserPlan.MaxFileSizeBytes {
+		log.Warnw("plan limit: file too large",
+			"user", authUserWithPlan.AuthorizedUserInfo.InternalID,
+			"plan", authUserWithPlan.UserPlan.PlanName,
+			"limit", authUserWithPlan.UserPlan.MaxFileSizeBytes,
+			"file", req.Filename,
+			"size", req.Size,
+		)
+		pkg.WriteJSONResponse(w, http.StatusRequestEntityTooLarge, "file_too_large", map[string]any{
+			"msg":                 "File exceeds the maximum allowed size for your plan",
+			"max_file_size_bytes": authUserWithPlan.UserPlan.MaxFileSizeBytes,
+		})
+		return
+	}
+
+	// CreateUploadIdParams object
+	params := &filedata.CreateUploadIdParams{
+		OwnerID:     uuid.MustParse(authUserWithPlan.InternalID),
+		FileName:    req.Filename,
+		Folder:      req.Folder,
+		ContentType: req.ContentType,
+		Size:        req.Size,
+	}
+	uploadResponse, err := s.files.CreateUploadWithId(r.Context(), params)
+	if err != nil {
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "failed_creating_upload_id", "")
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "created_upload_id", map[string]any{
+		"upload_id": uploadResponse.UploadId,
+		"chunk_size": func(chunkSize *int64) int64 {
+			if chunkSize != nil {
+				return *chunkSize
+			}
+			return defaultUploadChunkSize
+		}(uploadResponse.ChunkSize),
+	})
+}
 
 // uploadHandler uploads a file to the user's personal storage.
 // @Summary Upload a file

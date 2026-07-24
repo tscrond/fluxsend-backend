@@ -6,6 +6,7 @@ package sqlc
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,6 +51,30 @@ type File struct {
 	OwnerID              uuid.UUID      `json:"owner_id"`
 	StorageMapping       uuid.UUID      `json:"storage_mapping"`
 	CreatedAt            time.Time      `json:"created_at"`
+}
+
+type FileUpload struct {
+	ID              uuid.UUID      `json:"id"`
+	OwnerID         uuid.UUID      `json:"owner_id"`
+	StorageBackend  string         `json:"storage_backend"`
+	StorageUploadID sql.NullString `json:"storage_upload_id"`
+	StorageMapping  uuid.UUID      `json:"storage_mapping"`
+	FileName        string         `json:"file_name"`
+	FileType        sql.NullString `json:"file_type"`
+	ExpectedSize    int64          `json:"expected_size"`
+	UploadedSize    int64          `json:"uploaded_size"`
+	Status          string         `json:"status"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
+type FileUploadPart struct {
+	ID              uuid.UUID       `json:"id"`
+	UploadID        uuid.UUID       `json:"upload_id"`
+	PartNumber      int32           `json:"part_number"`
+	StorageMetadata json.RawMessage `json:"storage_metadata"`
+	Size            int64           `json:"size"`
+	CreatedAt       time.Time       `json:"created_at"`
 }
 
 type Identity struct {

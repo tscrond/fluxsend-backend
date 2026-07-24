@@ -24,6 +24,7 @@ type Querier interface {
 	CountUnseenShares(ctx context.Context, sharedFor sql.NullString) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateAPIKeyScope(ctx context.Context, arg CreateAPIKeyScopeParams) error
+	CreateFileUpload(ctx context.Context, arg CreateFileUploadParams) (FileUpload, error)
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (Identity, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, userEmail string) (User, error)
