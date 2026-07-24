@@ -70,19 +70,32 @@ func NewFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storag
 
 func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error) {
 
+	fileName := fd.FileName
+	if fd.Folder != "" {
+		fileName = fd.Folder + "/" + fileName
+	}
+
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), fd.OwnerID, fd.OwnerID.String())
+	if err != nil {
+		return nil, err
+	}
+
 	storageMapping := uuid.New()
-	uploadId, err := s.storage.CreateMultipartUpload(ctx, s.storage.GetBucketBaseName(), storageMapping.String(), fd.ContentType)
+	uploadId, err := s.storage.CreateMultipartUpload(ctx, bucket, storageMapping.String(), fd.ContentType)
 	if err != nil {
 		logger.FromContext(ctx).Errorw("error creating file upload ID", "error", err)
 		return nil, err
+	}
+	if uploadId == nil || strings.TrimSpace(*uploadId) == "" {
+		return nil, fmt.Errorf("%w: storage backend returned empty upload id", storagetypes.ErrUploadFailed)
 	}
 	result, err := s.queries.CreateFileUpload(ctx, sqlc.CreateFileUploadParams{
 		OwnerID:         fd.OwnerID,
 		StorageBackend:  fd.StorageBackend,
 		StorageUploadID: sql.NullString{Valid: true, String: *uploadId},
 		StorageMapping:  storageMapping,
-		FileName:        fd.FileName,
-		FileType:        sql.NullString{Valid: true, String: fd.ContentType},
+		FileName:        fileName,
+		FileType:        sql.NullString{Valid: strings.TrimSpace(fd.ContentType) != "", String: fd.ContentType},
 		ExpectedSize:    fd.Size,
 		Status:          "uploading",
 	})
