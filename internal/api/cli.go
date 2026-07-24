@@ -82,6 +82,7 @@ func (s *CLIServer) registerCLIFileRoutes(r chi.Router) {
 	privateShare := s.cliProtected(scope.PrivateFilesShare, routeDomainPrivate, false)
 
 	r.Handle("/files/upload", applyRouteMiddleware(s.uploadHandler, privateWrite))
+	r.Handle("/files/uploads", applyRouteMiddleware(s.uploadInitHandler, privateWrite))
 	r.Handle("/files/share", applyRouteMiddleware(s.shareWith, privateShare))
 	r.Handle("/files/tree", applyRouteMiddleware(s.getFilesTree, privateRead))
 	r.Handle("/files/move", applyRouteMiddleware(s.moveFile, privateWrite))

@@ -39,6 +39,7 @@ type FilesTree struct {
 
 // FileService encapsulates all business logic for file management.
 type FileService interface {
+	CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error)
 	Upload(ctx context.Context, fd *filedata.FileData) error
 	GetFilesTree(ctx context.Context, userID uuid.UUID, path string) (*FilesTree, error)
 	GetFolders(ctx context.Context, userID uuid.UUID, path string) ([]string, error)
@@ -65,6 +66,35 @@ func NewFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storag
 		storage:   storage,
 		sanitizer: sanitizer,
 	}
+}
+
+func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error) {
+
+	storageMapping := uuid.New()
+	uploadId, err := s.storage.CreateMultipartUpload(ctx, s.storage.GetBucketBaseName(), storageMapping.String(), fd.ContentType)
+	if err != nil {
+		logger.FromContext(ctx).Errorw("error creating file upload ID", "error", err)
+		return nil, err
+	}
+	result, err := s.queries.CreateFileUpload(ctx, sqlc.CreateFileUploadParams{
+		OwnerID:         fd.OwnerID,
+		StorageBackend:  fd.StorageBackend,
+		StorageUploadID: sql.NullString{Valid: true, String: *uploadId},
+		StorageMapping:  storageMapping,
+		FileName:        fd.FileName,
+		FileType:        sql.NullString{Valid: true, String: fd.ContentType},
+		ExpectedSize:    fd.Size,
+		Status:          "uploading",
+	})
+	if err != nil {
+		logger.FromContext(ctx).Errorw("error creating new file upload", "error", err)
+		return nil, err
+	}
+
+	return &filedata.CreateUploadIdResponse{
+		UploadId:  result.ID.String(),
+		ChunkSize: pkg.OptimalChunkSize(fd.Size),
+	}, nil
 }
 
 func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {

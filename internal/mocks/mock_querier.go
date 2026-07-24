@@ -208,6 +208,21 @@ func (mr *MockQuerierMockRecorder) CreateAPIKeyScope(ctx, arg any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAPIKeyScope", reflect.TypeOf((*MockQuerier)(nil).CreateAPIKeyScope), ctx, arg)
 }
 
+// CreateFileUpload mocks base method.
+func (m *MockQuerier) CreateFileUpload(ctx context.Context, arg sqlc.CreateFileUploadParams) (sqlc.FileUpload, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateFileUpload", ctx, arg)
+	ret0, _ := ret[0].(sqlc.FileUpload)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateFileUpload indicates an expected call of CreateFileUpload.
+func (mr *MockQuerierMockRecorder) CreateFileUpload(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFileUpload", reflect.TypeOf((*MockQuerier)(nil).CreateFileUpload), ctx, arg)
+}
+
 // CreateIdentity mocks base method.
 func (m *MockQuerier) CreateIdentity(ctx context.Context, arg sqlc.CreateIdentityParams) (sqlc.Identity, error) {
 	m.ctrl.T.Helper()
