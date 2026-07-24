@@ -16,6 +16,7 @@ type FileData struct {
 	Folder          string
 	OwnerID         uuid.UUID // owner's ID within application logic
 	OwnerInternalID string    // user's internal ID string (database UUID)
+}
 
 func NewFileData(multipartFile multipart.File, requestHeaders *multipart.FileHeader, folder string) *FileData {
 	return &FileData{
