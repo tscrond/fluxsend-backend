@@ -21,6 +21,7 @@ type Querier interface {
 	CheckWorkspaceAPIKeyQuota(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	CheckWorkspaceResourceQuota(ctx context.Context, id uuid.UUID) (CheckWorkspaceResourceQuotaRow, error)
 	CheckWorkspacesPerUserQuota(ctx context.Context, ownerID uuid.UUID) (bool, error)
+	CompleteFileUpload(ctx context.Context, arg CompleteFileUploadParams) error
 	CountUnseenShares(ctx context.Context, sharedFor sql.NullString) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateAPIKeyScope(ctx context.Context, arg CreateAPIKeyScopeParams) error
@@ -57,6 +58,7 @@ type Querier interface {
 	GetFileFromChecksum(ctx context.Context, arg GetFileFromChecksumParams) (int32, error)
 	GetFileFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (File, error)
 	GetFileIdFromToken(ctx context.Context, privateDownloadToken sql.NullString) (int32, error)
+	GetFileUploadById(ctx context.Context, id uuid.UUID) (FileUpload, error)
 	// -- name: InsertFileReturningID :one
 	// INSERT INTO files (owner_id, file_name, file_type, size, md5_checksum, private_download_token)
 	// VALUES ($1, $2, $3, $4, $5, $6)
@@ -111,6 +113,7 @@ type Querier interface {
 	InsertShareWithPassword(ctx context.Context, arg InsertShareWithPasswordParams) (Share, error)
 	ListAPIKeyScopes(ctx context.Context, apiKeyID uuid.UUID) ([]string, error)
 	ListFileIDsWithoutPrivateToken(ctx context.Context) ([]int32, error)
+	ListFileUploadPartsByUploadID(ctx context.Context, uploadID uuid.UUID) ([]FileUploadPart, error)
 	ListPrivateAPIKeysByUserID(ctx context.Context, userID uuid.UUID) ([]ListPrivateAPIKeysByUserIDRow, error)
 	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceAPIKeysRow, error)
 	MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (Share, error)
@@ -122,6 +125,7 @@ type Querier interface {
 	RevokeWorkspaceAPIKey(ctx context.Context, arg RevokeWorkspaceAPIKeyParams) (ApiKey, error)
 	UpdateFileNameByID(ctx context.Context, arg UpdateFileNameByIDParams) error
 	UpdateFileNameByOwnerAndName(ctx context.Context, arg UpdateFileNameByOwnerAndNameParams) error
+	UpdateFileUploadParts(ctx context.Context, arg UpdateFileUploadPartsParams) error
 	UpdateNoteForFile(ctx context.Context, arg UpdateNoteForFileParams) (Note, error)
 	UpdatePrivateDownloadToken(ctx context.Context, arg UpdatePrivateDownloadTokenParams) error
 	UpdateUserBucketNameById(ctx context.Context, arg UpdateUserBucketNameByIdParams) error

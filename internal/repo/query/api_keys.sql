@@ -113,7 +113,7 @@ WITH key_binding AS (
 )
 SELECT
 	kb.api_key_id,
-	COALESCE(kb.private_user_id, kb.created_by_user_id) AS internal_id,
+	COALESCE(kb.private_user_id, kb.created_by_user_id) AS user_id,
 	u.user_email AS email,
 	(
 		SELECT i.name

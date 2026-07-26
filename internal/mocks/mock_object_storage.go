@@ -72,6 +72,21 @@ func (mr *MockObjectStorageMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockObjectStorage)(nil).Close))
 }
 
+// CompleteMultipartUpload mocks base method.
+func (m *MockObjectStorage) CompleteMultipartUpload(ctx context.Context, bucket, key, uploadID string, parts []types.CompletedPart) (*types.CompleteMultipartUploadResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CompleteMultipartUpload", ctx, bucket, key, uploadID, parts)
+	ret0, _ := ret[0].(*types.CompleteMultipartUploadResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CompleteMultipartUpload indicates an expected call of CompleteMultipartUpload.
+func (mr *MockObjectStorageMockRecorder) CompleteMultipartUpload(ctx, bucket, key, uploadID, parts any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteMultipartUpload", reflect.TypeOf((*MockObjectStorage)(nil).CompleteMultipartUpload), ctx, bucket, key, uploadID, parts)
+}
+
 // CreateBucketIfNotExists mocks base method.
 func (m *MockObjectStorage) CreateBucketIfNotExists(ctx context.Context, userId string) error {
 	m.ctrl.T.Helper()
@@ -214,4 +229,19 @@ func (m *MockObjectStorage) PutObject(ctx context.Context, bucket, key string, r
 func (mr *MockObjectStorageMockRecorder) PutObject(ctx, bucket, key, r, size, contentType any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutObject", reflect.TypeOf((*MockObjectStorage)(nil).PutObject), ctx, bucket, key, r, size, contentType)
+}
+
+// UploadPart mocks base method.
+func (m *MockObjectStorage) UploadPart(ctx context.Context, bucket, key, uploadID string, partNumber int32, body io.Reader, size int64) (*types.UploadPartResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadPart", ctx, bucket, key, uploadID, partNumber, body, size)
+	ret0, _ := ret[0].(*types.UploadPartResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadPart indicates an expected call of UploadPart.
+func (mr *MockObjectStorageMockRecorder) UploadPart(ctx, bucket, key, uploadID, partNumber, body, size any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadPart", reflect.TypeOf((*MockObjectStorage)(nil).UploadPart), ctx, bucket, key, uploadID, partNumber, body, size)
 }

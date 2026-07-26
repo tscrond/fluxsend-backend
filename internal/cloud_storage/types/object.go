@@ -12,7 +12,29 @@ type PutObjectResult struct {
 	ContentType string
 }
 
+type UploadPartResult struct {
+	PartNumber int32
+	Size       int64
+
+	// Provider-specific data needed for CompleteMultipartUpload
+	StorageMetadata map[string]any
+}
+
+type CompletedPart struct {
+	PartNumber int32
+	Size       int64
+
+	// Provider-specific data needed to finalize a multipart upload.
+	StorageMetadata map[string]any
+}
+
+type CompleteMultipartUploadResult struct {
+	ETag string
+}
+
 type ObjectStorage interface {
+	UploadPart(ctx context.Context, bucket string, key string, uploadID string, partNumber int32, body io.Reader, size int64) (*UploadPartResult, error)
+	CompleteMultipartUpload(ctx context.Context, bucket string, key string, uploadID string, parts []CompletedPart) (*CompleteMultipartUploadResult, error)
 	CreateMultipartUpload(ctx context.Context, bucket, uploadPath, contentType string) (*string, error)
 	PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*PutObjectResult, error)
 	BucketExists(ctx context.Context, fullBucketName string) (bool, error)

@@ -5,16 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
+	"github.com/tscrond/fluxsend-backend/internal/service"
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
-)
-
-const (
-	defaultUploadChunkSize int64 = 50 * 50 * 1024
 )
 
 type CreateUploadRequest struct {
@@ -52,7 +52,7 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 	// Enforce per-file size limit
 	if authUserWithPlan.UserPlan.MaxFileSizeBytes > 0 && req.Size > authUserWithPlan.UserPlan.MaxFileSizeBytes {
 		log.Warnw("plan limit: file too large",
-			"user", authUserWithPlan.AuthorizedUserInfo.InternalID,
+			"user", authUserWithPlan.AuthorizedUserInfo.UserID,
 			"plan", authUserWithPlan.UserPlan.PlanName,
 			"limit", authUserWithPlan.UserPlan.MaxFileSizeBytes,
 			"file", req.Filename,
@@ -65,9 +65,21 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	userUUID := uuid.MustParse(authUserWithPlan.AuthorizedUserInfo.UserID)
+	// enforce plan limits on uploads
+	if exceedInfo, err := s.validateClassicUploadPlan(r.Context(), userUUID, authUserWithPlan.UserPlan); err != nil {
+		if errors.Is(err, ErrFileLimitExceeded) || errors.Is(err, ErrStorageQuotaExceeded) || errors.Is(err, ErrDailyUploadLimitExceeded) {
+			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
+		} else {
+			log.Errorw("upload quota check failed", "user", userUUID, "error", err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
+		}
+		return
+	}
+
 	// CreateUploadIdParams object
 	params := &filedata.CreateUploadIdParams{
-		OwnerID:     uuid.MustParse(authUserWithPlan.InternalID),
+		OwnerUserID: uuid.MustParse(authUserWithPlan.UserID),
 		FileName:    req.Filename,
 		Folder:      req.Folder,
 		ContentType: req.ContentType,
@@ -80,14 +92,82 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "created_upload_id", map[string]any{
-		"upload_id": uploadResponse.UploadId,
-		"chunk_size": func(chunkSize *int64) int64 {
-			if chunkSize != nil {
-				return *chunkSize
-			}
-			return defaultUploadChunkSize
-		}(uploadResponse.ChunkSize),
+		"upload_id":  uploadResponse.UploadId,
+		"chunk_size": uploadResponse.ChunkSize,
 	})
+}
+
+func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
+	uploadId := chi.URLParam(r, "upload_id")
+	partIdStr := chi.URLParam(r, "part_id")
+
+	partId, err := strconv.Atoi(partIdStr)
+	if err != nil || partId <= 0 {
+		log.Errorw("invalid part number", "part_id", partId)
+		pkg.WriteJSONResponse(
+			w,
+			http.StatusBadRequest,
+			"invalid_part_number",
+			"",
+		)
+		return
+	}
+
+	result, err := s.files.UploadPart(
+		r.Context(),
+		uploadId,
+		int32(partId),
+		r.Body,
+		r.ContentLength,
+	)
+	if err != nil {
+		pkg.WriteJSONResponse(
+			w,
+			http.StatusBadRequest,
+			"error_uploading_part",
+			"",
+		)
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "uploaded_chunk", result)
+}
+
+func (s *CoreHandlers) completeUploadHandler(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
+	if r.Method != http.MethodPost {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+
+	uploadId := chi.URLParam(r, "upload_id")
+	if strings.TrimSpace(uploadId) == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
+		return
+	}
+
+	result, err := s.files.CompleteUpload(r.Context(), uploadId)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrMultipartUploadIncomplete):
+			pkg.WriteJSONResponse(w, http.StatusBadRequest, "multipart_upload_incomplete", "")
+		case errors.Is(err, service.ErrMultipartUploadClosed):
+			pkg.WriteJSONResponse(w, http.StatusConflict, "multipart_upload_closed", "")
+		case errors.Is(err, service.ErrMultipartUploadUnsupported):
+			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "multipart_upload_not_supported", "")
+		case errors.Is(err, storagetypes.ErrFileAlreadyExists):
+			pkg.WriteJSONResponse(w, http.StatusConflict, "file_already_exists", "")
+		case strings.Contains(err.Error(), "invalid_upload_id"):
+			pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
+		default:
+			log.Errorw("error completing multipart upload", "upload_id", uploadId, "error", err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "error_completing_upload", "")
+		}
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "upload_completed", result)
 }
 
 // uploadHandler uploads a file to the user's personal storage.
@@ -118,7 +198,7 @@ func (s *CoreHandlers) uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	authUser := authUserWithPlan.AuthorizedUserInfo
 	userPlan := authUserWithPlan.UserPlan
-	userUUID := authUser.InternalID
+	userUUID := authUser.UserID
 
 	// Get file from request
 	file, header, err := r.FormFile("file")
@@ -154,8 +234,7 @@ func (s *CoreHandlers) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "invalid_file_data", "")
 		return
 	}
-	fileData.OwnerID = uuid.MustParse(userUUID)
-	fileData.OwnerInternalID = authUser.InternalID
+	fileData.OwnerUserID = uuid.MustParse(userUUID)
 
 	if exceedInfo, err := s.validateClassicUploadPlan(r.Context(), uuid.MustParse(userUUID), userPlan); err != nil {
 		if errors.Is(err, ErrFileLimitExceeded) || errors.Is(err, ErrStorageQuotaExceeded) || errors.Is(err, ErrDailyUploadLimitExceeded) {

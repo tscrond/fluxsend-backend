@@ -37,9 +37,9 @@ func parseAuthorizedUserWithPlan(r *http.Request) (*userdata.AuthorizedUserWithP
 
 	return &userdata.AuthorizedUserWithPlan{
 		AuthorizedUserInfo: userdata.AuthorizedUserInfo{
-			InternalID: cliUserWithPlan.InternalID,
-			Email:      cliUserWithPlan.Email,
-			Name:       cliUserWithPlan.Name,
+			UserID: cliUserWithPlan.UserID,
+			Email:  cliUserWithPlan.Email,
+			Name:   cliUserWithPlan.Name,
 		},
 		UserPlan: cliUserWithPlan.UserPlan,
 	}, true
@@ -58,7 +58,7 @@ func parseAuthorizedUserUUID(r *http.Request) (*userdata.AuthorizedUserInfo, uui
 	if !ok {
 		return nil, uuid.Nil, false
 	}
-	parsedUUID, err := uuid.Parse(authUserData.InternalID)
+	parsedUUID, err := uuid.Parse(authUserData.UserID)
 	if err != nil {
 		return nil, uuid.Nil, false
 	}
@@ -149,7 +149,7 @@ func (s *CoreHandlers) getFolders(w http.ResponseWriter, r *http.Request) {
 // @Router /api/folders [delete]
 func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
-	authUserData, userUUID, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
@@ -163,7 +163,7 @@ func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 
 	recursive := strings.EqualFold(r.URL.Query().Get("recursive"), "true")
 
-	deletedCount, err := s.files.DeleteFolder(r.Context(), userUUID, authUserData.InternalID, folderPath, recursive)
+	deletedCount, err := s.files.DeleteFolder(r.Context(), userUUID, folderPath, recursive)
 	if err != nil {
 		if errors.Is(err, service.ErrRecursiveRequired) {
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "recursive_required", nil)

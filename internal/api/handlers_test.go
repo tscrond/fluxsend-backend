@@ -97,9 +97,9 @@ func newTestCLIServer(ctrl *gomock.Controller, routePrefix string) (*CLIServer, 
 func injectAuth(r *http.Request, email, internalID string, plan userdata.UserPlan) *http.Request {
 	uwp := &userdata.AuthorizedUserWithPlan{
 		AuthorizedUserInfo: userdata.AuthorizedUserInfo{
-			InternalID: internalID,
-			Email:      email,
-			Name:       "Test User",
+			UserID: internalID,
+			Email:  email,
+			Name:   "Test User",
 		},
 		UserPlan: plan,
 	}

@@ -165,7 +165,7 @@ WITH key_binding AS (
 )
 SELECT
 	kb.api_key_id,
-	COALESCE(kb.private_user_id, kb.created_by_user_id) AS internal_id,
+	COALESCE(kb.private_user_id, kb.created_by_user_id) AS user_id,
 	u.user_email AS email,
 	(
 		SELECT i.name
@@ -185,7 +185,7 @@ JOIN users u ON u.id = COALESCE(kb.private_user_id, kb.created_by_user_id)
 
 type GetAuthorizedCLIUserInfoByAPIKeyRow struct {
 	ApiKeyID              uuid.UUID      `json:"api_key_id"`
-	InternalID            interface{}    `json:"internal_id"`
+	UserID                interface{}    `json:"user_id"`
 	Email                 string         `json:"email"`
 	Name                  sql.NullString `json:"name"`
 	PrivateUserID         interface{}    `json:"private_user_id"`
@@ -201,7 +201,7 @@ func (q *Queries) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt st
 	var i GetAuthorizedCLIUserInfoByAPIKeyRow
 	err := row.Scan(
 		&i.ApiKeyID,
-		&i.InternalID,
+		&i.UserID,
 		&i.Email,
 		&i.Name,
 		&i.PrivateUserID,

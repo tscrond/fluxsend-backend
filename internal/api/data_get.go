@@ -48,7 +48,7 @@ func (s *CoreHandlers) getUserBucketData(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	authUser, userUUID, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", map[string]any{
 			"bucket_data": nil,
@@ -56,7 +56,7 @@ func (s *CoreHandlers) getUserBucketData(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	bucketData, err := s.users.GetBucketData(r.Context(), userUUID, authUser.InternalID)
+	bucketData, err := s.users.GetBucketData(r.Context(), userUUID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", map[string]any{
 			"bucket_data": nil,

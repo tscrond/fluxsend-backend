@@ -36,7 +36,7 @@ func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	authUser := &authUserWithPlan.AuthorizedUserInfo
-	userUUID, err := uuid.Parse(authUser.InternalID)
+	userUUID, err := uuid.Parse(authUser.UserID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", "")
 		return

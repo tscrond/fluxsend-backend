@@ -65,6 +65,14 @@ func NewGCSBucketHandler(log *zap.SugaredLogger, svcaccountPath, bucketName, pro
 	}, nil
 }
 
+func (b *GCSBucketHandler) UploadPart(ctx context.Context, bucket string, key string, uploadID string, partNumber int32, body io.Reader, size int64) (*types.UploadPartResult, error) {
+	return nil, fmt.Errorf("%w: multipart uploads are not implemented for GCS", types.ErrUploadFailed)
+}
+
+func (b *GCSBucketHandler) CompleteMultipartUpload(ctx context.Context, bucket string, key string, uploadID string, parts []types.CompletedPart) (*types.CompleteMultipartUploadResult, error) {
+	return nil, fmt.Errorf("%w: multipart uploads are not implemented for GCS", types.ErrUploadFailed)
+}
+
 func (b *GCSBucketHandler) CreateMultipartUpload(ctx context.Context, bucket, uploadPath, contentType string) (*string, error) {
 	return nil, fmt.Errorf("%w: multipart uploads are not implemented for GCS", types.ErrUploadFailed)
 }

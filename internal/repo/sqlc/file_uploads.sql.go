@@ -8,9 +8,29 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/google/uuid"
 )
+
+const completeFileUpload = `-- name: CompleteFileUpload :exec
+UPDATE file_uploads
+SET
+  status = 'completed',
+  uploaded_size = $2,
+  updated_at = now()
+WHERE id = $1
+`
+
+type CompleteFileUploadParams struct {
+	ID           uuid.UUID `json:"id"`
+	UploadedSize int64     `json:"uploaded_size"`
+}
+
+func (q *Queries) CompleteFileUpload(ctx context.Context, arg CompleteFileUploadParams) error {
+	_, err := q.db.ExecContext(ctx, completeFileUpload, arg.ID, arg.UploadedSize)
+	return err
+}
 
 const createFileUpload = `-- name: CreateFileUpload :one
 INSERT INTO file_uploads
@@ -66,4 +86,100 @@ func (q *Queries) CreateFileUpload(ctx context.Context, arg CreateFileUploadPara
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getFileUploadById = `-- name: GetFileUploadById :one
+SELECT id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at FROM file_uploads
+WHERE id = $1
+ORDER BY id
+LIMIT 1
+`
+
+func (q *Queries) GetFileUploadById(ctx context.Context, id uuid.UUID) (FileUpload, error) {
+	row := q.db.QueryRowContext(ctx, getFileUploadById, id)
+	var i FileUpload
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.StorageBackend,
+		&i.StorageUploadID,
+		&i.StorageMapping,
+		&i.FileName,
+		&i.FileType,
+		&i.ExpectedSize,
+		&i.UploadedSize,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listFileUploadPartsByUploadID = `-- name: ListFileUploadPartsByUploadID :many
+SELECT id, upload_id, part_number, storage_metadata, size, created_at FROM file_upload_parts
+WHERE upload_id = $1
+ORDER BY part_number
+`
+
+func (q *Queries) ListFileUploadPartsByUploadID(ctx context.Context, uploadID uuid.UUID) ([]FileUploadPart, error) {
+	rows, err := q.db.QueryContext(ctx, listFileUploadPartsByUploadID, uploadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FileUploadPart
+	for rows.Next() {
+		var i FileUploadPart
+		if err := rows.Scan(
+			&i.ID,
+			&i.UploadID,
+			&i.PartNumber,
+			&i.StorageMetadata,
+			&i.Size,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateFileUploadParts = `-- name: UpdateFileUploadParts :exec
+INSERT INTO file_upload_parts (
+    upload_id,
+    part_number,
+    storage_metadata,
+    size
+)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (upload_id, part_number)
+DO UPDATE
+SET
+    storage_metadata = EXCLUDED.storage_metadata,
+    size = EXCLUDED.size,
+    created_at = now()
+`
+
+type UpdateFileUploadPartsParams struct {
+	UploadID        uuid.UUID       `json:"upload_id"`
+	PartNumber      int32           `json:"part_number"`
+	StorageMetadata json.RawMessage `json:"storage_metadata"`
+	Size            int64           `json:"size"`
+}
+
+func (q *Queries) UpdateFileUploadParts(ctx context.Context, arg UpdateFileUploadPartsParams) error {
+	_, err := q.db.ExecContext(ctx, updateFileUploadParts,
+		arg.UploadID,
+		arg.PartNumber,
+		arg.StorageMetadata,
+		arg.Size,
+	)
+	return err
 }

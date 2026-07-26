@@ -132,10 +132,10 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 
 			// Adapt AuthorizedCLIUserInfo to AuthorizedUserInfo to unify handler logic
 			authorizedUser := &userdata.AuthorizedUserInfo{
-				InternalID: principalUserID.String(),
-				Email:      authorizedCLIUser.Email,
-				Name:       authorizedCLIUser.Name.String,
-				Provider:   "api", // Static provider for API-based auth
+				UserID:   principalUserID.String(),
+				Email:    authorizedCLIUser.Email,
+				Name:     authorizedCLIUser.Name.String,
+				Provider: "api", // Static provider for API-based auth
 			}
 
 			ctx := context.WithValue(r.Context(), userdata.APIKeyScopesContextKey, scopes)
@@ -154,7 +154,7 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 func parseAPIKeyBinding(authorizedCLIUser sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow) (apiKeyBindingType, uuid.UUID, uuid.UUID, bool) {
 	privateUserID, hasPrivateUserID := pkg.ParseUUIDValue(authorizedCLIUser.PrivateUserID)
 	workspaceID, hasWorkspaceID := pkg.ParseUUIDValue(authorizedCLIUser.WorkspaceID)
-	internalID, hasInternalID := pkg.ParseUUIDValue(authorizedCLIUser.InternalID)
+	userID, hasUserID := pkg.ParseUUIDValue(authorizedCLIUser.UserID)
 
 	privateBound := authorizedCLIUser.PrivateBindingCount == 1 && hasPrivateUserID
 	workspaceBound := authorizedCLIUser.WorkspaceBindingCount == 1 && hasWorkspaceID
@@ -171,11 +171,11 @@ func parseAPIKeyBinding(authorizedCLIUser sqlc.GetAuthorizedCLIUserInfoByAPIKeyR
 		return apiKeyBindingPrivate, privateUserID, uuid.Nil, true
 	}
 
-	if !hasInternalID {
+	if !hasUserID {
 		return "", uuid.Nil, uuid.Nil, false
 	}
 
-	return apiKeyBindingWorkspace, internalID, workspaceID, true
+	return apiKeyBindingWorkspace, userID, workspaceID, true
 }
 
 func bindingAllowsDomain(binding apiKeyBindingType, domain routeDomain) bool {

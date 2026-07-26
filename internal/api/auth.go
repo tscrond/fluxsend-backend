@@ -287,13 +287,13 @@ func (s *APIServer) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		authorizedUser := &userdata.AuthorizedUserInfo{
-			InternalID: user.ID.String(),
-			Id:         identity.ProviderUserID,
-			Email:      user.UserEmail,
-			Name:       identity.Name.String,
-			GivenName:  firstWord(identity.Name.String),
-			Picture:    identity.AvatarUrl.String,
-			Provider:   session.Provider,
+			UserID:         user.ID.String(),
+			ProviderUserID: identity.ProviderUserID,
+			Email:          user.UserEmail,
+			Name:           identity.Name.String,
+			GivenName:      firstWord(identity.Name.String),
+			Picture:        identity.AvatarUrl.String,
+			Provider:       session.Provider,
 		}
 
 		userPlan := &userdata.UserPlan{

@@ -333,7 +333,7 @@ func (w *workspaceFileService) CreateWorkspaceFiles(ctx context.Context, workspa
 	bucket := w.storage.GetBucketBaseName()
 
 	for _, f := range fd {
-		uploaderID, err := uuid.Parse(f.OwnerId)
+		uploaderID, err := uuid.Parse(f.UploaderUserID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid uploader id: %w", err)
 		}
