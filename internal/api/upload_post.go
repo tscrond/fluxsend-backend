@@ -99,18 +99,27 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 
 func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
-	uploadId := chi.URLParam(r, "upload_id")
-	partIdStr := chi.URLParam(r, "part_id")
+	if r.Method != http.MethodPut && r.Method != http.MethodPost {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
 
+	uploadId := strings.TrimSpace(chi.URLParam(r, "upload_id"))
+	if uploadId == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
+		return
+	}
+
+	if r.ContentLength <= 0 {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_part_size", "")
+		return
+	}
+
+	partIdStr := chi.URLParam(r, "part_id")
 	partId, err := strconv.Atoi(partIdStr)
 	if err != nil || partId <= 0 {
-		log.Errorw("invalid part number", "part_id", partId)
-		pkg.WriteJSONResponse(
-			w,
-			http.StatusBadRequest,
-			"invalid_part_number",
-			"",
-		)
+		log.Errorw("invalid part number", "part_id", partIdStr, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_part_number", "")
 		return
 	}
 
