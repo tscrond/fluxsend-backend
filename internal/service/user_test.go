@@ -26,9 +26,8 @@ func TestUserService_GetBucketData_HappyPath(t *testing.T) {
 	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
-	const internalID = "internal-abc"
 	const base = "fluxsend"
-	bucket := base + "-" + internalID
+	bucket := base + "-" + userID.String()
 
 	files := []sqlc.File{
 		{
@@ -44,7 +43,7 @@ func TestUserService_GetBucketData_HappyPath(t *testing.T) {
 	q.EXPECT().GetUserBucketById(gomock.Any(), userID).
 		Return(sql.NullString{Valid: true, String: bucket}, nil)
 
-	data, err := svc.GetBucketData(context.Background(), userID, internalID)
+	data, err := svc.GetBucketData(context.Background(), userID)
 	require.NoError(t, err)
 	assert.Equal(t, bucket, data.BucketName)
 	require.Len(t, data.Objects, 1)
@@ -60,7 +59,7 @@ func TestUserService_GetBucketData_DBError(t *testing.T) {
 	dbErr := errors.New("db timeout")
 	q.EXPECT().GetFilesByOwner(gomock.Any(), gomock.Any()).Return(nil, dbErr)
 
-	_, err := svc.GetBucketData(context.Background(), uuid.New(), "internal")
+	_, err := svc.GetBucketData(context.Background(), uuid.New())
 	assert.ErrorIs(t, err, dbErr)
 }
 
@@ -71,18 +70,16 @@ func TestUserService_GetBucketData_FallbackBucketName(t *testing.T) {
 	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
-	const internalID = "fallback-id"
-
 	q.EXPECT().GetFilesByOwner(gomock.Any(), userID).Return(nil, nil)
 	// Bucket not in DB (null)
 	q.EXPECT().GetUserBucketById(gomock.Any(), userID).
 		Return(sql.NullString{Valid: false}, nil)
 	stor.EXPECT().GetBucketBaseName().Return("base")
 
-	data, err := svc.GetBucketData(context.Background(), userID, internalID)
+	data, err := svc.GetBucketData(context.Background(), userID)
 	require.NoError(t, err)
-	// Falls back to base-internalID
-	assert.Equal(t, "base-"+internalID, data.BucketName)
+	// Falls back to base-users.id
+	assert.Equal(t, "base-"+userID.String(), data.BucketName)
 }
 
 // --- GetPrivateDownloadToken ----------------------------------------------
@@ -128,15 +125,14 @@ func TestUserService_DeleteAccount_WithStorageDeletion(t *testing.T) {
 	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
 
 	userID := uuid.New()
-	const internalID = "user-internal-xyz"
 	const userName = "testuser"
 
 	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
-	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+internalID).Return(nil)
+	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil)
 	q.EXPECT().DeleteAccount(gomock.Any(), userID).
 		Return(sqlc.User{ID: userID, UserEmail: "user@example.com"}, nil)
 
-	result, err := svc.DeleteAccount(context.Background(), userID, internalID, userName, true)
+	result, err := svc.DeleteAccount(context.Background(), userID, userName, true)
 	require.NoError(t, err)
 	assert.True(t, result.BucketDeleted)
 	assert.Equal(t, "user@example.com", result.Email)
@@ -155,7 +151,7 @@ func TestUserService_DeleteAccount_SkipStorageDeletion(t *testing.T) {
 	q.EXPECT().DeleteAccount(gomock.Any(), userID).
 		Return(sqlc.User{ID: userID, UserEmail: "user@example.com"}, nil)
 
-	result, err := svc.DeleteAccount(context.Background(), userID, "internal-1", "user", false)
+	result, err := svc.DeleteAccount(context.Background(), userID, "user", false)
 	require.NoError(t, err)
 	assert.False(t, result.BucketDeleted)
 }
@@ -171,6 +167,6 @@ func TestUserService_DeleteAccount_DBError(t *testing.T) {
 	dbErr := errors.New("constraint violation")
 	q.EXPECT().DeleteAccount(gomock.Any(), userID).Return(sqlc.User{}, dbErr)
 
-	_, err := svc.DeleteAccount(context.Background(), userID, "internal-1", "user", false)
+	_, err := svc.DeleteAccount(context.Background(), userID, "user", false)
 	assert.Error(t, err)
 }

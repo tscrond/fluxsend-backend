@@ -26,9 +26,9 @@ type DeleteAccountResult struct {
 
 // UserService encapsulates business logic for user profile and account operations.
 type UserService interface {
-	GetBucketData(ctx context.Context, userID uuid.UUID, userInternalID string) (*mappings.BucketData, error)
+	GetBucketData(ctx context.Context, userID uuid.UUID) (*mappings.BucketData, error)
 	GetPrivateDownloadToken(ctx context.Context, userID uuid.UUID, fileName string) (string, error)
-	DeleteAccount(ctx context.Context, userID uuid.UUID, userInternalID, userName string, deleteStorageData bool) (*DeleteAccountResult, error)
+	DeleteAccount(ctx context.Context, userID uuid.UUID, userName string, deleteStorageData bool) (*DeleteAccountResult, error)
 }
 
 type userService struct {
@@ -45,13 +45,13 @@ func NewUserService(log *zap.SugaredLogger, queries sqlc.Querier, storage storag
 	}
 }
 
-func (s *userService) GetBucketData(ctx context.Context, userID uuid.UUID, userInternalID string) (*mappings.BucketData, error) {
+func (s *userService) GetBucketData(ctx context.Context, userID uuid.UUID) (*mappings.BucketData, error) {
 	filesByOwner, err := s.queries.GetFilesByOwner(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	bucketName, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID, userInternalID)
+	bucketName, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +91,8 @@ func (s *userService) GetPrivateDownloadToken(ctx context.Context, userID uuid.U
 	return token.String, nil
 }
 
-func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userInternalID, userName string, deleteStorageData bool) (*DeleteAccountResult, error) {
-	bucketName := pkg.GetUserBucketName(s.storage.GetBucketBaseName(), userInternalID)
+func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userName string, deleteStorageData bool) (*DeleteAccountResult, error) {
+	bucketName := pkg.GetUserBucketName(s.storage.GetBucketBaseName(), userID.String())
 
 	result := &DeleteAccountResult{
 		BucketName:    bucketName,

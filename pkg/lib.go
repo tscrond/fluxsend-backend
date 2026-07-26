@@ -245,23 +245,25 @@ const (
 )
 
 // OptimalChunkSize returns an upload chunk size based on the file size.
-func OptimalChunkSize(fileSize int64) *int64 {
-	var size int64
+func OptimalChunkSize(fileSize int64) int64 {
+	const (
+		MiB         = 1024 * 1024
+		min         = 8 * MiB
+		max         = 128 * MiB
+		targetParts = 200
+	)
 
-	switch {
-	case fileSize <= 10*MiB:
-		size = 1 * MiB
-	case fileSize <= 100*MiB:
-		size = 4 * MiB
-	case fileSize <= 1*GiB:
-		size = 8 * MiB
-	case fileSize <= 10*GiB:
-		size = 16 * MiB
-	case fileSize <= 100*GiB:
-		size = 32 * MiB
-	default:
-		size = 64 * MiB
+	chunk := fileSize / targetParts
+
+	if chunk < min {
+		return min
 	}
 
-	return &size
+	if chunk > max {
+		return max
+	}
+
+	chunk = ((chunk + MiB - 1) / MiB) * MiB
+
+	return chunk
 }

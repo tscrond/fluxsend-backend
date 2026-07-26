@@ -59,6 +59,98 @@ func (b *S3BucketHandler) extractUserIdFromBucket(bucket string) string {
 	return pkg.ExtractUserIdFromBucketName(b.BaseBucketName, bucket)
 }
 
+func (b *S3BucketHandler) UploadPart(ctx context.Context, bucket string, key string, uploadID string, partNumber int32, body io.Reader, size int64) (*types.UploadPartResult, error) {
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := key
+	if userId != "" {
+		objectKey = s3Key(userId, key)
+	}
+
+	out, err := b.Client.UploadPart(ctx, &s3.UploadPartInput{
+		Bucket:        aws.String(b.BaseBucketName),
+		Key:           aws.String(objectKey),
+		UploadId:      aws.String(uploadID),
+		PartNumber:    aws.Int32(partNumber),
+		Body:          body,
+		ContentLength: aws.Int64(size),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", types.ErrUploadFailed, err)
+	}
+
+	metadata := map[string]any{}
+	if etag := strings.TrimSpace(strings.Trim(aws.ToString(out.ETag), "\"")); etag != "" {
+		metadata["etag"] = etag
+	}
+
+	return &types.UploadPartResult{
+		PartNumber:      partNumber,
+		Size:            size,
+		StorageMetadata: metadata,
+	}, nil
+}
+
+func (b *S3BucketHandler) AbortMultipartUpload(ctx context.Context, bucket string, key string, uploadID string) error {
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := key
+	if userId != "" {
+		objectKey = s3Key(userId, key)
+	}
+
+	_, err := b.Client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(b.BaseBucketName),
+		Key:      aws.String(objectKey),
+		UploadId: aws.String(uploadID),
+	})
+	if err != nil {
+		return fmt.Errorf("%w: %v", types.ErrUploadFailed, err)
+	}
+
+	return nil
+}
+
+func (b *S3BucketHandler) CompleteMultipartUpload(ctx context.Context, bucket string, key string, uploadID string, parts []types.CompletedPart) (*types.CompleteMultipartUploadResult, error) {
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := key
+	if userId != "" {
+		objectKey = s3Key(userId, key)
+	}
+
+	completedParts := make([]s3types.CompletedPart, 0, len(parts))
+	for _, part := range parts {
+		etagValue, ok := part.StorageMetadata["etag"]
+		if !ok {
+			return nil, fmt.Errorf("%w: missing etag for part %d", types.ErrTypeConversion, part.PartNumber)
+		}
+
+		etag, ok := etagValue.(string)
+		if !ok || strings.TrimSpace(etag) == "" {
+			return nil, fmt.Errorf("%w: invalid etag for part %d", types.ErrTypeConversion, part.PartNumber)
+		}
+
+		completedParts = append(completedParts, s3types.CompletedPart{
+			ETag:       aws.String(etag),
+			PartNumber: aws.Int32(part.PartNumber),
+		})
+	}
+
+	out, err := b.Client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(b.BaseBucketName),
+		Key:      aws.String(objectKey),
+		UploadId: aws.String(uploadID),
+		MultipartUpload: &s3types.CompletedMultipartUpload{
+			Parts: completedParts,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", types.ErrUploadFailed, err)
+	}
+
+	return &types.CompleteMultipartUploadResult{
+		ETag: strings.TrimSpace(strings.Trim(aws.ToString(out.ETag), "\"")),
+	}, nil
+}
+
 func (b *S3BucketHandler) CreateMultipartUpload(ctx context.Context, bucket, key, contentType string) (*string, error) {
 	userId := b.extractUserIdFromBucket(bucket)
 	objectKey := key

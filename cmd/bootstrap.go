@@ -148,7 +148,7 @@ func buildRuntime(log *zap.SugaredLogger, apiConfig *config.APIServerConfig) (*a
 		return nil, fmt.Errorf("failed to initialize token encryptor: %w", err)
 	}
 
-	fileSvc := service.NewFileService(log, repository.Queries(), bucketHandler, htmlSanitizationPolicy)
+	fileSvc := service.NewFileService(log, repository.Queries(), bucketHandler, htmlSanitizationPolicy, repository)
 	shareSvc := service.NewShareService(log, repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, apiConfig.BackendEndpoint, apiConfig.FrontendEndpoint, apiConfig.MailFrom)
 	userSvc := service.NewUserService(log, repository.Queries(), bucketHandler)
 	workspaceSvc := service.NewWorkspaceService(log, repository.Queries(), repository)

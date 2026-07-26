@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
+	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/pkg"
 )
@@ -40,12 +42,15 @@ type FilesTree struct {
 // FileService encapsulates all business logic for file management.
 type FileService interface {
 	CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error)
+	UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error)
+	AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error)
+	CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error)
 	Upload(ctx context.Context, fd *filedata.FileData) error
 	GetFilesTree(ctx context.Context, userID uuid.UUID, path string) (*FilesTree, error)
 	GetFolders(ctx context.Context, userID uuid.UUID, path string) ([]string, error)
-	DeleteFile(ctx context.Context, userID uuid.UUID, userInternalID, fileName string) error
-	DeleteFiles(ctx context.Context, userID uuid.UUID, userInternalID string, fileNames []string) (deleted []string, failed []string, err error)
-	DeleteFolder(ctx context.Context, userID uuid.UUID, userInternalID, folderPath string, recursive bool) (int, error)
+	DeleteFile(ctx context.Context, userID uuid.UUID, fileName string) error
+	DeleteFiles(ctx context.Context, userID uuid.UUID, fileNames []string) (deleted []string, failed []string, err error)
+	DeleteFolder(ctx context.Context, userID uuid.UUID, folderPath string, recursive bool) (int, error)
 	MoveFile(ctx context.Context, userID uuid.UUID, source, destination string) error
 	MoveFolder(ctx context.Context, userID uuid.UUID, source, destination string) (int, error)
 	GetNote(ctx context.Context, userID uuid.UUID, checksum string) (string, error)
@@ -53,18 +58,368 @@ type FileService interface {
 }
 
 type fileService struct {
-	log       *zap.SugaredLogger
-	queries   sqlc.Querier
-	storage   storagetypes.ObjectStorage
-	sanitizer *bluemonday.Policy
+	log        *zap.SugaredLogger
+	queries    sqlc.Querier
+	storage    storagetypes.ObjectStorage
+	sanitizer  *bluemonday.Policy
+	repository repo.Repository
 }
 
-func NewFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage, sanitizer *bluemonday.Policy) FileService {
+func NewFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage, sanitizer *bluemonday.Policy, repository repo.Repository) FileService {
 	return &fileService{
-		log:       log,
-		queries:   queries,
-		storage:   storage,
-		sanitizer: sanitizer,
+		log:        log,
+		queries:    queries,
+		storage:    storage,
+		sanitizer:  sanitizer,
+		repository: repository,
+	}
+}
+
+var (
+	ErrMultipartUploadClosed      = errors.New("multipart upload is not open")
+	ErrMultipartUploadIncomplete  = errors.New("multipart upload is incomplete")
+	ErrMultipartUploadUnsupported = errors.New("multipart upload backend is not supported")
+)
+
+func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
+	if body != nil {
+		defer body.Close()
+	}
+	if partNumber <= 0 {
+		return nil, fmt.Errorf("%w: invalid part number", storagetypes.ErrTypeConversion)
+	}
+	if size <= 0 {
+		return nil, fmt.Errorf("%w: invalid part size", storagetypes.ErrTypeConversion)
+	}
+
+	id, err := uuid.Parse(uploadId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid_upload_id")
+	}
+
+	upload, err := s.queries.GetFileUploadById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if upload.Status != "uploading" {
+		return nil, fmt.Errorf("upload_closed")
+	}
+
+	if !upload.StorageUploadID.Valid || strings.TrimSpace(upload.StorageUploadID.String) == "" {
+		return nil, fmt.Errorf("%w: missing storage upload id", storagetypes.ErrUploadFailed)
+	}
+
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), upload.OwnerID)
+	if err != nil {
+		return nil, fmt.Errorf("resolving bucket: %w", err)
+	}
+	uploadPartResult, err := s.storage.UploadPart(
+		ctx,
+		bucket,
+		upload.StorageMapping.String(),
+		upload.StorageUploadID.String,
+		partNumber,
+		body,
+		size,
+	)
+	if err != nil {
+		s.log.Errorw("error uploading chunk to s3", "err", err)
+		return nil, err
+	}
+	if uploadPartResult == nil {
+		return nil, fmt.Errorf("%w: storage backend returned empty part result", storagetypes.ErrUploadFailed)
+	}
+
+	metadata, err := json.Marshal(uploadPartResult.StorageMetadata)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.queries.SaveFileUploadPart(ctx, sqlc.SaveFileUploadPartParams{
+		ID:              upload.ID,
+		PartNumber:      partNumber,
+		StorageMetadata: metadata,
+		Size:            uploadPartResult.Size,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrMultipartUploadClosed
+		}
+		logger.FromContext(ctx).Errorw("error updating file upload parts DB ", "chunk_id", partNumber, "error", err)
+		return nil, err
+	}
+
+	return &filedata.UploadPartResult{
+		PartNumber:      uploadPartResult.PartNumber,
+		Size:            uploadPartResult.Size,
+		StorageMetadata: uploadPartResult.StorageMetadata,
+	}, nil
+}
+
+func (s *fileService) AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error) {
+	id, err := uuid.Parse(uploadId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid_upload_id")
+	}
+
+	upload, err := s.queries.GetFileUploadById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	switch upload.Status {
+	case "completed", "aborted", "failed":
+		return uploadAbortResult(upload), nil
+	case "uploading":
+	default:
+		return uploadAbortResult(upload), nil
+	}
+
+	abortedUpload, err := s.queries.AbortFileUpload(ctx, upload.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			refreshed, refreshErr := s.queries.GetFileUploadById(ctx, upload.ID)
+			if refreshErr != nil {
+				return nil, refreshErr
+			}
+			return uploadAbortResult(refreshed), nil
+		}
+		return nil, err
+	}
+
+	storageBackend := strings.TrimSpace(strings.ToLower(abortedUpload.StorageBackend))
+	if storageBackend == "" {
+		storageBackend = "s3"
+	}
+
+	if storageBackend != "s3" || !abortedUpload.StorageUploadID.Valid || strings.TrimSpace(abortedUpload.StorageUploadID.String) == "" {
+		if err := s.queries.DeleteFileUploadPartsByUploadID(ctx, abortedUpload.ID); err != nil {
+			return nil, err
+		}
+		return uploadAbortResult(abortedUpload), nil
+	}
+
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), abortedUpload.OwnerID)
+	if err != nil {
+		_, _ = s.queries.FailFileUpload(ctx, abortedUpload.ID)
+		return nil, fmt.Errorf("resolving bucket: %w", err)
+	}
+
+	if err := s.storage.AbortMultipartUpload(ctx, bucket, abortedUpload.StorageMapping.String(), abortedUpload.StorageUploadID.String); err != nil {
+		_, _ = s.queries.FailFileUpload(ctx, abortedUpload.ID)
+		return nil, err
+	}
+
+	if err := s.queries.DeleteFileUploadPartsByUploadID(ctx, abortedUpload.ID); err != nil {
+		return nil, err
+	}
+
+	return uploadAbortResult(abortedUpload), nil
+}
+
+func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error) {
+	id, err := uuid.Parse(uploadId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid_upload_id")
+	}
+
+	upload, err := s.queries.GetFileUploadById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if upload.Status == "completed" {
+		file, getErr := s.queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+			OwnerID:  upload.OwnerID,
+			FileName: upload.FileName,
+		})
+		if getErr != nil {
+			return nil, getErr
+		}
+
+		return &filedata.CompleteUploadResult{
+			UploadId:    upload.ID.String(),
+			FileName:    file.FileName,
+			Md5Checksum: file.Md5Checksum,
+			Size:        upload.UploadedSize,
+		}, nil
+	}
+
+	if upload.Status != "uploading" {
+		return nil, ErrMultipartUploadClosed
+	}
+
+	storageBackend := strings.TrimSpace(strings.ToLower(upload.StorageBackend))
+	if storageBackend == "" {
+		storageBackend = "s3"
+	}
+	if storageBackend != "s3" {
+		return nil, ErrMultipartUploadUnsupported
+	}
+
+	if !upload.StorageUploadID.Valid || strings.TrimSpace(upload.StorageUploadID.String) == "" {
+		return nil, fmt.Errorf("%w: missing storage upload id", storagetypes.ErrUploadFailed)
+	}
+
+	_, err = s.queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  upload.OwnerID,
+		FileName: upload.FileName,
+	})
+	if err == nil {
+		return nil, storagetypes.ErrFileAlreadyExists
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+
+	partRows, err := s.queries.ListFileUploadPartsByUploadID(ctx, upload.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	parts, uploadedSize, err := buildCompletedParts(partRows, upload.ExpectedSize)
+	if err != nil {
+		return nil, err
+	}
+
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), upload.OwnerID)
+	if err != nil {
+		return nil, fmt.Errorf("resolving bucket: %w", err)
+	}
+
+	if s.repository == nil {
+		return nil, fmt.Errorf("multipart completion requires repository transaction support")
+	}
+
+	completed, err := s.storage.CompleteMultipartUpload(
+		ctx,
+		bucket,
+		upload.StorageMapping.String(),
+		upload.StorageUploadID.String,
+		parts,
+	)
+	if err != nil {
+		s.log.Errorw("error completing multipart upload", "upload_id", upload.ID, "err", err)
+		return nil, err
+	}
+	if completed == nil {
+		return nil, fmt.Errorf("%w: storage backend returned empty completion result", storagetypes.ErrUploadFailed)
+	}
+
+	checksum := strings.TrimSpace(completed.ETag)
+	if checksum == "" {
+		checksum = upload.StorageMapping.String()
+	}
+
+	privateDownloadToken, err := pkg.RandToken(32)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := s.repository.BeginTx(ctx, nil)
+	if err != nil {
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "begin tx failure")
+		return nil, err
+	}
+
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	txq := s.repository.Queries().WithTx(tx)
+	file, err := txq.InsertFile(ctx, sqlc.InsertFileParams{
+		OwnerID:              upload.OwnerID,
+		FileName:             upload.FileName,
+		FileType:             upload.FileType,
+		Size:                 sql.NullInt64{Valid: true, Int64: uploadedSize},
+		Md5Checksum:          checksum,
+		PrivateDownloadToken: sql.NullString{Valid: true, String: privateDownloadToken},
+		StorageMapping:       upload.StorageMapping,
+	})
+	if err != nil {
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "file insert failure")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storagetypes.ErrFileAlreadyExists
+		}
+		return nil, err
+	}
+
+	if _, err := txq.CompleteFileUpload(ctx, sqlc.CompleteFileUploadParams{
+		ID:           upload.ID,
+		UploadedSize: uploadedSize,
+	}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = tx.Rollback()
+			committed = true
+
+			refreshed, refreshErr := s.queries.GetFileUploadById(ctx, upload.ID)
+			if refreshErr == nil {
+				switch refreshed.Status {
+				case "completed":
+					fileRow, fileErr := s.queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+						OwnerID:  refreshed.OwnerID,
+						FileName: refreshed.FileName,
+					})
+					if fileErr == nil {
+						return &filedata.CompleteUploadResult{
+							UploadId:    refreshed.ID.String(),
+							FileName:    fileRow.FileName,
+							Md5Checksum: fileRow.Md5Checksum,
+							Size:        refreshed.UploadedSize,
+						}, nil
+					}
+				case "aborted":
+					s.cleanupCompletedMultipartObject(ctx, upload, bucket, "upload completion closed")
+					return nil, ErrMultipartUploadClosed
+				case "failed":
+					s.cleanupCompletedMultipartObject(ctx, upload, bucket, "upload completion closed")
+					return nil, ErrMultipartUploadClosed
+				}
+			}
+
+			s.handleCompletedUploadFailure(ctx, upload, bucket, "upload completion closed")
+			return nil, ErrMultipartUploadClosed
+		}
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "upload completion update failure")
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "commit failure")
+		return nil, err
+	}
+	committed = true
+
+	return &filedata.CompleteUploadResult{
+		UploadId:    upload.ID.String(),
+		FileName:    file.FileName,
+		Md5Checksum: file.Md5Checksum,
+		Size:        uploadedSize,
+	}, nil
+}
+
+func uploadAbortResult(upload sqlc.FileUpload) *filedata.AbortUploadResult {
+	return &filedata.AbortUploadResult{
+		UploadId:     upload.ID.String(),
+		Status:       upload.Status,
+		UploadedSize: upload.UploadedSize,
+	}
+}
+
+func (s *fileService) handleCompletedUploadFailure(ctx context.Context, upload sqlc.FileUpload, bucket, reason string) {
+	if _, err := s.queries.FailFileUpload(ctx, upload.ID); err != nil {
+		logger.FromContext(ctx).Errorw("error marking upload failed", "upload_id", upload.ID, "reason", reason, "error", err)
+	}
+	s.cleanupCompletedMultipartObject(ctx, upload, bucket, reason)
+}
+
+func (s *fileService) cleanupCompletedMultipartObject(ctx context.Context, upload sqlc.FileUpload, bucket, reason string) {
+	if delErr := s.storage.DeleteObjectFromBucket(ctx, upload.StorageMapping.String(), bucket); delErr != nil {
+		logger.FromContext(ctx).Errorw("error deleting completed multipart object after failure", "upload_id", upload.ID, "reason", reason, "object", upload.StorageMapping.String(), "error", delErr)
 	}
 }
 
@@ -75,7 +430,7 @@ func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.Creat
 		fileName = fd.Folder + "/" + fileName
 	}
 
-	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), fd.OwnerID, fd.OwnerID.String())
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), fd.OwnerUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,9 +444,14 @@ func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.Creat
 	if uploadId == nil || strings.TrimSpace(*uploadId) == "" {
 		return nil, fmt.Errorf("%w: storage backend returned empty upload id", storagetypes.ErrUploadFailed)
 	}
+	storageBackend := strings.TrimSpace(strings.ToLower(fd.StorageBackend))
+	if storageBackend == "" {
+		storageBackend = "s3"
+	}
+
 	result, err := s.queries.CreateFileUpload(ctx, sqlc.CreateFileUploadParams{
-		OwnerID:         fd.OwnerID,
-		StorageBackend:  fd.StorageBackend,
+		OwnerID:         fd.OwnerUserID,
+		StorageBackend:  storageBackend,
 		StorageUploadID: sql.NullString{Valid: true, String: *uploadId},
 		StorageMapping:  storageMapping,
 		FileName:        fileName,
@@ -117,7 +477,7 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 	}
 
 	_, err := s.queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
-		OwnerID:  fd.OwnerID,
+		OwnerID:  fd.OwnerUserID,
 		FileName: fileName,
 	})
 	if err == nil {
@@ -128,7 +488,7 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 		return storagetypes.ErrUploadFailed
 	}
 
-	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), fd.OwnerID, fd.OwnerInternalID)
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), fd.OwnerUserID)
 	if err != nil {
 		return err
 	}
@@ -159,7 +519,7 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 	}
 
 	file, err := s.queries.InsertFile(ctx, sqlc.InsertFileParams{
-		OwnerID:              fd.OwnerID,
+		OwnerID:              fd.OwnerUserID,
 		FileName:             fileName,
 		FileType:             sql.NullString{Valid: true, String: result.ContentType},
 		Size:                 sql.NullInt64{Valid: true, Int64: result.Size},
@@ -179,6 +539,46 @@ func (s *fileService) Upload(ctx context.Context, fd *filedata.FileData) error {
 	}
 	logger.FromContext(ctx).Infow("file uploaded", "file", fileName, "checksum", file.Md5Checksum)
 	return nil
+}
+
+func buildCompletedParts(rows []sqlc.FileUploadPart, expectedSize int64) ([]storagetypes.CompletedPart, int64, error) {
+	if len(rows) == 0 {
+		return nil, 0, ErrMultipartUploadIncomplete
+	}
+
+	parts := make([]storagetypes.CompletedPart, 0, len(rows))
+	var uploadedSize int64
+	expectedPartNumber := int32(1)
+
+	for _, row := range rows {
+		if row.PartNumber != expectedPartNumber {
+			return nil, 0, ErrMultipartUploadIncomplete
+		}
+		if row.Size <= 0 {
+			return nil, 0, ErrMultipartUploadIncomplete
+		}
+
+		metadata := map[string]any{}
+		if len(row.StorageMetadata) > 0 {
+			if err := json.Unmarshal(row.StorageMetadata, &metadata); err != nil {
+				return nil, 0, fmt.Errorf("%w: invalid multipart storage metadata", storagetypes.ErrTypeConversion)
+			}
+		}
+
+		parts = append(parts, storagetypes.CompletedPart{
+			PartNumber:      row.PartNumber,
+			Size:            row.Size,
+			StorageMetadata: metadata,
+		})
+		uploadedSize += row.Size
+		expectedPartNumber++
+	}
+
+	if uploadedSize != expectedSize {
+		return nil, 0, ErrMultipartUploadIncomplete
+	}
+
+	return parts, uploadedSize, nil
 }
 
 func (s *fileService) GetFilesTree(ctx context.Context, userID uuid.UUID, path string) (*FilesTree, error) {
@@ -241,8 +641,8 @@ func (s *fileService) GetFolders(ctx context.Context, userID uuid.UUID, path str
 	return folders, nil
 }
 
-func (s *fileService) DeleteFile(ctx context.Context, userID uuid.UUID, userInternalID, fileName string) error {
-	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID, userInternalID)
+func (s *fileService) DeleteFile(ctx context.Context, userID uuid.UUID, fileName string) error {
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID)
 	if err != nil {
 		return fmt.Errorf("resolving bucket: %w", err)
 	}
@@ -265,8 +665,8 @@ func (s *fileService) DeleteFile(ctx context.Context, userID uuid.UUID, userInte
 	})
 }
 
-func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInternalID string, fileNames []string) (deleted []string, failed []string, err error) {
-	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID, userInternalID)
+func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, fileNames []string) (deleted []string, failed []string, err error) {
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolving bucket: %w", err)
 	}
@@ -314,7 +714,7 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInt
 	return deleted, failed, nil
 }
 
-func (s *fileService) DeleteFolder(ctx context.Context, userID uuid.UUID, userInternalID, folderPath string, recursive bool) (int, error) {
+func (s *fileService) DeleteFolder(ctx context.Context, userID uuid.UUID, folderPath string, recursive bool) (int, error) {
 	filesByOwner, err := s.queries.GetFilesByOwner(ctx, userID)
 	if err != nil {
 		return 0, err
@@ -332,7 +732,7 @@ func (s *fileService) DeleteFolder(ctx context.Context, userID uuid.UUID, userIn
 		return 0, ErrRecursiveRequired
 	}
 
-	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID, userInternalID)
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), userID)
 	if err != nil {
 		return 0, fmt.Errorf("resolving bucket: %w", err)
 	}
@@ -442,8 +842,8 @@ func (s *fileService) findOwnedFileIDByChecksum(ctx context.Context, userID uuid
 }
 
 // resolveUserBucketName resolves the stored bucket name for a user, falling back
-// to constructing it from the base name and the user's internal ID.
-func resolveUserBucketName(ctx context.Context, queries sqlc.Querier, baseBucketName string, userID uuid.UUID, internalID string) (string, error) {
+// to constructing it from the base name and users.id.
+func resolveUserBucketName(ctx context.Context, queries sqlc.Querier, baseBucketName string, userID uuid.UUID) (string, error) {
 	stored, err := queries.GetUserBucketById(ctx, userID)
 	if err != nil {
 		return "", err
@@ -451,7 +851,7 @@ func resolveUserBucketName(ctx context.Context, queries sqlc.Querier, baseBucket
 	if stored.Valid && strings.TrimSpace(stored.String) != "" {
 		return strings.TrimSpace(stored.String), nil
 	}
-	return fmt.Sprintf("%s-%s", baseBucketName, internalID), nil
+	return pkg.GetUserBucketName(baseBucketName, userID.String()), nil
 }
 
 func relativeToPath(fullPath, currentPath string) (string, bool) {

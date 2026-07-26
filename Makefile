@@ -17,8 +17,8 @@ build: ## build app
 	docker build -t fluxsend-backend:dev .
 
 .PHONY: deploy
-deploy: ## deploy backend (Test)
-	docker compose up -d --force-recreate --remove-orphans && cd -
+deploy: ## deploy backend and frontend (Test)
+	docker compose up -d --force-recreate --remove-orphans
 
 .PHONY: logs
 logs: ## view logs

@@ -41,19 +41,19 @@ type UserPlan struct {
 
 // Info gathered after successful oauth2 callback
 type AuthorizedUserInfo struct {
-	InternalID string `json:"internal_id"` // UUID from our database
-	Id         string `json:"id"`          // OAuth subject ID
-	Email      string `json:"email"`
-	Name       string `json:"name"`
-	GivenName  string `json:"given_name"`
-	FamilyName string `json:"family_name"`
-	Picture    string `json:"picture"`
-	Locale     string `json:"locale"`
-	Provider   string `json:"provider"`
+	UserID         string `json:"user_id"`          // users.id UUID from our database
+	ProviderUserID string `json:"provider_user_id"` // OAuth subject ID
+	Email          string `json:"email"`
+	Name           string `json:"name"`
+	GivenName      string `json:"given_name"`
+	FamilyName     string `json:"family_name"`
+	Picture        string `json:"picture"`
+	Locale         string `json:"locale"`
+	Provider       string `json:"provider"`
 }
 
 type AuthorizedCLIUserInfo struct {
-	InternalID string `json:"internal_id"`
-	Email      string `json:"email"`
-	Name       string `json:"name"`
+	UserID string `json:"user_id"` // users.id UUID from our database
+	Email  string `json:"email"`
+	Name   string `json:"name"`
 }

@@ -161,6 +161,20 @@ This will build the Docker image and start the backend service.
 | GET    | `/user/bucket`                   | Authenticated. Provides details about the user’s GCS bucket (e.g., usage, files, etc.). |
 | POST   | `/user/private/download_token`   | Authenticated. Generates a download token for a private file (used with `/d/private/{token}`). |
 
+## ID Naming Conventions
+
+Use these names consistently when reading or extending the backend:
+
+- `user_id`: the canonical application user UUID from `users.id`. In Go, prefer `UserID`.
+- `provider_user_id`: the OAuth provider subject stored in `identities.provider_user_id`. In Go, prefer `ProviderUserID`.
+- `owner_id`: keep this name when the database relation really models ownership, for example `files.owner_id`, `file_uploads.owner_id`, and `workspaces.owner_id`.
+- `uploaded_by`: keep this name for workspace file authorship. In Go, prefer `UploaderUserID` rather than `OwnerId` when the value means uploader, not owner.
+- `shared_by_user_id`: use this only for the actor who created a share record.
+
+Avoid `internal_id` in new code. That name came from the older migration period, but the value is just `users.id` and should now be called `user_id` on the wire and `UserID` in Go.
+
+Bucket names and fallback storage paths should derive from `users.id`, not from a separate "internal" identifier string.
+
 ## Project Structure
 
 - `cmd/`: Entry point of the application.

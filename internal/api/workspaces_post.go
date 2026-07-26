@@ -39,7 +39,7 @@ func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authUser := &authUserWithPlan.AuthorizedUserInfo
-	userUUID, err := uuid.Parse(authUser.InternalID)
+	userUUID, err := uuid.Parse(authUser.UserID)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "", "authorization_failed")
 		return

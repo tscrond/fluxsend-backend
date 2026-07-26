@@ -36,7 +36,7 @@ func TestGetWorkspaceAPIKeyParameters_RejectsUnknownFields(t *testing.T) {
 	assert.ErrorContains(t, err, "unknown field")
 }
 
-func TestCreatePrivateAPIKey_UsesInternalUserID(t *testing.T) {
+func TestCreatePrivateAPIKey_UsesUserID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	srv, deps := newTestServer(ctrl)
 
@@ -46,15 +46,15 @@ func TestCreatePrivateAPIKey_UsesInternalUserID(t *testing.T) {
 		_ = db.Close()
 	})
 
-	internalID := uuid.New()
+	userID := uuid.New()
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT (\n\tSELECT COUNT(*)\n\tFROM api_key_user_assignments a")).
-		WithArgs(internalID).
+		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"api_keys_exceeded"}).AddRow(false))
 	deps.repo.EXPECT().Queries().Return(sqlc.New(db))
 	deps.apiKeys.EXPECT().CreatePrivateAPIKey(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, data *apikeydata.APIKeyData) (*service.CreateAPIKeyResult, error) {
 			require.NotNil(t, data)
-			assert.Equal(t, internalID, data.CreatedByUserID)
+			assert.Equal(t, userID, data.CreatedByUserID)
 			assert.Equal(t, []string{"private_files:read"}, data.Scopes)
 			return &service.CreateAPIKeyResult{
 				ID:        uuid.NewString(),
@@ -71,10 +71,10 @@ func TestCreatePrivateAPIKey_UsesInternalUserID(t *testing.T) {
 	req := httptest.NewRequest("POST", "/api_keys/private/create", strings.NewReader(`{"name":"private key","description":"desc","scopes":["private_files:read"]}`))
 	req = req.WithContext(context.WithValue(req.Context(), userdata.AuthorizedUserWithPlanContextKey, &userdata.AuthorizedUserWithPlan{
 		AuthorizedUserInfo: userdata.AuthorizedUserInfo{
-			InternalID: internalID.String(),
-			Id:         "oauth-subject",
-			Email:      "test@example.com",
-			Name:       "Test User",
+			UserID:         userID.String(),
+			ProviderUserID: "oauth-subject",
+			Email:          "test@example.com",
+			Name:           "Test User",
 		},
 		UserPlan: userdata.UserPlan{PlanID: uuid.NewString(), PlanName: "starter", MaxPrivateAPIKeys: 5},
 	}))
@@ -96,19 +96,19 @@ func TestCreatePrivateAPIKey_InvalidScopeReturnsBadRequest(t *testing.T) {
 		_ = db.Close()
 	})
 
-	internalID := uuid.New()
+	userID := uuid.New()
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT (\n\tSELECT COUNT(*)\n\tFROM api_key_user_assignments a")).
-		WithArgs(internalID).
+		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"api_keys_exceeded"}).AddRow(false))
 	deps.repo.EXPECT().Queries().Return(sqlc.New(db))
 
 	req := httptest.NewRequest("POST", "/api_keys/private/create", strings.NewReader(`{"name":"private key","description":"desc","scopes":["workspaces:read"]}`))
 	req = req.WithContext(context.WithValue(req.Context(), userdata.AuthorizedUserWithPlanContextKey, &userdata.AuthorizedUserWithPlan{
 		AuthorizedUserInfo: userdata.AuthorizedUserInfo{
-			InternalID: internalID.String(),
-			Id:         "oauth-subject",
-			Email:      "test@example.com",
-			Name:       "Test User",
+			UserID:         userID.String(),
+			ProviderUserID: "oauth-subject",
+			Email:          "test@example.com",
+			Name:           "Test User",
 		},
 		UserPlan: userdata.UserPlan{PlanID: uuid.NewString(), PlanName: "starter", MaxPrivateAPIKeys: 5},
 	}))

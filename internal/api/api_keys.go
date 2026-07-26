@@ -273,9 +273,9 @@ func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	callerID, err := uuid.Parse(authorizedUser.InternalID)
+	callerID, err := uuid.Parse(authorizedUser.UserID)
 	if err != nil {
-		log.Errorw("failed to parse authorized user id", "internal_id", authorizedUser.InternalID, "error", err)
+		log.Errorw("failed to parse authorized user id", "user_id", authorizedUser.UserID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "", "unauthorized")
 		return
 	}

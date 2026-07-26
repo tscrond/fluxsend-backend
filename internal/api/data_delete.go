@@ -32,13 +32,13 @@ func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authUser, userUUID, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
 	}
 
-	if err := s.files.DeleteFile(r.Context(), userUUID, authUser.InternalID, object); err != nil {
+	if err := s.files.DeleteFile(r.Context(), userUUID, object); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "file_not_found", nil)
 			return
@@ -83,13 +83,13 @@ func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	authUser, userUUID, ok := parseAuthorizedUserUUID(r)
+	_, userUUID, ok := parseAuthorizedUserUUID(r)
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", nil)
 		return
 	}
 
-	deleted, failed, err := s.files.DeleteFiles(r.Context(), userUUID, authUser.InternalID, objToDelete.Files)
+	deleted, failed, err := s.files.DeleteFiles(r.Context(), userUUID, objToDelete.Files)
 	if err != nil {
 		log.Println("batch delete error:", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
@@ -134,7 +134,7 @@ func (s *CoreHandlers) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := s.users.DeleteAccount(r.Context(), userUUID, authUser.InternalID, authUser.Name, req.DeleteUserData)
+	result, err := s.users.DeleteAccount(r.Context(), userUUID, authUser.Name, req.DeleteUserData)
 	if err != nil {
 		log.Println("error deleting account:", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "delete_account_failure", nil)

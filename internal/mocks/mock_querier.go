@@ -44,6 +44,21 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 	return m.recorder
 }
 
+// AbortFileUpload mocks base method.
+func (m *MockQuerier) AbortFileUpload(ctx context.Context, id uuid.UUID) (sqlc.FileUpload, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AbortFileUpload", ctx, id)
+	ret0, _ := ret[0].(sqlc.FileUpload)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AbortFileUpload indicates an expected call of AbortFileUpload.
+func (mr *MockQuerierMockRecorder) AbortFileUpload(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortFileUpload", reflect.TypeOf((*MockQuerier)(nil).AbortFileUpload), ctx, id)
+}
+
 // AssignAPIKeyToPrivate mocks base method.
 func (m *MockQuerier) AssignAPIKeyToPrivate(ctx context.Context, arg sqlc.AssignAPIKeyToPrivateParams) (sqlc.ApiKeyUserAssignment, error) {
 	m.ctrl.T.Helper()
@@ -162,6 +177,21 @@ func (m *MockQuerier) CheckWorkspacesPerUserQuota(ctx context.Context, ownerID u
 func (mr *MockQuerierMockRecorder) CheckWorkspacesPerUserQuota(ctx, ownerID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckWorkspacesPerUserQuota", reflect.TypeOf((*MockQuerier)(nil).CheckWorkspacesPerUserQuota), ctx, ownerID)
+}
+
+// CompleteFileUpload mocks base method.
+func (m *MockQuerier) CompleteFileUpload(ctx context.Context, arg sqlc.CompleteFileUploadParams) (uuid.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CompleteFileUpload", ctx, arg)
+	ret0, _ := ret[0].(uuid.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CompleteFileUpload indicates an expected call of CompleteFileUpload.
+func (mr *MockQuerierMockRecorder) CompleteFileUpload(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteFileUpload", reflect.TypeOf((*MockQuerier)(nil).CompleteFileUpload), ctx, arg)
 }
 
 // CountUnseenShares mocks base method.
@@ -372,6 +402,20 @@ func (mr *MockQuerierMockRecorder) DeleteFileByNameAndId(ctx, arg any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileByNameAndId", reflect.TypeOf((*MockQuerier)(nil).DeleteFileByNameAndId), ctx, arg)
 }
 
+// DeleteFileUploadPartsByUploadID mocks base method.
+func (m *MockQuerier) DeleteFileUploadPartsByUploadID(ctx context.Context, uploadID uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteFileUploadPartsByUploadID", ctx, uploadID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteFileUploadPartsByUploadID indicates an expected call of DeleteFileUploadPartsByUploadID.
+func (mr *MockQuerierMockRecorder) DeleteFileUploadPartsByUploadID(ctx, uploadID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileUploadPartsByUploadID", reflect.TypeOf((*MockQuerier)(nil).DeleteFileUploadPartsByUploadID), ctx, uploadID)
+}
+
 // DeletePlan mocks base method.
 func (m *MockQuerier) DeletePlan(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
@@ -542,6 +586,21 @@ func (mr *MockQuerierMockRecorder) DeleteWorkspaceMember(ctx, arg any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWorkspaceMember", reflect.TypeOf((*MockQuerier)(nil).DeleteWorkspaceMember), ctx, arg)
 }
 
+// FailFileUpload mocks base method.
+func (m *MockQuerier) FailFileUpload(ctx context.Context, id uuid.UUID) (sqlc.FileUpload, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FailFileUpload", ctx, id)
+	ret0, _ := ret[0].(sqlc.FileUpload)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FailFileUpload indicates an expected call of FailFileUpload.
+func (mr *MockQuerierMockRecorder) FailFileUpload(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FailFileUpload", reflect.TypeOf((*MockQuerier)(nil).FailFileUpload), ctx, id)
+}
+
 // GetAPIKey mocks base method.
 func (m *MockQuerier) GetAPIKey(ctx context.Context, id uuid.UUID) (sqlc.ApiKey, error) {
 	m.ctrl.T.Helper()
@@ -690,6 +749,21 @@ func (m *MockQuerier) GetFileIdFromToken(ctx context.Context, privateDownloadTok
 func (mr *MockQuerierMockRecorder) GetFileIdFromToken(ctx, privateDownloadToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileIdFromToken", reflect.TypeOf((*MockQuerier)(nil).GetFileIdFromToken), ctx, privateDownloadToken)
+}
+
+// GetFileUploadById mocks base method.
+func (m *MockQuerier) GetFileUploadById(ctx context.Context, id uuid.UUID) (sqlc.FileUpload, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFileUploadById", ctx, id)
+	ret0, _ := ret[0].(sqlc.FileUpload)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFileUploadById indicates an expected call of GetFileUploadById.
+func (mr *MockQuerierMockRecorder) GetFileUploadById(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileUploadById", reflect.TypeOf((*MockQuerier)(nil).GetFileUploadById), ctx, id)
 }
 
 // GetFilesByOwner mocks base method.
@@ -1427,6 +1501,21 @@ func (mr *MockQuerierMockRecorder) ListFileIDsWithoutPrivateToken(ctx any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFileIDsWithoutPrivateToken", reflect.TypeOf((*MockQuerier)(nil).ListFileIDsWithoutPrivateToken), ctx)
 }
 
+// ListFileUploadPartsByUploadID mocks base method.
+func (m *MockQuerier) ListFileUploadPartsByUploadID(ctx context.Context, uploadID uuid.UUID) ([]sqlc.FileUploadPart, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListFileUploadPartsByUploadID", ctx, uploadID)
+	ret0, _ := ret[0].([]sqlc.FileUploadPart)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListFileUploadPartsByUploadID indicates an expected call of ListFileUploadPartsByUploadID.
+func (mr *MockQuerierMockRecorder) ListFileUploadPartsByUploadID(ctx, uploadID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFileUploadPartsByUploadID", reflect.TypeOf((*MockQuerier)(nil).ListFileUploadPartsByUploadID), ctx, uploadID)
+}
+
 // ListPrivateAPIKeysByUserID mocks base method.
 func (m *MockQuerier) ListPrivateAPIKeysByUserID(ctx context.Context, userID uuid.UUID) ([]sqlc.ListPrivateAPIKeysByUserIDRow, error) {
 	m.ctrl.T.Helper()
@@ -1560,6 +1649,21 @@ func (mr *MockQuerierMockRecorder) RevokeWorkspaceAPIKey(ctx, arg any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeWorkspaceAPIKey", reflect.TypeOf((*MockQuerier)(nil).RevokeWorkspaceAPIKey), ctx, arg)
 }
 
+// SaveFileUploadPart mocks base method.
+func (m *MockQuerier) SaveFileUploadPart(ctx context.Context, arg sqlc.SaveFileUploadPartParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveFileUploadPart", ctx, arg)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SaveFileUploadPart indicates an expected call of SaveFileUploadPart.
+func (mr *MockQuerierMockRecorder) SaveFileUploadPart(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFileUploadPart", reflect.TypeOf((*MockQuerier)(nil).SaveFileUploadPart), ctx, arg)
+}
+
 // UpdateFileNameByID mocks base method.
 func (m *MockQuerier) UpdateFileNameByID(ctx context.Context, arg sqlc.UpdateFileNameByIDParams) error {
 	m.ctrl.T.Helper()
@@ -1586,6 +1690,20 @@ func (m *MockQuerier) UpdateFileNameByOwnerAndName(ctx context.Context, arg sqlc
 func (mr *MockQuerierMockRecorder) UpdateFileNameByOwnerAndName(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFileNameByOwnerAndName", reflect.TypeOf((*MockQuerier)(nil).UpdateFileNameByOwnerAndName), ctx, arg)
+}
+
+// UpdateFileUploadParts mocks base method.
+func (m *MockQuerier) UpdateFileUploadParts(ctx context.Context, arg sqlc.UpdateFileUploadPartsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFileUploadParts", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFileUploadParts indicates an expected call of UpdateFileUploadParts.
+func (mr *MockQuerierMockRecorder) UpdateFileUploadParts(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFileUploadParts", reflect.TypeOf((*MockQuerier)(nil).UpdateFileUploadParts), ctx, arg)
 }
 
 // UpdateNoteForFile mocks base method.

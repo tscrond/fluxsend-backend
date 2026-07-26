@@ -11,6 +11,7 @@ package apimocks
 
 import (
 	context "context"
+	io "io"
 	reflect "reflect"
 
 	uuid "github.com/google/uuid"
@@ -45,6 +46,36 @@ func (m *MockFileService) EXPECT() *MockFileServiceMockRecorder {
 	return m.recorder
 }
 
+// AbortUpload mocks base method.
+func (m *MockFileService) AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AbortUpload", ctx, uploadId)
+	ret0, _ := ret[0].(*filedata.AbortUploadResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AbortUpload indicates an expected call of AbortUpload.
+func (mr *MockFileServiceMockRecorder) AbortUpload(ctx, uploadId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortUpload", reflect.TypeOf((*MockFileService)(nil).AbortUpload), ctx, uploadId)
+}
+
+// CompleteUpload mocks base method.
+func (m *MockFileService) CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CompleteUpload", ctx, uploadId)
+	ret0, _ := ret[0].(*filedata.CompleteUploadResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CompleteUpload indicates an expected call of CompleteUpload.
+func (mr *MockFileServiceMockRecorder) CompleteUpload(ctx, uploadId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteUpload", reflect.TypeOf((*MockFileService)(nil).CompleteUpload), ctx, uploadId)
+}
+
 // CreateUploadWithId mocks base method.
 func (m *MockFileService) CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error) {
 	m.ctrl.T.Helper()
@@ -61,23 +92,23 @@ func (mr *MockFileServiceMockRecorder) CreateUploadWithId(ctx, fd any) *gomock.C
 }
 
 // DeleteFile mocks base method.
-func (m *MockFileService) DeleteFile(ctx context.Context, userID uuid.UUID, userInternalID, fileName string) error {
+func (m *MockFileService) DeleteFile(ctx context.Context, userID uuid.UUID, fileName string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteFile", ctx, userID, userInternalID, fileName)
+	ret := m.ctrl.Call(m, "DeleteFile", ctx, userID, fileName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteFile indicates an expected call of DeleteFile.
-func (mr *MockFileServiceMockRecorder) DeleteFile(ctx, userID, userInternalID, fileName any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) DeleteFile(ctx, userID, fileName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFile", reflect.TypeOf((*MockFileService)(nil).DeleteFile), ctx, userID, userInternalID, fileName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFile", reflect.TypeOf((*MockFileService)(nil).DeleteFile), ctx, userID, fileName)
 }
 
 // DeleteFiles mocks base method.
-func (m *MockFileService) DeleteFiles(ctx context.Context, userID uuid.UUID, userInternalID string, fileNames []string) ([]string, []string, error) {
+func (m *MockFileService) DeleteFiles(ctx context.Context, userID uuid.UUID, fileNames []string) ([]string, []string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteFiles", ctx, userID, userInternalID, fileNames)
+	ret := m.ctrl.Call(m, "DeleteFiles", ctx, userID, fileNames)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].([]string)
 	ret2, _ := ret[2].(error)
@@ -85,24 +116,24 @@ func (m *MockFileService) DeleteFiles(ctx context.Context, userID uuid.UUID, use
 }
 
 // DeleteFiles indicates an expected call of DeleteFiles.
-func (mr *MockFileServiceMockRecorder) DeleteFiles(ctx, userID, userInternalID, fileNames any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) DeleteFiles(ctx, userID, fileNames any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFiles", reflect.TypeOf((*MockFileService)(nil).DeleteFiles), ctx, userID, userInternalID, fileNames)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFiles", reflect.TypeOf((*MockFileService)(nil).DeleteFiles), ctx, userID, fileNames)
 }
 
 // DeleteFolder mocks base method.
-func (m *MockFileService) DeleteFolder(ctx context.Context, userID uuid.UUID, userInternalID, folderPath string, recursive bool) (int, error) {
+func (m *MockFileService) DeleteFolder(ctx context.Context, userID uuid.UUID, folderPath string, recursive bool) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteFolder", ctx, userID, userInternalID, folderPath, recursive)
+	ret := m.ctrl.Call(m, "DeleteFolder", ctx, userID, folderPath, recursive)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteFolder indicates an expected call of DeleteFolder.
-func (mr *MockFileServiceMockRecorder) DeleteFolder(ctx, userID, userInternalID, folderPath, recursive any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) DeleteFolder(ctx, userID, folderPath, recursive any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFolder", reflect.TypeOf((*MockFileService)(nil).DeleteFolder), ctx, userID, userInternalID, folderPath, recursive)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFolder", reflect.TypeOf((*MockFileService)(nil).DeleteFolder), ctx, userID, folderPath, recursive)
 }
 
 // GetFilesTree mocks base method.
@@ -191,6 +222,21 @@ func (m *MockFileService) Upload(ctx context.Context, fd *filedata.FileData) err
 func (mr *MockFileServiceMockRecorder) Upload(ctx, fd any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*MockFileService)(nil).Upload), ctx, fd)
+}
+
+// UploadPart mocks base method.
+func (m *MockFileService) UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadPart", ctx, uploadId, partNumber, body, size)
+	ret0, _ := ret[0].(*filedata.UploadPartResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadPart indicates an expected call of UploadPart.
+func (mr *MockFileServiceMockRecorder) UploadPart(ctx, uploadId, partNumber, body, size any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadPart", reflect.TypeOf((*MockFileService)(nil).UploadPart), ctx, uploadId, partNumber, body, size)
 }
 
 // UpsertNote mocks base method.
@@ -633,33 +679,33 @@ func (m *MockUserService) EXPECT() *MockUserServiceMockRecorder {
 }
 
 // DeleteAccount mocks base method.
-func (m *MockUserService) DeleteAccount(ctx context.Context, userID uuid.UUID, userInternalID, userName string, deleteStorageData bool) (*service.DeleteAccountResult, error) {
+func (m *MockUserService) DeleteAccount(ctx context.Context, userID uuid.UUID, userName string, deleteStorageData bool) (*service.DeleteAccountResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAccount", ctx, userID, userInternalID, userName, deleteStorageData)
+	ret := m.ctrl.Call(m, "DeleteAccount", ctx, userID, userName, deleteStorageData)
 	ret0, _ := ret[0].(*service.DeleteAccountResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteAccount indicates an expected call of DeleteAccount.
-func (mr *MockUserServiceMockRecorder) DeleteAccount(ctx, userID, userInternalID, userName, deleteStorageData any) *gomock.Call {
+func (mr *MockUserServiceMockRecorder) DeleteAccount(ctx, userID, userName, deleteStorageData any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccount", reflect.TypeOf((*MockUserService)(nil).DeleteAccount), ctx, userID, userInternalID, userName, deleteStorageData)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccount", reflect.TypeOf((*MockUserService)(nil).DeleteAccount), ctx, userID, userName, deleteStorageData)
 }
 
 // GetBucketData mocks base method.
-func (m *MockUserService) GetBucketData(ctx context.Context, userID uuid.UUID, userInternalID string) (*mappings.BucketData, error) {
+func (m *MockUserService) GetBucketData(ctx context.Context, userID uuid.UUID) (*mappings.BucketData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBucketData", ctx, userID, userInternalID)
+	ret := m.ctrl.Call(m, "GetBucketData", ctx, userID)
 	ret0, _ := ret[0].(*mappings.BucketData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBucketData indicates an expected call of GetBucketData.
-func (mr *MockUserServiceMockRecorder) GetBucketData(ctx, userID, userInternalID any) *gomock.Call {
+func (mr *MockUserServiceMockRecorder) GetBucketData(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketData", reflect.TypeOf((*MockUserService)(nil).GetBucketData), ctx, userID, userInternalID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketData", reflect.TypeOf((*MockUserService)(nil).GetBucketData), ctx, userID)
 }
 
 // GetPrivateDownloadToken mocks base method.

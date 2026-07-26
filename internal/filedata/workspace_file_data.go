@@ -10,18 +10,18 @@ type WorkspaceFileData struct {
 	MultipartFile  multipart.File
 	RequestHeaders *multipart.FileHeader
 	Folder         string
-	WorkspaceId    string
-	OwnerId        string
+	WorkspaceID    string
+	UploaderUserID string
 	FileName       string
 }
 
-func NewWorkspaceFileData(multipartFile multipart.File, requestHeaders *multipart.FileHeader, fileName, folder, workspaceId, ownerId string) *WorkspaceFileData {
+func NewWorkspaceFileData(multipartFile multipart.File, requestHeaders *multipart.FileHeader, fileName, folder, workspaceID, uploaderUserID string) *WorkspaceFileData {
 	return &WorkspaceFileData{
 		MultipartFile:  multipartFile,
 		RequestHeaders: requestHeaders,
 		Folder:         folder,
-		WorkspaceId:    workspaceId,
-		OwnerId:        ownerId,
+		WorkspaceID:    workspaceID,
+		UploaderUserID: uploaderUserID,
 		FileName:       fileName,
 	}
 }
