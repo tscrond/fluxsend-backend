@@ -43,6 +43,7 @@ type FilesTree struct {
 type FileService interface {
 	CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error)
 	UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error)
+	AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error)
 	CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error)
 	Upload(ctx context.Context, fd *filedata.FileData) error
 	GetFilesTree(ctx context.Context, userID uuid.UUID, path string) (*FilesTree, error)
@@ -135,12 +136,16 @@ func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumbe
 		return nil, err
 	}
 
-	if err := s.queries.UpdateFileUploadParts(ctx, sqlc.UpdateFileUploadPartsParams{
-		UploadID:        upload.ID,
+	_, err = s.queries.SaveFileUploadPart(ctx, sqlc.SaveFileUploadPartParams{
+		ID:              upload.ID,
 		PartNumber:      partNumber,
 		StorageMetadata: metadata,
 		Size:            uploadPartResult.Size,
-	}); err != nil {
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrMultipartUploadClosed
+		}
 		logger.FromContext(ctx).Errorw("error updating file upload parts DB ", "chunk_id", partNumber, "error", err)
 		return nil, err
 	}
@@ -150,6 +155,67 @@ func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumbe
 		Size:            uploadPartResult.Size,
 		StorageMetadata: uploadPartResult.StorageMetadata,
 	}, nil
+}
+
+func (s *fileService) AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error) {
+	id, err := uuid.Parse(uploadId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid_upload_id")
+	}
+
+	upload, err := s.queries.GetFileUploadById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	switch upload.Status {
+	case "completed", "aborted", "failed":
+		return uploadAbortResult(upload), nil
+	case "uploading":
+	default:
+		return uploadAbortResult(upload), nil
+	}
+
+	abortedUpload, err := s.queries.AbortFileUpload(ctx, upload.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			refreshed, refreshErr := s.queries.GetFileUploadById(ctx, upload.ID)
+			if refreshErr != nil {
+				return nil, refreshErr
+			}
+			return uploadAbortResult(refreshed), nil
+		}
+		return nil, err
+	}
+
+	storageBackend := strings.TrimSpace(strings.ToLower(abortedUpload.StorageBackend))
+	if storageBackend == "" {
+		storageBackend = "s3"
+	}
+
+	if storageBackend != "s3" || !abortedUpload.StorageUploadID.Valid || strings.TrimSpace(abortedUpload.StorageUploadID.String) == "" {
+		if err := s.queries.DeleteFileUploadPartsByUploadID(ctx, abortedUpload.ID); err != nil {
+			return nil, err
+		}
+		return uploadAbortResult(abortedUpload), nil
+	}
+
+	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), abortedUpload.OwnerID)
+	if err != nil {
+		_, _ = s.queries.FailFileUpload(ctx, abortedUpload.ID)
+		return nil, fmt.Errorf("resolving bucket: %w", err)
+	}
+
+	if err := s.storage.AbortMultipartUpload(ctx, bucket, abortedUpload.StorageMapping.String(), abortedUpload.StorageUploadID.String); err != nil {
+		_, _ = s.queries.FailFileUpload(ctx, abortedUpload.ID)
+		return nil, err
+	}
+
+	if err := s.queries.DeleteFileUploadPartsByUploadID(ctx, abortedUpload.ID); err != nil {
+		return nil, err
+	}
+
+	return uploadAbortResult(abortedUpload), nil
 }
 
 func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error) {
@@ -253,9 +319,7 @@ func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*fil
 
 	tx, err := s.repository.BeginTx(ctx, nil)
 	if err != nil {
-		if delErr := s.storage.DeleteObjectFromBucket(ctx, upload.StorageMapping.String(), bucket); delErr != nil {
-			logger.FromContext(ctx).Errorw("error deleting completed multipart object after begin tx failure", "object", upload.StorageMapping.String(), "error", delErr)
-		}
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "begin tx failure")
 		return nil, err
 	}
 
@@ -277,29 +341,55 @@ func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*fil
 		StorageMapping:       upload.StorageMapping,
 	})
 	if err != nil {
-		if delErr := s.storage.DeleteObjectFromBucket(ctx, upload.StorageMapping.String(), bucket); delErr != nil {
-			logger.FromContext(ctx).Errorw("error deleting completed multipart object after file insert failure", "object", upload.StorageMapping.String(), "error", delErr)
-		}
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "file insert failure")
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, storagetypes.ErrFileAlreadyExists
 		}
 		return nil, err
 	}
 
-	if err := txq.CompleteFileUpload(ctx, sqlc.CompleteFileUploadParams{
+	if _, err := txq.CompleteFileUpload(ctx, sqlc.CompleteFileUploadParams{
 		ID:           upload.ID,
 		UploadedSize: uploadedSize,
 	}); err != nil {
-		if delErr := s.storage.DeleteObjectFromBucket(ctx, upload.StorageMapping.String(), bucket); delErr != nil {
-			logger.FromContext(ctx).Errorw("error deleting completed multipart object after upload completion update failure", "object", upload.StorageMapping.String(), "error", delErr)
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = tx.Rollback()
+			committed = true
+
+			refreshed, refreshErr := s.queries.GetFileUploadById(ctx, upload.ID)
+			if refreshErr == nil {
+				switch refreshed.Status {
+				case "completed":
+					fileRow, fileErr := s.queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+						OwnerID:  refreshed.OwnerID,
+						FileName: refreshed.FileName,
+					})
+					if fileErr == nil {
+						return &filedata.CompleteUploadResult{
+							UploadId:    refreshed.ID.String(),
+							FileName:    fileRow.FileName,
+							Md5Checksum: fileRow.Md5Checksum,
+							Size:        refreshed.UploadedSize,
+						}, nil
+					}
+				case "aborted":
+					s.cleanupCompletedMultipartObject(ctx, upload, bucket, "upload completion closed")
+					return nil, ErrMultipartUploadClosed
+				case "failed":
+					s.cleanupCompletedMultipartObject(ctx, upload, bucket, "upload completion closed")
+					return nil, ErrMultipartUploadClosed
+				}
+			}
+
+			s.handleCompletedUploadFailure(ctx, upload, bucket, "upload completion closed")
+			return nil, ErrMultipartUploadClosed
 		}
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "upload completion update failure")
 		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
-		if delErr := s.storage.DeleteObjectFromBucket(ctx, upload.StorageMapping.String(), bucket); delErr != nil {
-			logger.FromContext(ctx).Errorw("error deleting completed multipart object after commit failure", "object", upload.StorageMapping.String(), "error", delErr)
-		}
+		s.handleCompletedUploadFailure(ctx, upload, bucket, "commit failure")
 		return nil, err
 	}
 	committed = true
@@ -310,6 +400,27 @@ func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*fil
 		Md5Checksum: file.Md5Checksum,
 		Size:        uploadedSize,
 	}, nil
+}
+
+func uploadAbortResult(upload sqlc.FileUpload) *filedata.AbortUploadResult {
+	return &filedata.AbortUploadResult{
+		UploadId:     upload.ID.String(),
+		Status:       upload.Status,
+		UploadedSize: upload.UploadedSize,
+	}
+}
+
+func (s *fileService) handleCompletedUploadFailure(ctx context.Context, upload sqlc.FileUpload, bucket, reason string) {
+	if _, err := s.queries.FailFileUpload(ctx, upload.ID); err != nil {
+		logger.FromContext(ctx).Errorw("error marking upload failed", "upload_id", upload.ID, "reason", reason, "error", err)
+	}
+	s.cleanupCompletedMultipartObject(ctx, upload, bucket, reason)
+}
+
+func (s *fileService) cleanupCompletedMultipartObject(ctx context.Context, upload sqlc.FileUpload, bucket, reason string) {
+	if delErr := s.storage.DeleteObjectFromBucket(ctx, upload.StorageMapping.String(), bucket); delErr != nil {
+		logger.FromContext(ctx).Errorw("error deleting completed multipart object after failure", "upload_id", upload.ID, "reason", reason, "object", upload.StorageMapping.String(), "error", delErr)
+	}
 }
 
 func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error) {

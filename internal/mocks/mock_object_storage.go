@@ -43,6 +43,20 @@ func (m *MockObjectStorage) EXPECT() *MockObjectStorageMockRecorder {
 	return m.recorder
 }
 
+// AbortMultipartUpload mocks base method.
+func (m *MockObjectStorage) AbortMultipartUpload(ctx context.Context, bucket, key, uploadID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AbortMultipartUpload", ctx, bucket, key, uploadID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AbortMultipartUpload indicates an expected call of AbortMultipartUpload.
+func (mr *MockObjectStorageMockRecorder) AbortMultipartUpload(ctx, bucket, key, uploadID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortMultipartUpload", reflect.TypeOf((*MockObjectStorage)(nil).AbortMultipartUpload), ctx, bucket, key, uploadID)
+}
+
 // BucketExists mocks base method.
 func (m *MockObjectStorage) BucketExists(ctx context.Context, fullBucketName string) (bool, error) {
 	m.ctrl.T.Helper()

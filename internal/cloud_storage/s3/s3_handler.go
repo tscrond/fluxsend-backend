@@ -90,6 +90,25 @@ func (b *S3BucketHandler) UploadPart(ctx context.Context, bucket string, key str
 	}, nil
 }
 
+func (b *S3BucketHandler) AbortMultipartUpload(ctx context.Context, bucket string, key string, uploadID string) error {
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := key
+	if userId != "" {
+		objectKey = s3Key(userId, key)
+	}
+
+	_, err := b.Client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(b.BaseBucketName),
+		Key:      aws.String(objectKey),
+		UploadId: aws.String(uploadID),
+	})
+	if err != nil {
+		return fmt.Errorf("%w: %v", types.ErrUploadFailed, err)
+	}
+
+	return nil
+}
+
 func (b *S3BucketHandler) CompleteMultipartUpload(ctx context.Context, bucket string, key string, uploadID string, parts []types.CompletedPart) (*types.CompleteMultipartUploadResult, error) {
 	userId := b.extractUserIdFromBucket(bucket)
 	objectKey := key

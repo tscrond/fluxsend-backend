@@ -179,6 +179,36 @@ func (s *CoreHandlers) completeUploadHandler(w http.ResponseWriter, r *http.Requ
 	pkg.WriteJSONResponse(w, http.StatusOK, "upload_completed", result)
 }
 
+func (s *CoreHandlers) abortUploadHandler(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromContext(r.Context())
+	if r.Method != http.MethodDelete {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+
+	uploadId := strings.TrimSpace(chi.URLParam(r, "upload_id"))
+	if uploadId == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
+		return
+	}
+
+	result, err := s.files.AbortUpload(r.Context(), uploadId)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrMultipartUploadUnsupported):
+			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "multipart_upload_not_supported", "")
+		case strings.Contains(err.Error(), "invalid_upload_id"):
+			pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
+		default:
+			log.Errorw("error aborting multipart upload", "upload_id", uploadId, "error", err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "error_aborting_upload", "")
+		}
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "upload_aborted", result)
+}
+
 // uploadHandler uploads a file to the user's personal storage.
 // @Summary Upload a file
 // @Description Uploads a file to the current user's personal storage and optionally stores it in a folder.

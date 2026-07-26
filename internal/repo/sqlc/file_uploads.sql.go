@@ -13,13 +13,45 @@ import (
 	"github.com/google/uuid"
 )
 
-const completeFileUpload = `-- name: CompleteFileUpload :exec
+const abortFileUpload = `-- name: AbortFileUpload :one
+UPDATE file_uploads
+SET
+  status = 'aborted',
+  updated_at = now()
+WHERE id = $1
+  AND status = 'uploading'
+RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at
+`
+
+func (q *Queries) AbortFileUpload(ctx context.Context, id uuid.UUID) (FileUpload, error) {
+	row := q.db.QueryRowContext(ctx, abortFileUpload, id)
+	var i FileUpload
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.StorageBackend,
+		&i.StorageUploadID,
+		&i.StorageMapping,
+		&i.FileName,
+		&i.FileType,
+		&i.ExpectedSize,
+		&i.UploadedSize,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const completeFileUpload = `-- name: CompleteFileUpload :one
 UPDATE file_uploads
 SET
   status = 'completed',
   uploaded_size = $2,
   updated_at = now()
 WHERE id = $1
+  AND status = 'uploading'
+RETURNING id
 `
 
 type CompleteFileUploadParams struct {
@@ -27,9 +59,11 @@ type CompleteFileUploadParams struct {
 	UploadedSize int64     `json:"uploaded_size"`
 }
 
-func (q *Queries) CompleteFileUpload(ctx context.Context, arg CompleteFileUploadParams) error {
-	_, err := q.db.ExecContext(ctx, completeFileUpload, arg.ID, arg.UploadedSize)
-	return err
+func (q *Queries) CompleteFileUpload(ctx context.Context, arg CompleteFileUploadParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, completeFileUpload, arg.ID, arg.UploadedSize)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createFileUpload = `-- name: CreateFileUpload :one
@@ -70,6 +104,45 @@ func (q *Queries) CreateFileUpload(ctx context.Context, arg CreateFileUploadPara
 		arg.ExpectedSize,
 		arg.Status,
 	)
+	var i FileUpload
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.StorageBackend,
+		&i.StorageUploadID,
+		&i.StorageMapping,
+		&i.FileName,
+		&i.FileType,
+		&i.ExpectedSize,
+		&i.UploadedSize,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteFileUploadPartsByUploadID = `-- name: DeleteFileUploadPartsByUploadID :exec
+DELETE FROM file_upload_parts
+WHERE upload_id = $1
+`
+
+func (q *Queries) DeleteFileUploadPartsByUploadID(ctx context.Context, uploadID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteFileUploadPartsByUploadID, uploadID)
+	return err
+}
+
+const failFileUpload = `-- name: FailFileUpload :one
+UPDATE file_uploads
+SET
+  status = 'failed',
+  updated_at = now()
+WHERE id = $1
+RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at
+`
+
+func (q *Queries) FailFileUpload(ctx context.Context, id uuid.UUID) (FileUpload, error) {
+	row := q.db.QueryRowContext(ctx, failFileUpload, id)
 	var i FileUpload
 	err := row.Scan(
 		&i.ID,
@@ -149,6 +222,64 @@ func (q *Queries) ListFileUploadPartsByUploadID(ctx context.Context, uploadID uu
 		return nil, err
 	}
 	return items, nil
+}
+
+const saveFileUploadPart = `-- name: SaveFileUploadPart :one
+WITH target AS (
+  SELECT fu.id AS upload_id
+  FROM file_uploads fu
+  WHERE fu.id = $1
+    AND fu.status = 'uploading'
+), upsert AS (
+  INSERT INTO file_upload_parts (
+    upload_id,
+    part_number,
+    storage_metadata,
+    size
+  )
+  SELECT
+    target.upload_id,
+    $2,
+    $3,
+    $4
+  FROM target
+  ON CONFLICT (upload_id, part_number)
+  DO UPDATE
+  SET
+    storage_metadata = EXCLUDED.storage_metadata,
+    size = EXCLUDED.size,
+    created_at = now()
+  RETURNING upload_id
+)
+UPDATE file_uploads fu
+SET
+  uploaded_size = COALESCE((
+    SELECT SUM(fup.size)
+    FROM file_upload_parts fup
+    WHERE fup.upload_id = fu.id
+  ), 0),
+  updated_at = now()
+WHERE fu.id IN (SELECT upload_id FROM upsert)
+RETURNING fu.uploaded_size
+`
+
+type SaveFileUploadPartParams struct {
+	ID              uuid.UUID       `json:"id"`
+	PartNumber      int32           `json:"part_number"`
+	StorageMetadata json.RawMessage `json:"storage_metadata"`
+	Size            int64           `json:"size"`
+}
+
+func (q *Queries) SaveFileUploadPart(ctx context.Context, arg SaveFileUploadPartParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, saveFileUploadPart,
+		arg.ID,
+		arg.PartNumber,
+		arg.StorageMetadata,
+		arg.Size,
+	)
+	var uploaded_size int64
+	err := row.Scan(&uploaded_size)
+	return uploaded_size, err
 }
 
 const updateFileUploadParts = `-- name: UpdateFileUploadParts :exec
