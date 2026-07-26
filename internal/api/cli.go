@@ -83,6 +83,7 @@ func (s *CLIServer) registerCLIFileRoutes(r chi.Router) {
 
 	r.Handle("/files/upload", applyRouteMiddleware(s.uploadHandler, privateWrite))
 	r.Handle("/files/uploads", applyRouteMiddleware(s.uploadInitHandler, privateWrite))
+	r.Handle("/files/uploads/{upload_id}", applyRouteMiddleware(s.abortUploadHandler, privateWrite))
 	r.Handle("/files/uploads/{upload_id}/parts/{part_id}", applyRouteMiddleware(s.uploadPartHandler, privateWrite))
 	r.Handle("/files/uploads/{upload_id}/complete", applyRouteMiddleware(s.completeUploadHandler, privateWrite))
 	r.Handle("/files/share", applyRouteMiddleware(s.shareWith, privateShare))

@@ -46,6 +46,21 @@ func (m *MockFileService) EXPECT() *MockFileServiceMockRecorder {
 	return m.recorder
 }
 
+// AbortUpload mocks base method.
+func (m *MockFileService) AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AbortUpload", ctx, uploadId)
+	ret0, _ := ret[0].(*filedata.AbortUploadResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AbortUpload indicates an expected call of AbortUpload.
+func (mr *MockFileServiceMockRecorder) AbortUpload(ctx, uploadId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortUpload", reflect.TypeOf((*MockFileService)(nil).AbortUpload), ctx, uploadId)
+}
+
 // CompleteUpload mocks base method.
 func (m *MockFileService) CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error) {
 	m.ctrl.T.Helper()

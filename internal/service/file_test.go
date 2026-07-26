@@ -222,9 +222,9 @@ func TestFileService_CompleteUpload_HappyPath(t *testing.T) {
 		WithArgs(ownerID, "docs/report.pdf", sql.NullString{Valid: true, String: "application/pdf"}, sql.NullInt64{Valid: true, Int64: 8}, "multipart-etag-2", sqlmock.AnyArg(), storageMapping).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "file_name", "file_type", "size", "md5_checksum", "private_download_token", "owner_id", "storage_mapping", "created_at"}).
 			AddRow(int32(1), "docs/report.pdf", "application/pdf", int64(8), "multipart-etag-2", "private-token", ownerID, storageMapping, createdAt))
-	mock.ExpectExec(regexp.QuoteMeta("UPDATE file_uploads\nSET\n  status = 'completed',\n  uploaded_size = $2,\n  updated_at = now()\nWHERE id = $1\n")).
+	mock.ExpectQuery(regexp.QuoteMeta("UPDATE file_uploads\nSET\n  status = 'completed',\n  uploaded_size = $2,\n  updated_at = now()\nWHERE id = $1\n  AND status = 'uploading'\nRETURNING id\n")).
 		WithArgs(uploadID, int64(8)).
-		WillReturnResult(sqlmock.NewResult(0, 1))
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uploadID))
 	mock.ExpectCommit()
 
 	result, err := svc.CompleteUpload(context.Background(), uploadID.String())
@@ -234,6 +234,48 @@ func TestFileService_CompleteUpload_HappyPath(t *testing.T) {
 	assert.Equal(t, "multipart-etag-2", result.Md5Checksum)
 	assert.Equal(t, int64(8), result.Size)
 	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestFileService_AbortUpload_HappyPath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := newFileTestSvc(q, stor)
+
+	uploadID := uuid.New()
+	ownerID := uuid.New()
+	storageMapping := uuid.New()
+	const storageUploadID = "storage-upload-1"
+	const bucket = "fluxsend-internal-123"
+
+	q.EXPECT().GetFileUploadById(gomock.Any(), uploadID).Return(sqlc.FileUpload{
+		ID:              uploadID,
+		OwnerID:         ownerID,
+		StorageBackend:  "s3",
+		StorageUploadID: sql.NullString{Valid: true, String: storageUploadID},
+		StorageMapping:  storageMapping,
+		UploadedSize:    8,
+		Status:          "uploading",
+	}, nil)
+	q.EXPECT().AbortFileUpload(gomock.Any(), uploadID).Return(sqlc.FileUpload{
+		ID:              uploadID,
+		OwnerID:         ownerID,
+		StorageBackend:  "s3",
+		StorageUploadID: sql.NullString{Valid: true, String: storageUploadID},
+		StorageMapping:  storageMapping,
+		UploadedSize:    8,
+		Status:          "aborted",
+	}, nil)
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	q.EXPECT().GetUserBucketById(gomock.Any(), ownerID).Return(sql.NullString{Valid: true, String: bucket}, nil)
+	stor.EXPECT().AbortMultipartUpload(gomock.Any(), bucket, storageMapping.String(), storageUploadID).Return(nil)
+	q.EXPECT().DeleteFileUploadPartsByUploadID(gomock.Any(), uploadID).Return(nil)
+
+	result, err := svc.AbortUpload(context.Background(), uploadID.String())
+	require.NoError(t, err)
+	assert.Equal(t, uploadID.String(), result.UploadId)
+	assert.Equal(t, "aborted", result.Status)
+	assert.Equal(t, int64(8), result.UploadedSize)
 }
 
 func TestBuildCompletedParts_RejectsIncompleteUpload(t *testing.T) {

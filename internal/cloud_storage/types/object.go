@@ -34,6 +34,7 @@ type CompleteMultipartUploadResult struct {
 
 type ObjectStorage interface {
 	UploadPart(ctx context.Context, bucket string, key string, uploadID string, partNumber int32, body io.Reader, size int64) (*UploadPartResult, error)
+	AbortMultipartUpload(ctx context.Context, bucket string, key string, uploadID string) error
 	CompleteMultipartUpload(ctx context.Context, bucket string, key string, uploadID string, parts []CompletedPart) (*CompleteMultipartUploadResult, error)
 	CreateMultipartUpload(ctx context.Context, bucket, uploadPath, contentType string) (*string, error)
 	PutObject(ctx context.Context, bucket, key string, r io.Reader, size int64, contentType string) (*PutObjectResult, error)

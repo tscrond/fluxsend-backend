@@ -69,6 +69,10 @@ func (b *GCSBucketHandler) UploadPart(ctx context.Context, bucket string, key st
 	return nil, fmt.Errorf("%w: multipart uploads are not implemented for GCS", types.ErrUploadFailed)
 }
 
+func (b *GCSBucketHandler) AbortMultipartUpload(ctx context.Context, bucket string, key string, uploadID string) error {
+	return fmt.Errorf("%w: multipart uploads are not implemented for GCS", types.ErrUploadFailed)
+}
+
 func (b *GCSBucketHandler) CompleteMultipartUpload(ctx context.Context, bucket string, key string, uploadID string, parts []types.CompletedPart) (*types.CompleteMultipartUploadResult, error) {
 	return nil, fmt.Errorf("%w: multipart uploads are not implemented for GCS", types.ErrUploadFailed)
 }

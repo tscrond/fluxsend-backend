@@ -65,3 +65,9 @@ type CompleteUploadResult struct {
 	Md5Checksum string `json:"md5_checksum"`
 	Size        int64  `json:"size"`
 }
+
+type AbortUploadResult struct {
+	UploadId    string `json:"upload_id"`
+	Status      string `json:"status"`
+	UploadedSize int64 `json:"uploaded_size"`
+}
