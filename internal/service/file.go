@@ -82,6 +82,16 @@ var (
 )
 
 func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
+	if body != nil {
+		defer body.Close()
+	}
+	if partNumber <= 0 {
+		return nil, fmt.Errorf("%w: invalid part number", storagetypes.ErrTypeConversion)
+	}
+	if size <= 0 {
+		return nil, fmt.Errorf("%w: invalid part size", storagetypes.ErrTypeConversion)
+	}
+
 	id, err := uuid.Parse(uploadId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid_upload_id")
@@ -94,6 +104,10 @@ func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumbe
 
 	if upload.Status != "uploading" {
 		return nil, fmt.Errorf("upload_closed")
+	}
+
+	if !upload.StorageUploadID.Valid || strings.TrimSpace(upload.StorageUploadID.String) == "" {
+		return nil, fmt.Errorf("%w: missing storage upload id", storagetypes.ErrUploadFailed)
 	}
 
 	bucket, err := resolveUserBucketName(ctx, s.queries, s.storage.GetBucketBaseName(), upload.OwnerID)
