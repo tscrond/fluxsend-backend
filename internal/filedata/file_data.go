@@ -67,7 +67,7 @@ type CompleteUploadResult struct {
 }
 
 type AbortUploadResult struct {
-	UploadId    string `json:"upload_id"`
-	Status      string `json:"status"`
-	UploadedSize int64 `json:"uploaded_size"`
+	UploadId     string `json:"upload_id"`
+	Status       string `json:"status"`
+	UploadedSize int64  `json:"uploaded_size"`
 }
