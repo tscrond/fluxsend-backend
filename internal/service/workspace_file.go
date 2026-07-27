@@ -250,6 +250,14 @@ func (w *workspaceFileService) CreateWorkspaceUpload(ctx context.Context, params
 	})
 	if err != nil {
 		logger.FromContext(ctx).Errorw("error creating workspace multipart upload", "workspace_id", params.WorkspaceID, "error", err)
+
+		// Best-effort cleanup: avoid leaking a multipart upload when DB insert fails.
+		if storageBackend == "s3" {
+			if abortErr := w.storage.AbortMultipartUpload(ctx, bucket, objectKey, strings.TrimSpace(*uploadId)); abortErr != nil {
+				logger.FromContext(ctx).Warnw("error aborting workspace multipart upload after DB failure", "workspace_id", params.WorkspaceID, "error", abortErr)
+			}
+		}
+
 		return nil, err
 	}
 
