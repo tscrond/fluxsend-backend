@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -106,7 +107,7 @@ func (s *CoreHandlers) uploadWorkspacePartHandler(w http.ResponseWriter, r *http
 
 	partIdStr := chi.URLParam(r, "part_id")
 	partId, err := strconv.Atoi(partIdStr)
-	if err != nil || partId <= 0 {
+	if err != nil || partId <= 0 || partId > math.MaxInt32 {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_part_number", "")
 		return
 	}
