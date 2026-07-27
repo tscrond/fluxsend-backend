@@ -122,9 +122,9 @@ func newWorkspaceFileService(log *zap.SugaredLogger, queries sqlc.Querier, stora
 }
 
 type workspaceFileService struct {
-	log     *zap.SugaredLogger
-	queries sqlc.Querier
-	storage storagetypes.ObjectStorage
+	log        *zap.SugaredLogger
+	queries    sqlc.Querier
+	storage    storagetypes.ObjectStorage
 	repository repo.Repository
 }
 
