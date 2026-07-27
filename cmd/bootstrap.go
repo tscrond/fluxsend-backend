@@ -152,7 +152,7 @@ func buildRuntime(log *zap.SugaredLogger, apiConfig *config.APIServerConfig) (*a
 	shareSvc := service.NewShareService(log, repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, apiConfig.BackendEndpoint, apiConfig.FrontendEndpoint, apiConfig.MailFrom)
 	userSvc := service.NewUserService(log, repository.Queries(), bucketHandler)
 	workspaceSvc := service.NewWorkspaceService(log, repository.Queries(), repository)
-	workspaceFileSvc := service.NewWorkspaceFileService(log, repository.Queries(), bucketHandler)
+	workspaceFileSvc := service.NewWorkspaceFileServiceWithRepository(log, repository.Queries(), bucketHandler, repository)
 	apiKeySvc := service.NewAPIKeyService(log, repository)
 
 	return &appRuntime{

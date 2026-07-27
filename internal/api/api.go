@@ -125,6 +125,10 @@ func (s *CoreHandlers) registerWorkspaceRoutes(r chi.Router, protected routeMidd
 
 	r.Handle("/workspaces/{workspace_id}/files/tree", applyRouteMiddleware(s.getWorkspaceFilesTree, protected))
 	r.Handle("/workspaces/{workspace_id}/files/upload", applyRouteMiddleware(s.uploadWorkspaceFile, protected))
+	r.Handle("/workspaces/{workspace_id}/files/uploads", applyRouteMiddleware(s.initWorkspaceUploadHandler, protected))
+	r.Handle("/workspaces/{workspace_id}/files/uploads/{upload_id}", applyRouteMiddleware(s.abortWorkspaceUploadHandler, protected))
+	r.Handle("/workspaces/{workspace_id}/files/uploads/{upload_id}/parts/{part_id}", applyRouteMiddleware(s.uploadWorkspacePartHandler, protected))
+	r.Handle("/workspaces/{workspace_id}/files/uploads/{upload_id}/complete", applyRouteMiddleware(s.completeWorkspaceUploadHandler, protected))
 	r.Handle("/workspaces/{workspace_id}/files/mkdir", applyRouteMiddleware(s.mkdirWorkspace, protected))
 	r.Handle("/workspaces/{workspace_id}/files/delete", applyRouteMiddleware(s.deleteWorkspaceFile, protected))
 	r.Handle("/workspaces/{workspace_id}/files/folder/delete", applyRouteMiddleware(s.deleteWorkspaceFolder, protected))

@@ -2,6 +2,8 @@ package filedata
 
 import (
 	"mime/multipart"
+
+	"github.com/google/uuid"
 )
 
 const WorkspaceFileDataContextKey ContextKey = "workspacedata"
@@ -24,4 +26,17 @@ func NewWorkspaceFileData(multipartFile multipart.File, requestHeaders *multipar
 		UploaderUserID: uploaderUserID,
 		FileName:       fileName,
 	}
+}
+
+type CreateWorkspaceUploadParams struct {
+	WorkspaceID    uuid.UUID
+	UploaderUserID uuid.UUID
+
+	FileName string
+	Folder   string
+
+	ContentType string
+	Size        int64
+
+	StorageBackend string
 }

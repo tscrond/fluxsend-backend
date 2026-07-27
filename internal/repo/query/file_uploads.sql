@@ -21,6 +21,8 @@ RETURNING id;
 INSERT INTO file_uploads
 (
   owner_id,
+  workspace_id,
+  path,
   storage_backend,
   storage_upload_id,
   storage_mapping,
@@ -29,7 +31,7 @@ INSERT INTO file_uploads
   expected_size,
   status
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *;
 
 -- name: UpdateFileUploadParts :exec

@@ -747,6 +747,36 @@ func (m *MockWorkspaceFileService) EXPECT() *MockWorkspaceFileServiceMockRecorde
 	return m.recorder
 }
 
+// AbortWorkspaceUpload mocks base method.
+func (m *MockWorkspaceFileService) AbortWorkspaceUpload(ctx context.Context, workspaceId uuid.UUID, uploadId string) (*filedata.AbortUploadResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AbortWorkspaceUpload", ctx, workspaceId, uploadId)
+	ret0, _ := ret[0].(*filedata.AbortUploadResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AbortWorkspaceUpload indicates an expected call of AbortWorkspaceUpload.
+func (mr *MockWorkspaceFileServiceMockRecorder) AbortWorkspaceUpload(ctx, workspaceId, uploadId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortWorkspaceUpload", reflect.TypeOf((*MockWorkspaceFileService)(nil).AbortWorkspaceUpload), ctx, workspaceId, uploadId)
+}
+
+// CompleteWorkspaceUpload mocks base method.
+func (m *MockWorkspaceFileService) CompleteWorkspaceUpload(ctx context.Context, workspaceId uuid.UUID, uploadId string) (*filedata.CompleteUploadResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CompleteWorkspaceUpload", ctx, workspaceId, uploadId)
+	ret0, _ := ret[0].(*filedata.CompleteUploadResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CompleteWorkspaceUpload indicates an expected call of CompleteWorkspaceUpload.
+func (mr *MockWorkspaceFileServiceMockRecorder) CompleteWorkspaceUpload(ctx, workspaceId, uploadId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteWorkspaceUpload", reflect.TypeOf((*MockWorkspaceFileService)(nil).CompleteWorkspaceUpload), ctx, workspaceId, uploadId)
+}
+
 // CreateWorkspaceFiles mocks base method.
 func (m *MockWorkspaceFileService) CreateWorkspaceFiles(ctx context.Context, workspaceId uuid.UUID, fd []filedata.WorkspaceFileData) ([]service.WorkspaceFileResult, error) {
 	m.ctrl.T.Helper()
@@ -775,6 +805,21 @@ func (m *MockWorkspaceFileService) CreateWorkspaceFolder(ctx context.Context, wo
 func (mr *MockWorkspaceFileServiceMockRecorder) CreateWorkspaceFolder(ctx, workspaceId, creatorID, folderName, parentPath any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWorkspaceFolder", reflect.TypeOf((*MockWorkspaceFileService)(nil).CreateWorkspaceFolder), ctx, workspaceId, creatorID, folderName, parentPath)
+}
+
+// CreateWorkspaceUpload mocks base method.
+func (m *MockWorkspaceFileService) CreateWorkspaceUpload(ctx context.Context, params *filedata.CreateWorkspaceUploadParams) (*filedata.CreateUploadIdResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateWorkspaceUpload", ctx, params)
+	ret0, _ := ret[0].(*filedata.CreateUploadIdResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateWorkspaceUpload indicates an expected call of CreateWorkspaceUpload.
+func (mr *MockWorkspaceFileServiceMockRecorder) CreateWorkspaceUpload(ctx, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWorkspaceUpload", reflect.TypeOf((*MockWorkspaceFileService)(nil).CreateWorkspaceUpload), ctx, params)
 }
 
 // GetWorkspaceFileDownloadInfo mocks base method.
@@ -877,6 +922,21 @@ func (m *MockWorkspaceFileService) RemoveWorkspaceFolder(ctx context.Context, wo
 func (mr *MockWorkspaceFileServiceMockRecorder) RemoveWorkspaceFolder(ctx, workspaceId, folderPath, callerID, callerRole any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveWorkspaceFolder", reflect.TypeOf((*MockWorkspaceFileService)(nil).RemoveWorkspaceFolder), ctx, workspaceId, folderPath, callerID, callerRole)
+}
+
+// UploadWorkspacePart mocks base method.
+func (m *MockWorkspaceFileService) UploadWorkspacePart(ctx context.Context, workspaceId uuid.UUID, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadWorkspacePart", ctx, workspaceId, uploadId, partNumber, body, size)
+	ret0, _ := ret[0].(*filedata.UploadPartResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadWorkspacePart indicates an expected call of UploadWorkspacePart.
+func (mr *MockWorkspaceFileServiceMockRecorder) UploadWorkspacePart(ctx, workspaceId, uploadId, partNumber, body, size any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWorkspacePart", reflect.TypeOf((*MockWorkspaceFileService)(nil).UploadWorkspacePart), ctx, workspaceId, uploadId, partNumber, body, size)
 }
 
 // MockAPIKeyService is a mock of APIKeyService interface.

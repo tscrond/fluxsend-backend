@@ -20,7 +20,7 @@ SET
   updated_at = now()
 WHERE id = $1
   AND status = 'uploading'
-RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at
+RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at, workspace_id, path
 `
 
 func (q *Queries) AbortFileUpload(ctx context.Context, id uuid.UUID) (FileUpload, error) {
@@ -39,6 +39,8 @@ func (q *Queries) AbortFileUpload(ctx context.Context, id uuid.UUID) (FileUpload
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WorkspaceID,
+		&i.Path,
 	)
 	return i, err
 }
@@ -70,6 +72,8 @@ const createFileUpload = `-- name: CreateFileUpload :one
 INSERT INTO file_uploads
 (
   owner_id,
+  workspace_id,
+  path,
   storage_backend,
   storage_upload_id,
   storage_mapping,
@@ -78,12 +82,14 @@ INSERT INTO file_uploads
   expected_size,
   status
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at, workspace_id, path
 `
 
 type CreateFileUploadParams struct {
 	OwnerID         uuid.UUID      `json:"owner_id"`
+	WorkspaceID     uuid.NullUUID  `json:"workspace_id"`
+	Path            string         `json:"path"`
 	StorageBackend  string         `json:"storage_backend"`
 	StorageUploadID sql.NullString `json:"storage_upload_id"`
 	StorageMapping  uuid.UUID      `json:"storage_mapping"`
@@ -96,6 +102,8 @@ type CreateFileUploadParams struct {
 func (q *Queries) CreateFileUpload(ctx context.Context, arg CreateFileUploadParams) (FileUpload, error) {
 	row := q.db.QueryRowContext(ctx, createFileUpload,
 		arg.OwnerID,
+		arg.WorkspaceID,
+		arg.Path,
 		arg.StorageBackend,
 		arg.StorageUploadID,
 		arg.StorageMapping,
@@ -118,6 +126,8 @@ func (q *Queries) CreateFileUpload(ctx context.Context, arg CreateFileUploadPara
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WorkspaceID,
+		&i.Path,
 	)
 	return i, err
 }
@@ -138,7 +148,7 @@ SET
   status = 'failed',
   updated_at = now()
 WHERE id = $1
-RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at
+RETURNING id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at, workspace_id, path
 `
 
 func (q *Queries) FailFileUpload(ctx context.Context, id uuid.UUID) (FileUpload, error) {
@@ -157,12 +167,14 @@ func (q *Queries) FailFileUpload(ctx context.Context, id uuid.UUID) (FileUpload,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WorkspaceID,
+		&i.Path,
 	)
 	return i, err
 }
 
 const getFileUploadById = `-- name: GetFileUploadById :one
-SELECT id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at FROM file_uploads
+SELECT id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at, workspace_id, path FROM file_uploads
 WHERE id = $1
 ORDER BY id
 LIMIT 1
@@ -184,6 +196,8 @@ func (q *Queries) GetFileUploadById(ctx context.Context, id uuid.UUID) (FileUplo
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WorkspaceID,
+		&i.Path,
 	)
 	return i, err
 }
