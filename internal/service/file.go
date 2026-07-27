@@ -472,6 +472,9 @@ func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.Creat
 	})
 	if err != nil {
 		logger.FromContext(ctx).Errorw("error creating new file upload", "error", err)
+		if abortErr := s.storage.AbortMultipartUpload(ctx, bucket, storageMapping.String(), *uploadId); abortErr != nil {
+			logger.FromContext(ctx).Warnw("error aborting multipart upload after DB failure", "error", abortErr)
+		}
 		return nil, err
 	}
 
