@@ -204,6 +204,9 @@ func (w *workspaceFileService) getWorkspaceUploadByID(ctx context.Context, works
 
 	upload, err := w.queries.GetFileUploadById(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sqlc.FileUpload{}, fmt.Errorf("invalid_upload_id")
+		}
 		return sqlc.FileUpload{}, err
 	}
 	if !upload.WorkspaceID.Valid || upload.WorkspaceID.UUID != workspaceId {
