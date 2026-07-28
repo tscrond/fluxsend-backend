@@ -101,6 +101,9 @@ func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumbe
 	if err != nil {
 		return nil, err
 	}
+	if upload.WorkspaceID.Valid {
+		return nil, fmt.Errorf("invalid_upload_id")
+	}
 
 	if upload.Status != "uploading" {
 		return nil, fmt.Errorf("upload_closed")
@@ -167,6 +170,9 @@ func (s *fileService) AbortUpload(ctx context.Context, uploadId string) (*fileda
 	if err != nil {
 		return nil, err
 	}
+	if upload.WorkspaceID.Valid {
+		return nil, fmt.Errorf("invalid_upload_id")
+	}
 
 	switch upload.Status {
 	case "completed", "aborted", "failed":
@@ -227,6 +233,9 @@ func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*fil
 	upload, err := s.queries.GetFileUploadById(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if upload.WorkspaceID.Valid {
+		return nil, fmt.Errorf("invalid_upload_id")
 	}
 
 	if upload.Status == "completed" {
@@ -451,6 +460,8 @@ func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.Creat
 
 	result, err := s.queries.CreateFileUpload(ctx, sqlc.CreateFileUploadParams{
 		OwnerID:         fd.OwnerUserID,
+		WorkspaceID:     uuid.NullUUID{},
+		Path:            "/",
 		StorageBackend:  storageBackend,
 		StorageUploadID: sql.NullString{Valid: true, String: *uploadId},
 		StorageMapping:  storageMapping,
@@ -461,6 +472,9 @@ func (s *fileService) CreateUploadWithId(ctx context.Context, fd *filedata.Creat
 	})
 	if err != nil {
 		logger.FromContext(ctx).Errorw("error creating new file upload", "error", err)
+		if abortErr := s.storage.AbortMultipartUpload(ctx, bucket, storageMapping.String(), *uploadId); abortErr != nil {
+			logger.FromContext(ctx).Warnw("error aborting multipart upload after DB failure", "error", abortErr)
+		}
 		return nil, err
 	}
 

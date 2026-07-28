@@ -187,10 +187,10 @@ func TestFileService_CompleteUpload_HappyPath(t *testing.T) {
 	partTwoMetadata, err := json.Marshal(map[string]any{"etag": "etag-2"})
 	require.NoError(t, err)
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at FROM file_uploads\nWHERE id = $1\nORDER BY id\nLIMIT 1\n")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at, workspace_id, path FROM file_uploads\nWHERE id = $1\nORDER BY id\nLIMIT 1\n")).
 		WithArgs(uploadID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id", "storage_backend", "storage_upload_id", "storage_mapping", "file_name", "file_type", "expected_size", "uploaded_size", "status", "created_at", "updated_at"}).
-			AddRow(uploadID, ownerID, "s3", "storage-upload-1", storageMapping, "docs/report.pdf", "application/pdf", int64(8), int64(0), "uploading", createdAt, createdAt))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id", "storage_backend", "storage_upload_id", "storage_mapping", "file_name", "file_type", "expected_size", "uploaded_size", "status", "created_at", "updated_at", "workspace_id", "path"}).
+			AddRow(uploadID, ownerID, "s3", "storage-upload-1", storageMapping, "docs/report.pdf", "application/pdf", int64(8), int64(0), "uploading", createdAt, createdAt, nil, "/"))
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, file_name, md5_checksum, storage_mapping\nFROM files\nWHERE owner_id = $1 AND file_name = $2\n")).
 		WithArgs(ownerID, "docs/report.pdf").

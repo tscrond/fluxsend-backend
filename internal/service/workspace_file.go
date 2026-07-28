@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,10 +16,13 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
+	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
 // ── Sentinel errors ──────────────────────────────────────────────────────────
@@ -91,6 +95,10 @@ type WorkspaceFileService interface {
 	GetWorkspaceFileDownloadInfo(ctx context.Context, workspaceId, fileId uuid.UUID) (*WorkspaceFileDownloadInfo, error)
 
 	// editor+ — write; callerID/callerRole enforces ownership for editors
+	CreateWorkspaceUpload(ctx context.Context, params *filedata.CreateWorkspaceUploadParams) (*filedata.CreateUploadIdResponse, error)
+	UploadWorkspacePart(ctx context.Context, workspaceId uuid.UUID, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error)
+	AbortWorkspaceUpload(ctx context.Context, workspaceId uuid.UUID, uploadId string) (*filedata.AbortUploadResult, error)
+	CompleteWorkspaceUpload(ctx context.Context, workspaceId uuid.UUID, uploadId string) (*filedata.CompleteUploadResult, error)
 	CreateWorkspaceFiles(ctx context.Context, workspaceId uuid.UUID, fd []filedata.WorkspaceFileData) ([]WorkspaceFileResult, error)
 	CreateWorkspaceFolder(ctx context.Context, workspaceId uuid.UUID, creatorID uuid.UUID, folderName, parentPath string) (*WorkspaceFolderResult, error)
 	RemoveWorkspaceFile(ctx context.Context, workspaceId, fileId uuid.UUID, callerID uuid.UUID, callerRole string) error
@@ -102,13 +110,22 @@ type WorkspaceFileService interface {
 // ── Constructor ───────────────────────────────────────────────────────────────
 
 func NewWorkspaceFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage) WorkspaceFileService {
-	return &workspaceFileService{log: log, queries: queries, storage: storage}
+	return newWorkspaceFileService(log, queries, storage, nil)
+}
+
+func NewWorkspaceFileServiceWithRepository(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage, repository repo.Repository) WorkspaceFileService {
+	return newWorkspaceFileService(log, queries, storage, repository)
+}
+
+func newWorkspaceFileService(log *zap.SugaredLogger, queries sqlc.Querier, storage storagetypes.ObjectStorage, repository repo.Repository) WorkspaceFileService {
+	return &workspaceFileService{log: log, queries: queries, storage: storage, repository: repository}
 }
 
 type workspaceFileService struct {
-	log     *zap.SugaredLogger
-	queries sqlc.Querier
-	storage storagetypes.ObjectStorage
+	log        *zap.SugaredLogger
+	queries    sqlc.Querier
+	storage    storagetypes.ObjectStorage
+	repository repo.Repository
 }
 
 // ── Permission helpers ────────────────────────────────────────────────────────
@@ -168,6 +185,388 @@ func wsFolderName(fullPath string) string {
 		return ""
 	}
 	return fullPath[strings.LastIndex(fullPath, "/")+1:]
+}
+
+func workspaceUploadObjectKey(workspaceId, fileId uuid.UUID) string {
+	return workspaceId.String() + "/" + fileId.String()
+}
+
+func isUniqueWorkspaceFileViolation(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == "unique_workspace_file"
+}
+
+func (w *workspaceFileService) getWorkspaceUploadByID(ctx context.Context, workspaceId uuid.UUID, uploadId string) (sqlc.FileUpload, error) {
+	id, err := uuid.Parse(uploadId)
+	if err != nil {
+		return sqlc.FileUpload{}, fmt.Errorf("invalid_upload_id")
+	}
+
+	upload, err := w.queries.GetFileUploadById(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sqlc.FileUpload{}, fmt.Errorf("invalid_upload_id")
+		}
+		return sqlc.FileUpload{}, err
+	}
+	if !upload.WorkspaceID.Valid || upload.WorkspaceID.UUID != workspaceId {
+		return sqlc.FileUpload{}, fmt.Errorf("invalid_upload_id")
+	}
+
+	return upload, nil
+}
+
+func (w *workspaceFileService) CreateWorkspaceUpload(ctx context.Context, params *filedata.CreateWorkspaceUploadParams) (*filedata.CreateUploadIdResponse, error) {
+	if params == nil {
+		return nil, fmt.Errorf("missing upload params")
+	}
+
+	bucket := w.storage.GetBucketBaseName()
+	storageMapping := uuid.New()
+	objectKey := workspaceUploadObjectKey(params.WorkspaceID, storageMapping)
+
+	uploadId, err := w.storage.CreateMultipartUpload(ctx, bucket, objectKey, params.ContentType)
+	if err != nil {
+		logger.FromContext(ctx).Errorw("error creating workspace file upload ID", "workspace_id", params.WorkspaceID, "error", err)
+		return nil, err
+	}
+	if uploadId == nil || strings.TrimSpace(*uploadId) == "" {
+		return nil, fmt.Errorf("%w: storage backend returned empty upload id", storagetypes.ErrUploadFailed)
+	}
+
+	storageBackend := strings.TrimSpace(strings.ToLower(params.StorageBackend))
+	if storageBackend == "" {
+		storageBackend = "s3"
+	}
+
+	result, err := w.queries.CreateFileUpload(ctx, sqlc.CreateFileUploadParams{
+		OwnerID:         params.UploaderUserID,
+		WorkspaceID:     uuid.NullUUID{UUID: params.WorkspaceID, Valid: true},
+		Path:            wsNormPath(params.Folder),
+		StorageBackend:  storageBackend,
+		StorageUploadID: sql.NullString{Valid: true, String: *uploadId},
+		StorageMapping:  storageMapping,
+		FileName:        params.FileName,
+		FileType:        sql.NullString{Valid: strings.TrimSpace(params.ContentType) != "", String: params.ContentType},
+		ExpectedSize:    params.Size,
+		Status:          "uploading",
+	})
+	if err != nil {
+		logger.FromContext(ctx).Errorw("error creating workspace multipart upload", "workspace_id", params.WorkspaceID, "error", err)
+
+		// Best-effort cleanup: avoid leaking a multipart upload when DB insert fails.
+		if storageBackend == "s3" {
+			if abortErr := w.storage.AbortMultipartUpload(ctx, bucket, objectKey, strings.TrimSpace(*uploadId)); abortErr != nil {
+				logger.FromContext(ctx).Warnw("error aborting workspace multipart upload after DB failure", "workspace_id", params.WorkspaceID, "error", abortErr)
+			}
+		}
+
+		return nil, err
+	}
+
+	return &filedata.CreateUploadIdResponse{
+		UploadId:  result.ID.String(),
+		ChunkSize: pkg.OptimalChunkSize(params.Size),
+	}, nil
+}
+
+func (w *workspaceFileService) UploadWorkspacePart(ctx context.Context, workspaceId uuid.UUID, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
+	if body != nil {
+		defer body.Close()
+	}
+	if partNumber <= 0 {
+		return nil, fmt.Errorf("%w: invalid part number", storagetypes.ErrTypeConversion)
+	}
+	if size <= 0 {
+		return nil, fmt.Errorf("%w: invalid part size", storagetypes.ErrTypeConversion)
+	}
+
+	upload, err := w.getWorkspaceUploadByID(ctx, workspaceId, uploadId)
+	if err != nil {
+		return nil, err
+	}
+	if upload.Status != "uploading" {
+		return nil, fmt.Errorf("upload_closed")
+	}
+	if !upload.StorageUploadID.Valid || strings.TrimSpace(upload.StorageUploadID.String) == "" {
+		return nil, fmt.Errorf("%w: missing storage upload id", storagetypes.ErrUploadFailed)
+	}
+
+	bucket := w.storage.GetBucketBaseName()
+	uploadPartResult, err := w.storage.UploadPart(
+		ctx,
+		bucket,
+		workspaceUploadObjectKey(workspaceId, upload.StorageMapping),
+		upload.StorageUploadID.String,
+		partNumber,
+		body,
+		size,
+	)
+	if err != nil {
+		w.log.Errorw("error uploading workspace chunk", "upload_id", upload.ID, "err", err)
+		return nil, err
+	}
+	if uploadPartResult == nil {
+		return nil, fmt.Errorf("%w: storage backend returned empty part result", storagetypes.ErrUploadFailed)
+	}
+
+	metadata, err := json.Marshal(uploadPartResult.StorageMetadata)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = w.queries.SaveFileUploadPart(ctx, sqlc.SaveFileUploadPartParams{
+		ID:              upload.ID,
+		PartNumber:      partNumber,
+		StorageMetadata: metadata,
+		Size:            uploadPartResult.Size,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrMultipartUploadClosed
+		}
+		logger.FromContext(ctx).Errorw("error updating workspace upload parts DB", "chunk_id", partNumber, "error", err)
+		return nil, err
+	}
+
+	return &filedata.UploadPartResult{
+		PartNumber:      uploadPartResult.PartNumber,
+		Size:            uploadPartResult.Size,
+		StorageMetadata: uploadPartResult.StorageMetadata,
+	}, nil
+}
+
+func (w *workspaceFileService) AbortWorkspaceUpload(ctx context.Context, workspaceId uuid.UUID, uploadId string) (*filedata.AbortUploadResult, error) {
+	upload, err := w.getWorkspaceUploadByID(ctx, workspaceId, uploadId)
+	if err != nil {
+		return nil, err
+	}
+
+	switch upload.Status {
+	case "completed", "aborted", "failed":
+		return uploadAbortResult(upload), nil
+	case "uploading":
+	default:
+		return uploadAbortResult(upload), nil
+	}
+
+	abortedUpload, err := w.queries.AbortFileUpload(ctx, upload.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			refreshed, refreshErr := w.queries.GetFileUploadById(ctx, upload.ID)
+			if refreshErr != nil {
+				return nil, refreshErr
+			}
+			return uploadAbortResult(refreshed), nil
+		}
+		return nil, err
+	}
+
+	storageBackend := strings.TrimSpace(strings.ToLower(abortedUpload.StorageBackend))
+	if storageBackend == "" {
+		storageBackend = "s3"
+	}
+
+	if storageBackend != "s3" || !abortedUpload.StorageUploadID.Valid || strings.TrimSpace(abortedUpload.StorageUploadID.String) == "" {
+		if err := w.queries.DeleteFileUploadPartsByUploadID(ctx, abortedUpload.ID); err != nil {
+			return nil, err
+		}
+		return uploadAbortResult(abortedUpload), nil
+	}
+
+	bucket := w.storage.GetBucketBaseName()
+	if err := w.storage.AbortMultipartUpload(ctx, bucket, workspaceUploadObjectKey(workspaceId, abortedUpload.StorageMapping), abortedUpload.StorageUploadID.String); err != nil {
+		_, _ = w.queries.FailFileUpload(ctx, abortedUpload.ID)
+		return nil, err
+	}
+
+	if err := w.queries.DeleteFileUploadPartsByUploadID(ctx, abortedUpload.ID); err != nil {
+		return nil, err
+	}
+
+	return uploadAbortResult(abortedUpload), nil
+}
+
+func (w *workspaceFileService) CompleteWorkspaceUpload(ctx context.Context, workspaceId uuid.UUID, uploadId string) (*filedata.CompleteUploadResult, error) {
+	upload, err := w.getWorkspaceUploadByID(ctx, workspaceId, uploadId)
+	if err != nil {
+		return nil, err
+	}
+
+	if upload.Status == "completed" {
+		file, getErr := w.queries.GetWorkspaceFileById(ctx, sqlc.GetWorkspaceFileByIdParams{
+			ID:          upload.StorageMapping,
+			WorkspaceID: workspaceId,
+		})
+		if getErr != nil {
+			return nil, getErr
+		}
+
+		return &filedata.CompleteUploadResult{
+			UploadId:    upload.ID.String(),
+			FileName:    file.FileName,
+			Md5Checksum: file.Md5Checksum.String,
+			Size:        file.Size,
+		}, nil
+	}
+
+	if upload.Status != "uploading" {
+		return nil, ErrMultipartUploadClosed
+	}
+
+	storageBackend := strings.TrimSpace(strings.ToLower(upload.StorageBackend))
+	if storageBackend == "" {
+		storageBackend = "s3"
+	}
+	if storageBackend != "s3" {
+		return nil, ErrMultipartUploadUnsupported
+	}
+	if !upload.StorageUploadID.Valid || strings.TrimSpace(upload.StorageUploadID.String) == "" {
+		return nil, fmt.Errorf("%w: missing storage upload id", storagetypes.ErrUploadFailed)
+	}
+
+	_, err = w.queries.GetWorkspaceFileByName(ctx, sqlc.GetWorkspaceFileByNameParams{
+		WorkspaceID: workspaceId,
+		Path:        wsNormPath(upload.Path),
+		FileName:    upload.FileName,
+	})
+	if err == nil {
+		return nil, storagetypes.ErrFileAlreadyExists
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+
+	partRows, err := w.queries.ListFileUploadPartsByUploadID(ctx, upload.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	parts, uploadedSize, err := buildCompletedParts(partRows, upload.ExpectedSize)
+	if err != nil {
+		return nil, err
+	}
+
+	bucket := w.storage.GetBucketBaseName()
+	if w.repository == nil {
+		return nil, fmt.Errorf("multipart completion requires repository transaction support")
+	}
+
+	completed, err := w.storage.CompleteMultipartUpload(
+		ctx,
+		bucket,
+		workspaceUploadObjectKey(workspaceId, upload.StorageMapping),
+		upload.StorageUploadID.String,
+		parts,
+	)
+	if err != nil {
+		w.log.Errorw("error completing workspace multipart upload", "upload_id", upload.ID, "err", err)
+		return nil, err
+	}
+	if completed == nil {
+		return nil, fmt.Errorf("%w: storage backend returned empty completion result", storagetypes.ErrUploadFailed)
+	}
+
+	checksum := strings.TrimSpace(completed.ETag)
+	if checksum == "" {
+		checksum = workspaceUploadObjectKey(workspaceId, upload.StorageMapping)
+	}
+
+	tx, err := w.repository.BeginTx(ctx, nil)
+	if err != nil {
+		w.handleCompletedWorkspaceUploadFailure(ctx, workspaceId, upload, bucket, "begin tx failure")
+		return nil, err
+	}
+
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	txq := w.repository.Queries().WithTx(tx)
+	file, err := txq.CreateWorkspaceFile(ctx, sqlc.CreateWorkspaceFileParams{
+		ID:          upload.StorageMapping,
+		WorkspaceID: workspaceId,
+		UploadedBy:  upload.OwnerID,
+		FileName:    upload.FileName,
+		FileType:    upload.FileType,
+		Size:        uploadedSize,
+		Md5Checksum: sql.NullString{Valid: checksum != "", String: checksum},
+		Path:        wsNormPath(upload.Path),
+	})
+	if err != nil {
+		w.handleCompletedWorkspaceUploadFailure(ctx, workspaceId, upload, bucket, "file insert failure")
+		if isUniqueWorkspaceFileViolation(err) {
+			return nil, storagetypes.ErrFileAlreadyExists
+		}
+		return nil, err
+	}
+
+	if _, err := txq.CompleteFileUpload(ctx, sqlc.CompleteFileUploadParams{
+		ID:           upload.ID,
+		UploadedSize: uploadedSize,
+	}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = tx.Rollback()
+			committed = true
+
+			refreshed, refreshErr := w.queries.GetFileUploadById(ctx, upload.ID)
+			if refreshErr == nil && refreshed.WorkspaceID.Valid && refreshed.WorkspaceID.UUID == workspaceId {
+				switch refreshed.Status {
+				case "completed":
+					fileRow, fileErr := w.queries.GetWorkspaceFileById(ctx, sqlc.GetWorkspaceFileByIdParams{
+						ID:          refreshed.StorageMapping,
+						WorkspaceID: workspaceId,
+					})
+					if fileErr == nil {
+						return &filedata.CompleteUploadResult{
+							UploadId:    refreshed.ID.String(),
+							FileName:    fileRow.FileName,
+							Md5Checksum: fileRow.Md5Checksum.String,
+							Size:        fileRow.Size,
+						}, nil
+					}
+				case "aborted", "failed":
+					w.cleanupCompletedWorkspaceMultipartObject(ctx, workspaceId, upload, bucket, "upload completion closed")
+					return nil, ErrMultipartUploadClosed
+				}
+			}
+
+			w.handleCompletedWorkspaceUploadFailure(ctx, workspaceId, upload, bucket, "upload completion closed")
+			return nil, ErrMultipartUploadClosed
+		}
+
+		w.handleCompletedWorkspaceUploadFailure(ctx, workspaceId, upload, bucket, "upload completion update failure")
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		w.handleCompletedWorkspaceUploadFailure(ctx, workspaceId, upload, bucket, "commit failure")
+		return nil, err
+	}
+	committed = true
+
+	return &filedata.CompleteUploadResult{
+		UploadId:    upload.ID.String(),
+		FileName:    file.FileName,
+		Md5Checksum: file.Md5Checksum.String,
+		Size:        uploadedSize,
+	}, nil
+}
+
+func (w *workspaceFileService) handleCompletedWorkspaceUploadFailure(ctx context.Context, workspaceId uuid.UUID, upload sqlc.FileUpload, bucket, reason string) {
+	if _, err := w.queries.FailFileUpload(ctx, upload.ID); err != nil {
+		logger.FromContext(ctx).Errorw("error marking workspace upload failed", "upload_id", upload.ID, "reason", reason, "error", err)
+	}
+	w.cleanupCompletedWorkspaceMultipartObject(ctx, workspaceId, upload, bucket, reason)
+}
+
+func (w *workspaceFileService) cleanupCompletedWorkspaceMultipartObject(ctx context.Context, workspaceId uuid.UUID, upload sqlc.FileUpload, bucket, reason string) {
+	if delErr := w.storage.DeleteObjectFromBucket(ctx, workspaceUploadObjectKey(workspaceId, upload.StorageMapping), bucket); delErr != nil {
+		logger.FromContext(ctx).Errorw("error deleting completed workspace multipart object after failure", "upload_id", upload.ID, "reason", reason, "object", workspaceUploadObjectKey(workspaceId, upload.StorageMapping), "error", delErr)
+	}
 }
 
 // wsChildFolder returns the immediate child folder name at targetPath that
@@ -354,7 +753,7 @@ func (w *workspaceFileService) CreateWorkspaceFiles(ctx context.Context, workspa
 
 		// Generate the file ID here; it becomes the S3 object key.
 		fileID := uuid.New()
-		objectKey := workspaceId.String() + "/" + fileID.String()
+		objectKey := workspaceUploadObjectKey(workspaceId, fileID)
 
 		putResult, err := w.storage.PutObject(ctx, bucket, objectKey, f.MultipartFile, f.RequestHeaders.Size, contentType)
 		if err != nil {
@@ -426,7 +825,7 @@ func (w *workspaceFileService) RemoveWorkspaceFile(ctx context.Context, workspac
 	}
 
 	bucket := w.storage.GetBucketBaseName()
-	objectKey := workspaceId.String() + "/" + fileId.String()
+	objectKey := workspaceUploadObjectKey(workspaceId, fileId)
 	if delErr := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
 		logger.FromContext(ctx).Warnw("workspace delete: storage delete failed (non-fatal)", "object_key", objectKey, "error", delErr)
 	}

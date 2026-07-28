@@ -131,6 +131,10 @@ func (s *CLIServer) registerCLIWorkspaceRoutes(r chi.Router) {
 
 	r.Handle("/workspaces/{workspace_id}/files/tree", applyRouteMiddleware(s.getWorkspaceFilesTree, workspaceFilesRead))
 	r.Handle("/workspaces/{workspace_id}/files/upload", applyRouteMiddleware(s.uploadWorkspaceFile, workspaceFilesWrite))
+	r.Handle("/workspaces/{workspace_id}/files/uploads", applyRouteMiddleware(s.initWorkspaceUploadHandler, workspaceFilesWrite))
+	r.Handle("/workspaces/{workspace_id}/files/uploads/{upload_id}", applyRouteMiddleware(s.abortWorkspaceUploadHandler, workspaceFilesWrite))
+	r.Handle("/workspaces/{workspace_id}/files/uploads/{upload_id}/parts/{part_id}", applyRouteMiddleware(s.uploadWorkspacePartHandler, workspaceFilesWrite))
+	r.Handle("/workspaces/{workspace_id}/files/uploads/{upload_id}/complete", applyRouteMiddleware(s.completeWorkspaceUploadHandler, workspaceFilesWrite))
 	r.Handle("/workspaces/{workspace_id}/files/mkdir", applyRouteMiddleware(s.mkdirWorkspace, workspaceFilesWrite))
 	r.Handle("/workspaces/{workspace_id}/files/delete", applyRouteMiddleware(s.deleteWorkspaceFile, workspaceFilesDelete))
 	r.Handle("/workspaces/{workspace_id}/files/folder/delete", applyRouteMiddleware(s.deleteWorkspaceFolder, workspaceFilesDelete))
