@@ -219,7 +219,9 @@ func (s *APIServer) registerAuthRoutes(r chi.Router) {
 	}
 	if s.authProviders["password"] != nil {
 		r.Handle("/auth/password/login", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "password auth not implemented", nil)
+			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "password_auth_not_implemented", map[string]any{
+				"error": "Password authentication is not implemented.",
+			})
 		}))
 	} else {
 		r.Handle("/auth/password/login", http.HandlerFunc(s.authNotEnabledHandler))
