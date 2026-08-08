@@ -15,5 +15,6 @@ func WithOAuthProvider(provider string) func(http.Handler) http.Handler {
 			}
 
 			next.ServeHTTP(w, r)
+		})
 	}
 }
