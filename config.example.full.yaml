@@ -1,0 +1,69 @@
+# Full example config for FluxSend.
+# This file includes every key currently supported by internal/config/viper_loader.go.
+
+app:
+  env: development
+
+api:
+  listen_port: "3000"
+  enable_google_auth: false
+  enable_github_auth: true
+  enable_password_auth: false
+  google_client_id: "your-google-client-id"
+  google_client_secret: "your-google-client-secret"
+  github_client_id: "your-github-oauth-client-id"
+  github_client_secret: "your-github-oauth-client-secret"
+  token_encryption_key: "replace-with-strong-random-secret"
+  frontend_endpoint: "http://localhost:5173"
+  backend_endpoint: "http://localhost:3000"
+  mail_from: "noreply@example.com"
+
+  db:
+    host: "localhost"
+    user: "postgres"
+    password: "postgres"
+    name: "fluxsend"
+
+  # Leave empty to auto-detect: s3 when AWS values are set, otherwise gcs.
+  storage_provider: "gcs"
+
+  # Used by storage provider auto-detection and other AWS integrations.
+  aws_region: "us-east-1"
+  aws_access_key_id: "your-aws-access-key-id"
+  aws_secret_access_key: "your-aws-secret-access-key"
+
+  cloudfront:
+    enable_downloads: false
+    domain: "d111111abcdef8.cloudfront.net"
+    key_pair_id: "K1234567890ABC"
+    private_key_path: "/abs/path/to/cloudfront-private-key.pem"
+
+storage:
+  # GCS settings
+  gcs_bucket_name: "fluxsend-dev"
+  google_application_credentials: "/abs/path/to/gcp-service-account.json"
+  google_project_id: "your-gcp-project-id"
+
+  # S3 settings
+  s3_bucket_name: "fluxsend-dev"
+  aws_region: "us-east-1"
+
+mail:
+  # standard or ses
+  provider: "standard"
+
+  # SES settings
+  aws_region: "us-east-1"
+  aws_access_key_id: "your-aws-access-key-id"
+  aws_secret_access_key: "your-aws-secret-access-key"
+
+  # Standard SMTP settings
+  smtp_host: "smtp.mailgun.org"
+  smtp_port: "587"
+  smtp_username: "postmaster@example.com"
+  smtp_password: "smtp-password"
+
+cli:
+  listen_port: "8091"
+  backend_endpoint: "http://localhost:3000"
+  route_prefix: "/api"

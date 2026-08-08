@@ -26,9 +26,30 @@ const (
 	sessionDuration      = 24 * time.Hour
 )
 
+func (s *APIServer) authNotEnabledHandler(w http.ResponseWriter, r *http.Request) {
+	pkg.WriteJSONResponse(w, http.StatusForbidden, "auth_not_enabled", map[string]any{
+		"error": "Authentication is not enabled for this provider.",
+	})
+}
+
+func (s *APIServer) authCallbackNotEnabledHandler(w http.ResponseWriter, r *http.Request) {
+	pkg.WriteJSONResponse(w, http.StatusForbidden, "auth_not_enabled", map[string]any{
+		"error": "Authentication is not enabled for this provider.",
+	})
+}
+
+func (s *APIServer) authProvidersHandler(w http.ResponseWriter, r *http.Request) {
+	pkg.WriteJSONResponse(w, http.StatusOK, "", map[string]any{
+		"google":   s.authProviders["google"] != nil,
+		"github":   s.authProviders["github"] != nil,
+		"password": s.authProviders["password"] != nil,
+	})
+}
+
 func (s *APIServer) oauthLoginHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	providerName := chi.URLParam(r, "provider")
+
 	provider, ok := s.authProviders[providerName]
 	if !ok {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "unknown_provider", nil)

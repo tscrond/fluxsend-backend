@@ -10,10 +10,12 @@ import (
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	"github.com/tscrond/fluxsend-backend/internal/middleware"
 	chimiddleware "github.com/tscrond/fluxsend-backend/internal/middleware"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
+	"github.com/tscrond/fluxsend-backend/pkg"
 	"go.uber.org/zap"
 )
 
@@ -202,8 +204,29 @@ func (s *APIServer) Start() {
 
 func (s *APIServer) registerAuthRoutes(r chi.Router) {
 	// auth
-	r.Handle("/auth/{provider}/login", http.HandlerFunc(s.oauthLoginHandler))
-	r.Handle("/auth/{provider}/callback", http.HandlerFunc(s.authCallbackHandler))
+	if s.authProviders["google"] != nil {
+		r.With(middleware.WithOAuthProvider("google")).Handle("/auth/google/login", http.HandlerFunc(s.oauthLoginHandler))
+		r.With(middleware.WithOAuthProvider("google")).Handle("/auth/google/callback", http.HandlerFunc(s.authCallbackHandler))
+	} else {
+		r.Handle("/auth/google/login", http.HandlerFunc(s.authNotEnabledHandler))
+		r.Handle("/auth/google/callback", http.HandlerFunc(s.authCallbackNotEnabledHandler))
+	}
+	if s.authProviders["github"] != nil {
+		r.With(middleware.WithOAuthProvider("github")).Handle("/auth/github/login", http.HandlerFunc(s.oauthLoginHandler))
+		r.With(middleware.WithOAuthProvider("github")).Handle("/auth/github/callback", http.HandlerFunc(s.authCallbackHandler))
+	} else {
+		r.Handle("/auth/github/login", http.HandlerFunc(s.authNotEnabledHandler))
+		r.Handle("/auth/github/callback", http.HandlerFunc(s.authCallbackNotEnabledHandler))
+	}
+	if s.authProviders["password"] != nil {
+		r.Handle("/auth/password/login", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "password auth not implemented", nil)
+		}))
+	} else {
+		r.Handle("/auth/password/login", http.HandlerFunc(s.authNotEnabledHandler))
+	}
+
 	r.Handle("/auth/is_valid", http.HandlerFunc(s.isValid))
+	r.Handle("/auth/providers", http.HandlerFunc(s.authProvidersHandler))
 	r.Handle("/auth/logout", http.HandlerFunc(s.logout))
 }

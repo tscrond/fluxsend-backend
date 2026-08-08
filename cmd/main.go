@@ -1,18 +1,29 @@
+/*
+Copyright © 2026 Tomasz Skrond <>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
 package main
 
 import (
-	"net/http"
-
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/lib/pq"
-	"github.com/tscrond/fluxsend-backend/internal/config"
-	"github.com/tscrond/fluxsend-backend/internal/logger"
+	"github.com/tscrond/fluxsend-backend/cmd/cmd"
 )
-
-type namedHTTPServer struct {
-	name string
-	srv  *http.Server
-}
 
 // @title           FluxSend Developer API
 // @version         1.7.0
@@ -34,38 +45,5 @@ type namedHTTPServer struct {
 // @externalDocs.description  OpenAPI
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
-	log := logger.New()
-	defer log.Sync() //nolint:errcheck
-
-	apiConfig := config.NewAPIServerConfig()
-	cliConfig := config.NewCLIServerConfig()
-
-	runtime, err := buildRuntime(log, apiConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer runtime.Close(log)
-
-	apiServer := buildAPIServer(log, apiConfig, runtime)
-	cliServer := buildCLIServer(log, cliConfig, runtime)
-
-	if err := runHTTPServers(log,
-		namedHTTPServer{
-			name: "api",
-			srv: &http.Server{
-				Addr:    ":" + apiConfig.ListenPort,
-				Handler: apiServer.Handler(),
-			},
-		},
-		namedHTTPServer{
-			name: "cli",
-			srv: &http.Server{
-				Addr:    ":" + cliConfig.ListenPort,
-				Handler: cliServer.Handler(),
-			},
-		},
-	); err != nil {
-		log.Fatal(err)
-	}
-
+	cmd.Execute()
 }

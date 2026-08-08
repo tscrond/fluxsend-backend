@@ -1,10 +1,6 @@
 package config
 
-import (
-	"os"
-
-	"github.com/tscrond/fluxsend-backend/pkg"
-)
+import "github.com/spf13/viper"
 
 type CLIServerConfig struct {
 	ListenPort      string
@@ -12,18 +8,17 @@ type CLIServerConfig struct {
 	RoutePrefix     string
 }
 
-func NewCLIServerConfig() *CLIServerConfig {
-	cliConfig := CLIServerConfig{
-		ListenPort:      os.Getenv("FLUXSEND_API_LISTEN_PORT"),
-		BackendEndpoint: pkg.ReadConfigRequired("BACKEND_ENDPOINT"),
-		RoutePrefix:     os.Getenv("FLUXSEND_API_ROUTE_PREFIX"),
-	}
-	if cliConfig.ListenPort == "" {
-		cliConfig.ListenPort = "8091"
-	}
-	if cliConfig.RoutePrefix == "" {
-		cliConfig.RoutePrefix = "/api"
+func NewCLIServerConfig(v *viper.Viper) (*CLIServerConfig, error) {
+	backendEndpoint, err := requiredString(v, "cli.backend_endpoint")
+	if err != nil {
+		return nil, err
 	}
 
-	return &cliConfig
+	cliConfig := CLIServerConfig{
+		ListenPort:      v.GetString("cli.listen_port"),
+		BackendEndpoint: backendEndpoint,
+		RoutePrefix:     v.GetString("cli.route_prefix"),
+	}
+
+	return &cliConfig, nil
 }
