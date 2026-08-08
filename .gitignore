@@ -27,6 +27,7 @@ go.work.sum
 .envs
 bin
 tmp
+config.yaml
 
 .DS_Store
 config/bucket-auth.json
