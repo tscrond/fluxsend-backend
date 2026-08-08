@@ -11,7 +11,6 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/middleware"
-	chimiddleware "github.com/tscrond/fluxsend-backend/internal/middleware"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
@@ -176,7 +175,7 @@ func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies
 func (s *APIServer) Handler() http.Handler {
 
 	r := chi.NewRouter()
-	r.Use(chimiddleware.RequestLogger(s.log))
+	r.Use(middleware.RequestLogger(s.log))
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.backendConfig.FrontendEndpoint},
