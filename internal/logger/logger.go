@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -10,12 +9,12 @@ import (
 
 type contextKey struct{}
 
-// New builds a SugaredLogger. In production (APP_ENV=production) it outputs
+// New builds a SugaredLogger. In production (appEnv=production) it outputs
 // JSON; otherwise it outputs a human-readable console format with colours.
-func New() *zap.SugaredLogger {
+func New(appEnv string) *zap.SugaredLogger {
 	var cfg zap.Config
 
-	if os.Getenv("APP_ENV") == "production" {
+	if appEnv == "production" {
 		cfg = zap.NewProductionConfig()
 	} else {
 		cfg = zap.NewDevelopmentConfig()

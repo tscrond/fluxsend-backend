@@ -3,7 +3,6 @@ package factory
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"go.uber.org/zap"
@@ -13,19 +12,27 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 )
 
+type ProviderConfig struct {
+	GCSBucketName                string
+	GoogleApplicationCredentials string
+	GoogleProjectID              string
+	S3BucketName                 string
+	AWSRegion                    string
+}
+
 // TODO: use bucketMode parameter to define if storage backends:
 // - give each user one bucket
 // OR
 // - use a single bucket with per-user prefixing
 
-func NewStorageProvider(log *zap.SugaredLogger, provider string) (types.ObjectStorage, error) {
+func NewStorageProvider(log *zap.SugaredLogger, provider string, cfg ProviderConfig) (types.ObjectStorage, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 
 	switch provider {
 	case "gcs":
-		bucketName := os.Getenv("GCS_BUCKET_NAME")
-		svcaccountPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-		googleProjectID := os.Getenv("GOOGLE_PROJECT_ID")
+		bucketName := cfg.GCSBucketName
+		svcaccountPath := cfg.GoogleApplicationCredentials
+		googleProjectID := cfg.GoogleProjectID
 
 		if bucketName == "" {
 			return nil, errors.New("missing GCS_BUCKET_NAME for STORAGE_PROVIDER=gcs")
@@ -39,12 +46,12 @@ func NewStorageProvider(log *zap.SugaredLogger, provider string) (types.ObjectSt
 
 		return gcs.NewGCSBucketHandler(log, svcaccountPath, bucketName, googleProjectID)
 	case "s3":
-		bucketName := os.Getenv("S3_BUCKET_NAME")
+		bucketName := cfg.S3BucketName
 		if bucketName == "" {
 			// Backward-compatible fallback for older env setups.
-			bucketName = os.Getenv("GCS_BUCKET_NAME")
+			bucketName = cfg.GCSBucketName
 		}
-		region := os.Getenv("AWS_REGION")
+		region := cfg.AWSRegion
 
 		if bucketName == "" {
 			return nil, errors.New("missing S3_BUCKET_NAME for STORAGE_PROVIDER=s3")

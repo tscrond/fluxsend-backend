@@ -3,7 +3,6 @@ package factory
 import (
 	"context"
 	"errors"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -11,36 +10,36 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 )
 
-func NewEmailService(provider string) (types.EmailSender, error) {
+type ProviderConfig struct {
+	AWSRegion          string
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
+	SMTPHost           string
+	SMTPPort           string
+	SMTPUsername       string
+	SMTPPassword       string
+}
+
+func NewEmailService(provider string, cfg ProviderConfig) (types.EmailSender, error) {
 	switch provider {
 	case "ses":
-		awsRegion := os.Getenv("AWS_REGION")
-		accessKeyId := os.Getenv("AWS_ACCESS_KEY_ID")
-		secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
-
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion), config.WithCredentialsProvider(
-			credentials.NewStaticCredentialsProvider(accessKeyId, secretAccessKey, ""),
+		sesCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(cfg.AWSRegion), config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, ""),
 		))
 		if err != nil {
 			return nil, err
 		}
 
-		return mailservice.NewSESEmailService(cfg)
+		return mailservice.NewSESEmailService(sesCfg)
 	case "standard":
-		// config here
-		smtpHost := os.Getenv("SMTP_HOST")
-		smtpPort := os.Getenv("SMTP_PORT")
-		smtpUsername := os.Getenv("SMTP_USERNAME")
-		smtpPassword := os.Getenv("SMTP_PASSWORD")
-
-		cfg := &types.StandardSenderConfig{
-			SmtpHost:     smtpHost,
-			SmtpPort:     smtpPort,
-			SmtpUsername: smtpUsername,
-			SmtpPassword: smtpPassword,
+		standardCfg := &types.StandardSenderConfig{
+			SmtpHost:     cfg.SMTPHost,
+			SmtpPort:     cfg.SMTPPort,
+			SmtpUsername: cfg.SMTPUsername,
+			SmtpPassword: cfg.SMTPPassword,
 		}
 
-		return mailservice.NewStandardMailService(cfg)
+		return mailservice.NewStandardMailService(standardCfg)
 	case "other":
 		return nil, errors.New("not implemented")
 
