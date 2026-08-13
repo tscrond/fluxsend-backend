@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
 	"github.com/tscrond/fluxsend-backend/internal/auth"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
@@ -14,7 +15,6 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/tokencrypto"
-	"github.com/tscrond/fluxsend-backend/pkg"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +32,7 @@ type CoreHandlers struct {
 	workspaces     service.WorkspaceService
 	workspaceFiles service.WorkspaceFileService
 	apiKeys        service.APIKeyService
+	passwordAuth   service.PasswordAuthService
 }
 
 type APIServer struct {
@@ -54,6 +55,7 @@ type CoreHandlersDependencies struct {
 	Workspaces       service.WorkspaceService
 	WorkspaceFiles   service.WorkspaceFileService
 	ApiKeys          service.APIKeyService
+	PasswordAuth     service.PasswordAuthService
 }
 
 type APIServerDependencies struct {
@@ -76,6 +78,7 @@ func NewCoreHandlers(backendConfig config.BackendConfig, deps CoreHandlersDepend
 		workspaces:       deps.Workspaces,
 		workspaceFiles:   deps.WorkspaceFiles,
 		apiKeys:          deps.ApiKeys,
+		passwordAuth:     deps.PasswordAuth,
 	}
 }
 
@@ -149,6 +152,7 @@ func (s *CoreHandlers) registerSharingRoutes(r chi.Router, protected routeMiddle
 
 func (s *CoreHandlers) registerUserRoutes(r chi.Router, protected routeMiddleware) {
 	r.Handle("/user/data", applyRouteMiddleware(s.getUserData, protected))
+	r.Handle("/user/identities", applyRouteMiddleware(s.getUserIdentities, protected))
 	r.Handle("/user/bucket", applyRouteMiddleware(s.getUserBucketData, protected))
 	r.Handle("/user/private/download_token", applyRouteMiddleware(s.getUserPrivateFileByName, protected))
 	r.Handle("/user/account/delete", applyRouteMiddleware(s.deleteAccount, protected))
@@ -175,7 +179,7 @@ func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies
 func (s *APIServer) Handler() http.Handler {
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestLogger(s.log))
+	r.Use(middleware.RequestLogger(s.log), chimiddleware.ClientIPFromRemoteAddr)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.backendConfig.FrontendEndpoint},
@@ -218,13 +222,16 @@ func (s *APIServer) registerAuthRoutes(r chi.Router) {
 		r.Handle("/auth/github/callback", http.HandlerFunc(s.authCallbackNotEnabledHandler))
 	}
 	if s.authProviders["password"] != nil {
-		r.Handle("/auth/password/login", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "password_auth_not_implemented", map[string]any{
-				"error": "Password authentication is not implemented.",
-			})
-		}))
+		r.Handle("/auth/password/register", http.HandlerFunc(s.createRegistrationRequest))
+		r.Handle("/auth/password/new/verify/{id}", http.HandlerFunc(s.verifyRegistrationRequest))
+		r.Handle("/auth/password/login", http.HandlerFunc(http.HandlerFunc(s.passwordLoginHandler)))
+		r.Handle("/auth/password/reset", http.HandlerFunc(s.createPasswordResetRequestHandler))
+		r.Handle("/auth/password/reset/verify/{id}", http.HandlerFunc(s.verifyPasswordResetRequestHandler))
 	} else {
+		r.Handle("/auth/password/register", http.HandlerFunc(s.authNotEnabledHandler))
 		r.Handle("/auth/password/login", http.HandlerFunc(s.authNotEnabledHandler))
+		r.Handle("/auth/password/reset", http.HandlerFunc(s.authNotEnabledHandler))
+		r.Handle("/auth/password/reset/verify/{id}", http.HandlerFunc(s.authNotEnabledHandler))
 	}
 
 	r.Handle("/auth/is_valid", http.HandlerFunc(s.isValid))

@@ -20,9 +20,14 @@ type StandardSenderConfig struct {
 }
 
 type MailData struct {
-	Files       []FileInfo
-	SenderEmail string
-	ExpiryDate  string
+	Files        []FileInfo
+	SenderEmail  string
+	ExpiryDate   string
+	OneTimeCode  string
+	Provider     string
+	ResetLink    string
+	VerifyLink   string
+	SupportEmail string
 }
 
 type FileInfo struct {

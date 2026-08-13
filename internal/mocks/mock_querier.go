@@ -89,6 +89,21 @@ func (mr *MockQuerierMockRecorder) AssignAPIKeyToWorkspace(ctx, arg any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssignAPIKeyToWorkspace", reflect.TypeOf((*MockQuerier)(nil).AssignAPIKeyToWorkspace), ctx, arg)
 }
 
+// BlockUntil mocks base method.
+func (m *MockQuerier) BlockUntil(ctx context.Context, arg sqlc.BlockUntilParams) (sqlc.AuthRateLimit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BlockUntil", ctx, arg)
+	ret0, _ := ret[0].(sqlc.AuthRateLimit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BlockUntil indicates an expected call of BlockUntil.
+func (mr *MockQuerierMockRecorder) BlockUntil(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlockUntil", reflect.TypeOf((*MockQuerier)(nil).BlockUntil), ctx, arg)
+}
+
 // CheckPrivateAPIKeyQuota mocks base method.
 func (m *MockQuerier) CheckPrivateAPIKeyQuota(ctx context.Context, userID uuid.UUID) (bool, error) {
 	m.ctrl.T.Helper()
@@ -194,6 +209,21 @@ func (mr *MockQuerierMockRecorder) CompleteFileUpload(ctx, arg any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteFileUpload", reflect.TypeOf((*MockQuerier)(nil).CompleteFileUpload), ctx, arg)
 }
 
+// ConsumeEmailVerificationChallenge mocks base method.
+func (m *MockQuerier) ConsumeEmailVerificationChallenge(ctx context.Context, id uuid.UUID) (sqlc.EmailVerificationChallenge, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConsumeEmailVerificationChallenge", ctx, id)
+	ret0, _ := ret[0].(sqlc.EmailVerificationChallenge)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConsumeEmailVerificationChallenge indicates an expected call of ConsumeEmailVerificationChallenge.
+func (mr *MockQuerierMockRecorder) ConsumeEmailVerificationChallenge(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConsumeEmailVerificationChallenge", reflect.TypeOf((*MockQuerier)(nil).ConsumeEmailVerificationChallenge), ctx, id)
+}
+
 // CountUnseenShares mocks base method.
 func (m *MockQuerier) CountUnseenShares(ctx context.Context, sharedFor sql.NullString) (int64, error) {
 	m.ctrl.T.Helper()
@@ -238,6 +268,36 @@ func (mr *MockQuerierMockRecorder) CreateAPIKeyScope(ctx, arg any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAPIKeyScope", reflect.TypeOf((*MockQuerier)(nil).CreateAPIKeyScope), ctx, arg)
 }
 
+// CreateAuthRateLimit mocks base method.
+func (m *MockQuerier) CreateAuthRateLimit(ctx context.Context, arg sqlc.CreateAuthRateLimitParams) (sqlc.AuthRateLimit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAuthRateLimit", ctx, arg)
+	ret0, _ := ret[0].(sqlc.AuthRateLimit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAuthRateLimit indicates an expected call of CreateAuthRateLimit.
+func (mr *MockQuerierMockRecorder) CreateAuthRateLimit(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAuthRateLimit", reflect.TypeOf((*MockQuerier)(nil).CreateAuthRateLimit), ctx, arg)
+}
+
+// CreateEmailVerificationChallenge mocks base method.
+func (m *MockQuerier) CreateEmailVerificationChallenge(ctx context.Context, arg sqlc.CreateEmailVerificationChallengeParams) (sqlc.EmailVerificationChallenge, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEmailVerificationChallenge", ctx, arg)
+	ret0, _ := ret[0].(sqlc.EmailVerificationChallenge)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateEmailVerificationChallenge indicates an expected call of CreateEmailVerificationChallenge.
+func (mr *MockQuerierMockRecorder) CreateEmailVerificationChallenge(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmailVerificationChallenge", reflect.TypeOf((*MockQuerier)(nil).CreateEmailVerificationChallenge), ctx, arg)
+}
+
 // CreateFileUpload mocks base method.
 func (m *MockQuerier) CreateFileUpload(ctx context.Context, arg sqlc.CreateFileUploadParams) (sqlc.FileUpload, error) {
 	m.ctrl.T.Helper()
@@ -266,6 +326,21 @@ func (m *MockQuerier) CreateIdentity(ctx context.Context, arg sqlc.CreateIdentit
 func (mr *MockQuerierMockRecorder) CreateIdentity(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIdentity", reflect.TypeOf((*MockQuerier)(nil).CreateIdentity), ctx, arg)
+}
+
+// CreatePasswordCredentials mocks base method.
+func (m *MockQuerier) CreatePasswordCredentials(ctx context.Context, arg sqlc.CreatePasswordCredentialsParams) (sqlc.PasswordCredential, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePasswordCredentials", ctx, arg)
+	ret0, _ := ret[0].(sqlc.PasswordCredential)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePasswordCredentials indicates an expected call of CreatePasswordCredentials.
+func (mr *MockQuerierMockRecorder) CreatePasswordCredentials(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePasswordCredentials", reflect.TypeOf((*MockQuerier)(nil).CreatePasswordCredentials), ctx, arg)
 }
 
 // CreateSession mocks base method.
@@ -386,6 +461,20 @@ func (m *MockQuerier) DeleteAccount(ctx context.Context, id uuid.UUID) (sqlc.Use
 func (mr *MockQuerierMockRecorder) DeleteAccount(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccount", reflect.TypeOf((*MockQuerier)(nil).DeleteAccount), ctx, id)
+}
+
+// DeleteEmailVerificationChallengeById mocks base method.
+func (m *MockQuerier) DeleteEmailVerificationChallengeById(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteEmailVerificationChallengeById", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteEmailVerificationChallengeById indicates an expected call of DeleteEmailVerificationChallengeById.
+func (mr *MockQuerierMockRecorder) DeleteEmailVerificationChallengeById(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEmailVerificationChallengeById", reflect.TypeOf((*MockQuerier)(nil).DeleteEmailVerificationChallengeById), ctx, id)
 }
 
 // DeleteFileByNameAndId mocks base method.
@@ -616,6 +705,21 @@ func (mr *MockQuerierMockRecorder) GetAPIKey(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIKey", reflect.TypeOf((*MockQuerier)(nil).GetAPIKey), ctx, id)
 }
 
+// GetAuthRateLimitByKeyAndScope mocks base method.
+func (m *MockQuerier) GetAuthRateLimitByKeyAndScope(ctx context.Context, arg sqlc.GetAuthRateLimitByKeyAndScopeParams) (sqlc.AuthRateLimit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthRateLimitByKeyAndScope", ctx, arg)
+	ret0, _ := ret[0].(sqlc.AuthRateLimit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAuthRateLimitByKeyAndScope indicates an expected call of GetAuthRateLimitByKeyAndScope.
+func (mr *MockQuerierMockRecorder) GetAuthRateLimitByKeyAndScope(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthRateLimitByKeyAndScope", reflect.TypeOf((*MockQuerier)(nil).GetAuthRateLimitByKeyAndScope), ctx, arg)
+}
+
 // GetAuthorizedCLIUserInfoByAPIKey mocks base method.
 func (m *MockQuerier) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (sqlc.GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
 	m.ctrl.T.Helper()
@@ -659,6 +763,36 @@ func (m *MockQuerier) GetBucketObjectAndOwnerFromPrivateToken(ctx context.Contex
 func (mr *MockQuerierMockRecorder) GetBucketObjectAndOwnerFromPrivateToken(ctx, privateDownloadToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketObjectAndOwnerFromPrivateToken", reflect.TypeOf((*MockQuerier)(nil).GetBucketObjectAndOwnerFromPrivateToken), ctx, privateDownloadToken)
+}
+
+// GetEmailVerificationChallengeById mocks base method.
+func (m *MockQuerier) GetEmailVerificationChallengeById(ctx context.Context, id uuid.UUID) (sqlc.EmailVerificationChallenge, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEmailVerificationChallengeById", ctx, id)
+	ret0, _ := ret[0].(sqlc.EmailVerificationChallenge)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEmailVerificationChallengeById indicates an expected call of GetEmailVerificationChallengeById.
+func (mr *MockQuerierMockRecorder) GetEmailVerificationChallengeById(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEmailVerificationChallengeById", reflect.TypeOf((*MockQuerier)(nil).GetEmailVerificationChallengeById), ctx, id)
+}
+
+// GetEmailVerificationCode mocks base method.
+func (m *MockQuerier) GetEmailVerificationCode(ctx context.Context, arg sqlc.GetEmailVerificationCodeParams) (sqlc.EmailVerificationChallenge, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEmailVerificationCode", ctx, arg)
+	ret0, _ := ret[0].(sqlc.EmailVerificationChallenge)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEmailVerificationCode indicates an expected call of GetEmailVerificationCode.
+func (mr *MockQuerierMockRecorder) GetEmailVerificationCode(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEmailVerificationCode", reflect.TypeOf((*MockQuerier)(nil).GetEmailVerificationCode), ctx, arg)
 }
 
 // GetExistingPublicShare mocks base method.
@@ -841,6 +975,21 @@ func (mr *MockQuerierMockRecorder) GetIdentityByUserID(ctx, userID any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentityByUserID", reflect.TypeOf((*MockQuerier)(nil).GetIdentityByUserID), ctx, userID)
 }
 
+// GetIdentitiesByUserID mocks base method.
+func (m *MockQuerier) GetIdentitiesByUserID(ctx context.Context, userID uuid.UUID) ([]sqlc.Identity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIdentitiesByUserID", ctx, userID)
+	ret0, _ := ret[0].([]sqlc.Identity)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIdentitiesByUserID indicates an expected call of GetIdentitiesByUserID.
+func (mr *MockQuerierMockRecorder) GetIdentitiesByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentitiesByUserID", reflect.TypeOf((*MockQuerier)(nil).GetIdentitiesByUserID), ctx, userID)
+}
+
 // GetNoteForFileById mocks base method.
 func (m *MockQuerier) GetNoteForFileById(ctx context.Context, arg sqlc.GetNoteForFileByIdParams) (sqlc.Note, error) {
 	m.ctrl.T.Helper()
@@ -854,6 +1003,21 @@ func (m *MockQuerier) GetNoteForFileById(ctx context.Context, arg sqlc.GetNoteFo
 func (mr *MockQuerierMockRecorder) GetNoteForFileById(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNoteForFileById", reflect.TypeOf((*MockQuerier)(nil).GetNoteForFileById), ctx, arg)
+}
+
+// GetPasswordCredentialsByUserId mocks base method.
+func (m *MockQuerier) GetPasswordCredentialsByUserId(ctx context.Context, userID uuid.UUID) (sqlc.PasswordCredential, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPasswordCredentialsByUserId", ctx, userID)
+	ret0, _ := ret[0].(sqlc.PasswordCredential)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPasswordCredentialsByUserId indicates an expected call of GetPasswordCredentialsByUserId.
+func (mr *MockQuerierMockRecorder) GetPasswordCredentialsByUserId(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPasswordCredentialsByUserId", reflect.TypeOf((*MockQuerier)(nil).GetPasswordCredentialsByUserId), ctx, userID)
 }
 
 // GetPlanByID mocks base method.
@@ -1381,6 +1545,21 @@ func (mr *MockQuerierMockRecorder) GetWorkspaceQuotaDetails(ctx, id any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceQuotaDetails", reflect.TypeOf((*MockQuerier)(nil).GetWorkspaceQuotaDetails), ctx, id)
 }
 
+// IncrementAuthRateLimitAttemptCount mocks base method.
+func (m *MockQuerier) IncrementAuthRateLimitAttemptCount(ctx context.Context, arg sqlc.IncrementAuthRateLimitAttemptCountParams) (sqlc.AuthRateLimit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementAuthRateLimitAttemptCount", ctx, arg)
+	ret0, _ := ret[0].(sqlc.AuthRateLimit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IncrementAuthRateLimitAttemptCount indicates an expected call of IncrementAuthRateLimitAttemptCount.
+func (mr *MockQuerierMockRecorder) IncrementAuthRateLimitAttemptCount(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementAuthRateLimitAttemptCount", reflect.TypeOf((*MockQuerier)(nil).IncrementAuthRateLimitAttemptCount), ctx, arg)
+}
+
 // IncrementShareFailedAttempts mocks base method.
 func (m *MockQuerier) IncrementShareFailedAttempts(ctx context.Context, sharingToken string) (int32, error) {
 	m.ctrl.T.Helper()
@@ -1721,6 +1900,21 @@ func (mr *MockQuerierMockRecorder) UpdateNoteForFile(ctx, arg any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNoteForFile", reflect.TypeOf((*MockQuerier)(nil).UpdateNoteForFile), ctx, arg)
 }
 
+// UpdatePasswordCredentials mocks base method.
+func (m *MockQuerier) UpdatePasswordCredentials(ctx context.Context, arg sqlc.UpdatePasswordCredentialsParams) (sqlc.PasswordCredential, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePasswordCredentials", ctx, arg)
+	ret0, _ := ret[0].(sqlc.PasswordCredential)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdatePasswordCredentials indicates an expected call of UpdatePasswordCredentials.
+func (mr *MockQuerierMockRecorder) UpdatePasswordCredentials(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePasswordCredentials", reflect.TypeOf((*MockQuerier)(nil).UpdatePasswordCredentials), ctx, arg)
+}
+
 // UpdatePrivateDownloadToken mocks base method.
 func (m *MockQuerier) UpdatePrivateDownloadToken(ctx context.Context, arg sqlc.UpdatePrivateDownloadTokenParams) error {
 	m.ctrl.T.Helper()
@@ -1733,6 +1927,21 @@ func (m *MockQuerier) UpdatePrivateDownloadToken(ctx context.Context, arg sqlc.U
 func (mr *MockQuerierMockRecorder) UpdatePrivateDownloadToken(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePrivateDownloadToken", reflect.TypeOf((*MockQuerier)(nil).UpdatePrivateDownloadToken), ctx, arg)
+}
+
+// UpdateResendAvailableAt mocks base method.
+func (m *MockQuerier) UpdateResendAvailableAt(ctx context.Context, arg sqlc.UpdateResendAvailableAtParams) (sqlc.EmailVerificationChallenge, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateResendAvailableAt", ctx, arg)
+	ret0, _ := ret[0].(sqlc.EmailVerificationChallenge)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateResendAvailableAt indicates an expected call of UpdateResendAvailableAt.
+func (mr *MockQuerierMockRecorder) UpdateResendAvailableAt(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResendAvailableAt", reflect.TypeOf((*MockQuerier)(nil).UpdateResendAvailableAt), ctx, arg)
 }
 
 // UpdateUserBucketNameById mocks base method.

@@ -25,6 +25,7 @@ type baseRuntime struct {
 	WorkspaceService       service.WorkspaceService
 	WorkspaceFileService   service.WorkspaceFileService
 	ApiKeyService          service.APIKeyService
+	PasswordAuthService    service.PasswordAuthService
 }
 
 func (rt *baseRuntime) Close(log *zap.SugaredLogger) {
@@ -103,6 +104,7 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 	workspaceSvc := service.NewWorkspaceService(log, repository.Queries(), repository)
 	workspaceFileSvc := service.NewWorkspaceFileServiceWithRepository(log, repository.Queries(), bucketHandler, repository)
 	apiKeySvc := service.NewAPIKeyService(log, repository)
+	passwordAuthSvc := service.NewPasswordAuthService(log, emailSender, repository.Queries(), repository, baseConfig.MailFrom)
 
 	return &baseRuntime{
 		Repository:             repository,
@@ -116,5 +118,6 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 		WorkspaceService:       workspaceSvc,
 		WorkspaceFileService:   workspaceFileSvc,
 		ApiKeyService:          apiKeySvc,
+		PasswordAuthService:    passwordAuthSvc,
 	}, nil
 }

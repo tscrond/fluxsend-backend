@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -9,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,6 +18,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 )
 
@@ -266,4 +269,28 @@ func OptimalChunkSize(fileSize int64) int64 {
 	chunk = ((chunk + MiB - 1) / MiB) * MiB
 
 	return chunk
+}
+
+func GenerateEmailConfirmationCode() string {
+	const codeLength = 6
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	b := make([]byte, codeLength)
+	for i := range b {
+		randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			log.Fatalf("failed to generate random index: %v", err)
+		}
+		b[i] = charset[randomIndex.Int64()]
+	}
+
+	return string(b)
+}
+
+func GetClientIPFromContext(ctx context.Context) string {
+	ip := middleware.GetClientIP(ctx)
+	if ip == "" {
+		ip = "unknown"
+	}
+	return ip
 }
