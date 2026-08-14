@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install MkDocs tooling
-        run: pip install mkdocs mkdocs-material mkdocs-macros-plugin
+        run: pip install -r requirements.txt
       - name: Generate docs artifacts
         run: make swagger
       - name: Build docs site
