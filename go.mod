@@ -1,6 +1,6 @@
 module github.com/tscrond/fluxsend-backend
 
-go 1.26.5
+go 1.26.6
 
 require (
 	cloud.google.com/go/storage v1.61.3
