@@ -53,6 +53,43 @@ func (q *Queries) CreateIdentity(ctx context.Context, arg CreateIdentityParams) 
 	return i, err
 }
 
+const getIdentitiesByUserEmail = `-- name: GetIdentitiesByUserEmail :many
+SELECT id, user_id, provider, provider_user_id, email, email_verified, name, avatar_url, created_at FROM identities WHERE email = $1 ORDER BY created_at ASC
+`
+
+func (q *Queries) GetIdentitiesByUserEmail(ctx context.Context, email sql.NullString) ([]Identity, error) {
+	rows, err := q.db.QueryContext(ctx, getIdentitiesByUserEmail, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Identity
+	for rows.Next() {
+		var i Identity
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Provider,
+			&i.ProviderUserID,
+			&i.Email,
+			&i.EmailVerified,
+			&i.Name,
+			&i.AvatarUrl,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getIdentitiesByUserID = `-- name: GetIdentitiesByUserID :many
 SELECT id, user_id, provider, provider_user_id, email, email_verified, name, avatar_url, created_at FROM identities WHERE user_id = $1 ORDER BY created_at ASC
 `

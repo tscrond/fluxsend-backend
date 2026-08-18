@@ -227,11 +227,15 @@ func (s *APIServer) registerAuthRoutes(r chi.Router) {
 		r.Handle("/auth/password/login", http.HandlerFunc(http.HandlerFunc(s.passwordLoginHandler)))
 		r.Handle("/auth/password/reset", http.HandlerFunc(s.createPasswordResetRequestHandler))
 		r.Handle("/auth/password/reset/verify/{id}", http.HandlerFunc(s.verifyPasswordResetRequestHandler))
+		r.Handle("/auth/password/attach", s.authMiddleware(http.HandlerFunc(s.createPasswordAttachRequestHandler)))
+		r.Handle("/auth/password/attach/verify/{id}", http.HandlerFunc(s.verifyPasswordAttachRequestHandler))
 	} else {
 		r.Handle("/auth/password/register", http.HandlerFunc(s.authNotEnabledHandler))
 		r.Handle("/auth/password/login", http.HandlerFunc(s.authNotEnabledHandler))
 		r.Handle("/auth/password/reset", http.HandlerFunc(s.authNotEnabledHandler))
 		r.Handle("/auth/password/reset/verify/{id}", http.HandlerFunc(s.authNotEnabledHandler))
+		r.Handle("/auth/password/attach", http.HandlerFunc(s.authNotEnabledHandler))
+		r.Handle("/auth/password/attach/verify/{id}", http.HandlerFunc(s.authNotEnabledHandler))
 	}
 
 	r.Handle("/auth/is_valid", http.HandlerFunc(s.isValid))

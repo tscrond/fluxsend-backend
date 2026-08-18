@@ -31,6 +31,7 @@ type PasswordAuthService interface {
 	CheckPasswordResetToken(ctx context.Context, email, purpose, token string) (string, error)
 	CheckUserExists(ctx context.Context, email string) error
 	CreatePasswordAuthChallenge(ctx context.Context, email, purpose, password string) (challengeID, code string, err error)
+	GetUserPasswordIdentity(ctx context.Context, email string) (*sqlc.Identity, error)
 }
 
 type passwordAuthService struct {
@@ -56,6 +57,30 @@ func NewPasswordAuthService(log *zap.SugaredLogger, emailSender mail.EmailSender
 		notifier:  mailnotify.NewMailNotifier(log, emailSender, mailFrom),
 		dummyHash: dummyHash,
 	}
+}
+
+func (s *passwordAuthService) GetUserPasswordIdentity(ctx context.Context, email string) (*sqlc.Identity, error) {
+	userIdentities, err := s.repo.Queries().GetIdentitiesByUserEmail(ctx, sql.NullString{String: email, Valid: true})
+	if err != nil {
+		s.log.Errorw("failed to get user identity by email", "error", err)
+		return nil, err
+	}
+	if len(userIdentities) == 0 {
+		return nil, sql.ErrNoRows
+	}
+	userIdentity := func(ident []sqlc.Identity) *sqlc.Identity {
+		for _, i := range ident {
+			if i.Provider == "password" {
+				return &i
+			}
+		}
+		return nil
+	}(userIdentities)
+
+	if userIdentity == nil || userIdentity.Provider != "password" {
+		return nil, sql.ErrNoRows
+	}
+	return userIdentity, nil
 }
 
 func (s *passwordAuthService) CheckUserExists(ctx context.Context, email string) error {
@@ -192,6 +217,10 @@ func (s *passwordAuthService) CreatePasswordAuthChallenge(ctx context.Context, e
 
 	if purpose == "register" && password == "" {
 		return "", "", errors.New("password is required for register challenge")
+	}
+
+	if purpose != "register" {
+		return "", "", fmt.Errorf("unsupported challenge purpose: %s", purpose)
 	}
 
 	if err := s.CheckUserExists(ctx, email); err != nil {

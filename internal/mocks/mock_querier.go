@@ -945,6 +945,36 @@ func (mr *MockQuerierMockRecorder) GetFilesSharedWithUser(ctx, sharedFor any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFilesSharedWithUser", reflect.TypeOf((*MockQuerier)(nil).GetFilesSharedWithUser), ctx, sharedFor)
 }
 
+// GetIdentitiesByUserEmail mocks base method.
+func (m *MockQuerier) GetIdentitiesByUserEmail(ctx context.Context, email sql.NullString) ([]sqlc.Identity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIdentitiesByUserEmail", ctx, email)
+	ret0, _ := ret[0].([]sqlc.Identity)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIdentitiesByUserEmail indicates an expected call of GetIdentitiesByUserEmail.
+func (mr *MockQuerierMockRecorder) GetIdentitiesByUserEmail(ctx, email any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentitiesByUserEmail", reflect.TypeOf((*MockQuerier)(nil).GetIdentitiesByUserEmail), ctx, email)
+}
+
+// GetIdentitiesByUserID mocks base method.
+func (m *MockQuerier) GetIdentitiesByUserID(ctx context.Context, userID uuid.UUID) ([]sqlc.Identity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIdentitiesByUserID", ctx, userID)
+	ret0, _ := ret[0].([]sqlc.Identity)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIdentitiesByUserID indicates an expected call of GetIdentitiesByUserID.
+func (mr *MockQuerierMockRecorder) GetIdentitiesByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentitiesByUserID", reflect.TypeOf((*MockQuerier)(nil).GetIdentitiesByUserID), ctx, userID)
+}
+
 // GetIdentityByProvider mocks base method.
 func (m *MockQuerier) GetIdentityByProvider(ctx context.Context, arg sqlc.GetIdentityByProviderParams) (sqlc.Identity, error) {
 	m.ctrl.T.Helper()
@@ -973,21 +1003,6 @@ func (m *MockQuerier) GetIdentityByUserID(ctx context.Context, userID uuid.UUID)
 func (mr *MockQuerierMockRecorder) GetIdentityByUserID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentityByUserID", reflect.TypeOf((*MockQuerier)(nil).GetIdentityByUserID), ctx, userID)
-}
-
-// GetIdentitiesByUserID mocks base method.
-func (m *MockQuerier) GetIdentitiesByUserID(ctx context.Context, userID uuid.UUID) ([]sqlc.Identity, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIdentitiesByUserID", ctx, userID)
-	ret0, _ := ret[0].([]sqlc.Identity)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetIdentitiesByUserID indicates an expected call of GetIdentitiesByUserID.
-func (mr *MockQuerierMockRecorder) GetIdentitiesByUserID(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentitiesByUserID", reflect.TypeOf((*MockQuerier)(nil).GetIdentitiesByUserID), ctx, userID)
 }
 
 // GetNoteForFileById mocks base method.

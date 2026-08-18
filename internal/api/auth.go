@@ -33,6 +33,10 @@ const (
 
 var emailPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 
+type passwordAttachChallengeContext struct {
+	PasswordHash string `json:"password_hash"`
+}
+
 func (s *APIServer) authNotEnabledHandler(w http.ResponseWriter, r *http.Request) {
 	pkg.WriteJSONResponse(w, http.StatusForbidden, "auth_not_enabled", map[string]any{
 		"error": "Authentication is not enabled for this provider.",
@@ -134,6 +138,256 @@ func (s *APIServer) passwordLoginHandler(w http.ResponseWriter, r *http.Request)
 
 }
 
+func (s *APIServer) createPasswordAttachRequestHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.log.Errorw("invalid method for password attach request", "method", r.Method)
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", nil)
+		return
+	}
+
+	authUser, userID, ok := parseAuthorizedUserUUID(r)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", nil)
+		return
+	}
+
+	email := strings.TrimSpace(strings.ToLower(authUser.Email))
+	if email == "" || !emailPattern.MatchString(email) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
+		return
+	}
+
+	var req struct {
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.log.Errorw("failed to decode password attach request", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_request", nil)
+		return
+	}
+
+	req.Password = strings.TrimSpace(req.Password)
+	if len(req.Password) < 8 {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "weak_password", nil)
+		return
+	}
+
+	identities, err := s.repository.Queries().GetIdentitiesByUserID(r.Context(), userID)
+	if err != nil {
+		s.log.Errorw("failed to load identities for password attach", "user_id", userID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	for _, identity := range identities {
+		if identity.Provider == "password" {
+			pkg.WriteJSONResponse(w, http.StatusConflict, "password_identity_exists", nil)
+			return
+		}
+	}
+
+	passwordHash, err := pkghash.HashPasswordArgon2id(req.Password)
+	if err != nil {
+		s.log.Errorw("failed to hash password for attach", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	ctxPayload, err := json.Marshal(passwordAttachChallengeContext{PasswordHash: passwordHash})
+	if err != nil {
+		s.log.Errorw("failed to marshal attach challenge context", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	token := pkg.GenerateEmailConfirmationCode()
+	challenge, err := s.repository.Queries().CreateEmailVerificationChallenge(r.Context(), sqlc.CreateEmailVerificationChallengeParams{
+		Email:             email,
+		UserID:            uuid.NullUUID{UUID: userID, Valid: true},
+		Purpose:           "password_attach",
+		CodeHash:          hashEmailVerificationToken(token),
+		ExpiresAt:         time.Now().Add(5 * time.Minute),
+		RequestedByIp:     pkg.GetClientIPFromContext(r.Context()),
+		RequestContext:    ctxPayload,
+		ResendAvailableAt: time.Now().Add(60 * time.Second),
+	})
+	if err != nil {
+		s.log.Errorw("failed to create password attach challenge", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	verifyLink := fmt.Sprintf("%s/password/attach/verify/%s?email=%s&code=%s",
+		s.backendConfig.FrontendEndpoint,
+		url.PathEscape(challenge.ID.String()),
+		url.QueryEscape(email),
+		url.QueryEscape(token),
+	)
+
+	if err := s.passwordAuth.SendConfirmationEmail(r.Context(), email, token, verifyLink); err != nil {
+		s.log.Errorw("failed to send password attach verification email", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "password_attach_request_success", map[string]any{"challenge_id": challenge.ID.String()})
+}
+
+func (s *APIServer) verifyPasswordAttachRequestHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.log.Errorw("invalid method for password attach verification", "method", r.Method)
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", nil)
+		return
+	}
+
+	challengeID := chi.URLParam(r, "id")
+	if challengeID == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "missing_fields", nil)
+		return
+	}
+
+	var req struct {
+		Email string `json:"email"`
+		Code  string `json:"code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.log.Errorw("failed to decode password attach verification request", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_request", nil)
+		return
+	}
+
+	email := strings.TrimSpace(strings.ToLower(req.Email))
+	code := strings.TrimSpace(req.Code)
+	if email == "" || code == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "missing_fields", nil)
+		return
+	}
+	if !emailPattern.MatchString(email) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
+		return
+	}
+
+	parsedChallengeID, err := uuid.Parse(challengeID)
+	if err != nil {
+		s.log.Errorw("failed to parse password attach challenge id", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_request", nil)
+		return
+	}
+
+	challenge, err := s.repository.Queries().GetEmailVerificationChallengeById(r.Context(), parsedChallengeID)
+	if err != nil {
+		s.log.Errorw("failed to load password attach challenge", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+	if challenge.Purpose != "password_attach" || !challenge.UserID.Valid {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+	if strings.TrimSpace(strings.ToLower(challenge.Email)) != email {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+	if challenge.ConsumedAt.Valid || time.Now().After(challenge.ExpiresAt) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+	if hashEmailVerificationToken(code) != challenge.CodeHash {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+
+	var attachCtx passwordAttachChallengeContext
+	if err := json.Unmarshal(challenge.RequestContext, &attachCtx); err != nil || attachCtx.PasswordHash == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+
+	tx, err := s.repository.BeginTx(r.Context(), nil)
+	if err != nil {
+		s.log.Errorw("failed to begin password attach transaction", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	defer tx.Rollback()
+
+	txq := s.repository.Queries().WithTx(tx)
+	identities, err := txq.GetIdentitiesByUserID(r.Context(), challenge.UserID.UUID)
+	if err != nil {
+		s.log.Errorw("failed to get identities during password attach", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	hasPasswordIdentity := false
+	for _, identity := range identities {
+		if identity.Provider == "password" {
+			hasPasswordIdentity = true
+			break
+		}
+	}
+
+	if !hasPasswordIdentity {
+		user, userErr := txq.GetUserById(r.Context(), challenge.UserID.UUID)
+		if userErr != nil {
+			s.log.Errorw("failed to get user during password attach", "error", userErr)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+			return
+		}
+
+		if _, createErr := txq.CreateIdentity(r.Context(), sqlc.CreateIdentityParams{
+			UserID:         user.ID,
+			Provider:       "password",
+			ProviderUserID: email,
+			Email:          sql.NullString{String: email, Valid: true},
+			EmailVerified:  sql.NullBool{Bool: true, Valid: true},
+			Name:           sql.NullString{String: user.UserEmail, Valid: true},
+			AvatarUrl:      sql.NullString{Valid: false},
+		}); createErr != nil {
+			s.log.Errorw("failed to create password identity", "error", createErr)
+			if !isUniqueViolation(createErr) {
+				pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+				return
+			}
+		}
+	}
+
+	if _, err := txq.UpdatePasswordCredentials(r.Context(), sqlc.UpdatePasswordCredentialsParams{
+		UserID:        challenge.UserID.UUID,
+		PasswordHash:  attachCtx.PasswordHash,
+		PasswordSetBy: "oauth_attach",
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			if _, createErr := txq.CreatePasswordCredentials(r.Context(), sqlc.CreatePasswordCredentialsParams{
+				UserID:        challenge.UserID.UUID,
+				PasswordHash:  attachCtx.PasswordHash,
+				PasswordSetBy: "oauth_attach",
+			}); createErr != nil {
+				s.log.Errorw("failed to create password credentials during attach", "error", createErr)
+				pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+				return
+			}
+		} else {
+			s.log.Errorw("failed to update password credentials during attach", "error", err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+			return
+		}
+	}
+
+	if _, err := txq.ConsumeEmailVerificationChallenge(r.Context(), parsedChallengeID); err != nil {
+		s.log.Errorw("failed to consume password attach challenge", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		s.log.Errorw("failed to commit password attach transaction", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "password_attach_success", map[string]any{"attached": true})
+}
+
 func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		s.log.Errorw("invalid method for password reset verification", "method", r.Method)
@@ -170,6 +424,12 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 
 	if !emailPattern.MatchString(email) {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
+		return
+	}
+
+	userIdentity, err := s.passwordAuth.GetUserPasswordIdentity(r.Context(), email)
+	if userIdentity == nil || userIdentity.Provider != "password" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
 
@@ -310,6 +570,13 @@ func (s *APIServer) createPasswordResetRequestHandler(w http.ResponseWriter, r *
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
 		return
 	}
+
+	userIdentity, err := s.passwordAuth.GetUserPasswordIdentity(r.Context(), req.Email)
+	if userIdentity == nil || userIdentity.Provider != "password" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+
 	user, err := s.repository.Queries().GetUserByEmail(r.Context(), req.Email)
 	if err == nil {
 		token := pkg.GenerateEmailConfirmationCode()
