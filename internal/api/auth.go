@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -200,7 +202,12 @@ func (s *APIServer) createPasswordAttachRequestHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	token := pkg.GenerateEmailConfirmationCode()
+	token, err := pkg.GenerateEmailConfirmationCode()
+	if err != nil {
+		s.log.Errorw("failed to generate password attach verification code", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
 	challenge, err := s.repository.Queries().CreateEmailVerificationChallenge(r.Context(), sqlc.CreateEmailVerificationChallengeParams{
 		Email:             email,
 		UserID:            uuid.NullUUID{UUID: userID, Valid: true},
@@ -292,7 +299,7 @@ func (s *APIServer) verifyPasswordAttachRequestHandler(w http.ResponseWriter, r 
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
-	if hashEmailVerificationToken(code) != challenge.CodeHash {
+	if !constantTimeHashMatch(hashEmailVerificationToken(code), challenge.CodeHash) {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
@@ -467,7 +474,24 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	if hashEmailVerificationToken(code) != challenge.CodeHash {
+	rateLimitKey := "challenge:" + parsedChallengeID.String()
+	rateLimitBucket, err := s.getOrCreateAuthRateLimit(r.Context(), rateLimitKey, "password_reset_verify")
+	if err != nil {
+		s.log.Errorw("failed to load password reset verification rate limit", "challenge_id", parsedChallengeID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	if isRateLimitBlocked(rateLimitBucket, challenge.MaxAttempts) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+
+	if !constantTimeHashMatch(hashEmailVerificationToken(code), challenge.CodeHash) {
+		if err := s.recordFailedChallengeAttempt(r.Context(), rateLimitKey, "password_reset_verify", challenge.MaxAttempts, challenge.ExpiresAt); err != nil {
+			s.log.Errorw("failed to record password reset verification attempt", "challenge_id", parsedChallengeID, "error", err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+			return
+		}
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
@@ -579,7 +603,12 @@ func (s *APIServer) createPasswordResetRequestHandler(w http.ResponseWriter, r *
 
 	user, err := s.repository.Queries().GetUserByEmail(r.Context(), req.Email)
 	if err == nil {
-		token := pkg.GenerateEmailConfirmationCode()
+		token, err := pkg.GenerateEmailConfirmationCode()
+		if err != nil {
+			s.log.Errorw("failed to generate password reset verification code", "error", err)
+			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+			return
+		}
 		challenge, createErr := s.repository.Queries().CreateEmailVerificationChallenge(r.Context(), sqlc.CreateEmailVerificationChallengeParams{
 			Email:             req.Email,
 			UserID:            uuid.NullUUID{UUID: user.ID, Valid: true},
@@ -1151,6 +1180,77 @@ func (s *APIServer) isValid(w http.ResponseWriter, r *http.Request) {
 func hashEmailVerificationToken(token string) string {
 	digest := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(digest[:])
+}
+
+func constantTimeHashMatch(left, right string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(left), []byte(right)) == 1
+}
+
+func (s *APIServer) getOrCreateAuthRateLimit(ctx context.Context, key, scope string) (sqlc.AuthRateLimit, error) {
+	bucket, err := s.repository.Queries().GetAuthRateLimitByKeyAndScope(ctx, sqlc.GetAuthRateLimitByKeyAndScopeParams{
+		Key:   key,
+		Scope: scope,
+	})
+	if err == nil {
+		return bucket, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return sqlc.AuthRateLimit{}, err
+	}
+
+	return s.repository.Queries().CreateAuthRateLimit(ctx, sqlc.CreateAuthRateLimitParams{
+		Key:          key,
+		Scope:        scope,
+		AttemptCount: 0,
+	})
+}
+
+func isRateLimitBlocked(bucket sqlc.AuthRateLimit, maxAttempts int32) bool {
+	if bucket.BlockedUntil.Valid && time.Now().Before(bucket.BlockedUntil.Time) {
+		return true
+	}
+	return maxAttempts > 0 && bucket.AttemptCount >= maxAttempts
+}
+
+func (s *APIServer) recordFailedChallengeAttempt(ctx context.Context, key, scope string, maxAttempts int32, blockUntil time.Time) error {
+	bucket, err := s.getOrCreateAuthRateLimit(ctx, key, scope)
+	if err != nil {
+		return err
+	}
+
+	if maxAttempts > 0 && bucket.AttemptCount >= maxAttempts {
+		if _, err := s.repository.Queries().BlockUntil(ctx, sqlc.BlockUntilParams{
+			Key:          key,
+			Scope:        scope,
+			BlockedUntil: sql.NullTime{Time: blockUntil, Valid: true},
+		}); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	updated, err := s.repository.Queries().IncrementAuthRateLimitAttemptCount(ctx, sqlc.IncrementAuthRateLimitAttemptCountParams{
+		Key:   key,
+		Scope: scope,
+	})
+	if err != nil {
+		return err
+	}
+
+	if maxAttempts > 0 && updated.AttemptCount >= maxAttempts {
+		if _, err := s.repository.Queries().BlockUntil(ctx, sqlc.BlockUntilParams{
+			Key:          key,
+			Scope:        scope,
+			BlockedUntil: sql.NullTime{Time: blockUntil, Valid: true},
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func generateState() (string, error) {

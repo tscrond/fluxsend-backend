@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -227,7 +228,10 @@ func (s *passwordAuthService) CreatePasswordAuthChallenge(ctx context.Context, e
 		return "", "", err
 	}
 
-	token := pkg.GenerateEmailConfirmationCode()
+	token, err := pkg.GenerateEmailConfirmationCode()
+	if err != nil {
+		return "", "", err
+	}
 	tokenHash := hashToken(token)
 
 	passwordHash, err := hash.HashPasswordArgon2id(password)
@@ -366,7 +370,7 @@ func compareTokenWithHash(token, hash string) error {
 
 	tokenHashed := hashToken(token)
 
-	if tokenHashed != hash {
+	if subtle.ConstantTimeCompare([]byte(tokenHashed), []byte(hash)) != 1 {
 		return fmt.Errorf("token does not match hash")
 	}
 

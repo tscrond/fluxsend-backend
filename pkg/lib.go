@@ -271,7 +271,7 @@ func OptimalChunkSize(fileSize int64) int64 {
 	return chunk
 }
 
-func GenerateEmailConfirmationCode() string {
+func GenerateEmailConfirmationCode() (string, error) {
 	const codeLength = 6
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -279,12 +279,12 @@ func GenerateEmailConfirmationCode() string {
 	for i := range b {
 		randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
-			log.Fatalf("failed to generate random index: %v", err)
+			return "", fmt.Errorf("generate email confirmation code: %w", err)
 		}
 		b[i] = charset[randomIndex.Int64()]
 	}
 
-	return string(b)
+	return string(b), nil
 }
 
 func GetClientIPFromContext(ctx context.Context) string {

@@ -224,7 +224,7 @@ func (s *APIServer) registerAuthRoutes(r chi.Router) {
 	if s.authProviders["password"] != nil {
 		r.Handle("/auth/password/register", http.HandlerFunc(s.createRegistrationRequest))
 		r.Handle("/auth/password/new/verify/{id}", http.HandlerFunc(s.verifyRegistrationRequest))
-		r.Handle("/auth/password/login", http.HandlerFunc(http.HandlerFunc(s.passwordLoginHandler)))
+		r.Handle("/auth/password/login", http.HandlerFunc(s.passwordLoginHandler))
 		r.Handle("/auth/password/reset", http.HandlerFunc(s.createPasswordResetRequestHandler))
 		r.Handle("/auth/password/reset/verify/{id}", http.HandlerFunc(s.verifyPasswordResetRequestHandler))
 		r.Handle("/auth/password/attach", s.authMiddleware(http.HandlerFunc(s.createPasswordAttachRequestHandler)))
