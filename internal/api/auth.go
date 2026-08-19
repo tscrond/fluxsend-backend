@@ -90,7 +90,7 @@ func (s *APIServer) passwordLoginHandler(w http.ResponseWriter, r *http.Request)
 
 	userID, err := s.passwordAuth.LoginUser(r.Context(), req.Email, req.Password)
 	if err != nil {
-		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "invalid_credentials", nil)
+		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "access_denied", nil)
 		return
 	}
 
