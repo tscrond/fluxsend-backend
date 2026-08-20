@@ -196,6 +196,7 @@ make swagger
 Build the docs site locally:
 
 ```bash
+make docs-deps
 make docs-build
 ```
 

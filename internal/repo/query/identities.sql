@@ -8,3 +8,9 @@ RETURNING *;
 
 -- name: GetIdentityByUserID :one
 SELECT * FROM identities WHERE user_id = $1 LIMIT 1;
+
+-- name: GetIdentitiesByUserID :many
+SELECT * FROM identities WHERE user_id = $1 ORDER BY created_at ASC;
+
+-- name: GetIdentitiesByUserEmail :many
+SELECT * FROM identities WHERE email = $1 ORDER BY created_at ASC;

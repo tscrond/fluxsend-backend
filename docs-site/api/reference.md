@@ -55,6 +55,7 @@ This page is generated from the current OpenAPI 3 document. Regenerate it with `
 | --- | --- | --- | --- |
 | GET | /api/user/stats | Get user statistics | Returns aggregate file, share, and workspace statistics for the current user. |
 | POST | /api/user/private/download_token | Create private download token | Generates a download token for a private file name. |
+| GET | /api/user/identities | Get linked identities | Returns all identities attached to the current account. |
 | GET | /api/user/data | Get current user data | Returns the authenticated user's profile and plan details. |
 | GET | /api/user/bucket | Get user bucket data | Returns the current user's bucket metadata and usage details. |
 | DELETE | /api/user/account/delete | Delete account | Deletes the authenticated user's account and optionally keeps or removes bucket data. |

@@ -15,7 +15,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
-	templates "github.com/tscrond/fluxsend-backend/internal/mailservice/templates"
+	mailnotify "github.com/tscrond/fluxsend-backend/internal/mailservice/notify"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/pkg"
@@ -469,26 +469,8 @@ func (s *shareService) buildDownloadURL(ctx context.Context, bucket, object, fil
 }
 
 func (s *shareService) sendSharingNotification(sharedByEmail, emailTo, expiryDate string, files []mailtypes.FileInfo) error {
-	subject := fmt.Sprintf("Subject: New File Transfer from %s", sharedByEmail)
-	mime := "\r\nMIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\r\n"
-
-	htmlBody, err := templates.RenderMailTemplate("sharing", mailtypes.MailData{
-		Files:       files,
-		SenderEmail: sharedByEmail,
-		ExpiryDate:  expiryDate,
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = s.emailSender.Send(mailtypes.MessageConfig{
-		From:    s.mailFrom,
-		To:      []string{emailTo},
-		Subject: subject,
-		Mime:    mime,
-		Body:    htmlBody,
-	})
-	return err
+	notifier := mailnotify.NewMailNotifier(s.log, s.emailSender, s.mailFrom)
+	return notifier.SendSharingNotification(sharedByEmail, emailTo, expiryDate, files)
 }
 
 func (s *shareService) RevokeShare(ctx context.Context, token, ownerEmail string) error {

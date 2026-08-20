@@ -164,6 +164,7 @@ func (s *CLIServer) registerCLIUserRoutes(r chi.Router) {
 	r.Handle("/user/private/download_token", applyRouteMiddleware(s.getUserPrivateFileByName, privateRead))
 	r.Handle("/user/account/delete", applyRouteMiddleware(s.deleteAccount, privateDelete))
 	r.Handle("/user/stats", applyRouteMiddleware(s.getUserStats, privateRead))
+	r.Handle("/user/identities", applyRouteMiddleware(s.getUserIdentities, privateRead))
 }
 
 func (s *CLIServer) registerCLIAPIKeyRoutes(r chi.Router) {

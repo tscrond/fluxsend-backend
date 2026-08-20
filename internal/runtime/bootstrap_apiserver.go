@@ -100,6 +100,7 @@ func BuildAPIServer(log *zap.SugaredLogger, apiConfig *config.APIServerConfig, r
 			Workspaces:       runtime.WorkspaceService,
 			WorkspaceFiles:   runtime.WorkspaceFileService,
 			ApiKeys:          runtime.ApiKeyService,
+			PasswordAuth:     runtime.PasswordAuthService,
 		},
 		AuthProviders:  apiRuntime.AuthProviders,
 		TokenEncryptor: apiRuntime.TokenEncryptor,

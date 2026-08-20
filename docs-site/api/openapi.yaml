@@ -1139,6 +1139,27 @@ paths:
             summary: Get current user data
             tags:
                 - User
+    /api/user/identities:
+        get:
+            description: Returns all identities attached to the current account.
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                additionalProperties: true
+                                type: object
+                    description: OK
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                additionalProperties: true
+                                type: object
+                    description: Unauthorized
+            summary: Get linked identities
+            tags:
+                - User
     /api/user/private/download_token:
         post:
             description: Generates a download token for a private file name.

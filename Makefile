@@ -29,13 +29,18 @@ swagger: ## generate swagger docs
 	go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g cmd/main.go -o docs --generatedTime=false && \
 	go run ./cmd/docsgen
 
+.PHONY: docs-deps
+docs-deps: ## install docs Python dependencies into .venv
+	python3 -m venv .venv
+	.venv/bin/python3 -m pip install -r requirements.txt
+
 .PHONY: docs-build
 docs-build: swagger ## build mkdocs
-	. .venv/bin/activate && python3 -m mkdocs build --config-file mkdocs.yml
+	.venv/bin/python3 -m mkdocs build --config-file mkdocs.yml
 
 .PHONY: docs-serve
 docs-serve: swagger ## serve docs
-	. .venv/bin/activate && python3 -m mkdocs serve --config-file mkdocs.yml -a 0.0.0.0:1234
+	.venv/bin/python3 -m mkdocs serve --config-file mkdocs.yml -a 0.0.0.0:1234
 
 .PHONY: docs-image
 docs-image: ## build docs docker image

@@ -1434,6 +1434,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/user/identities": {
+            "get": {
+                "description": "Returns all identities attached to the current account.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get linked identities",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/user/private/download_token": {
             "post": {
                 "description": "Generates a download token for a private file name.",
