@@ -26,3 +26,20 @@ jobs:
         docker-hub-username: ${{ secrets.DOCKERHUB_USERNAME }}
         docker-hub-token: ${{ secrets.DOCKERHUB_TOKEN }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build-multiarch-docs:
+    needs: [checks]
+    uses: ./.github/workflows/_build.yaml
+    permissions:
+        contents: read
+        packages: write
+        id-token: write
+    with:
+      image-name-dockerhub: bobaklabs/fluxsend-docs
+      image-name-github: tscrond/fluxsend-docs
+      arch: "linux/amd64,linux/arm64"
+      dockerfile: Dockerfile.docs
+    secrets:
+        docker-hub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+        docker-hub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}

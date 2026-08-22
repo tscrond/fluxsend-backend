@@ -17,6 +17,10 @@ on:
         required: false
         type: string
         default: linux/amd64,linux/arm64
+      dockerfile:
+        required: false
+        type: string
+        default: Dockerfile
     secrets:
       docker-hub-username:
         required: true
@@ -80,6 +84,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ${{ inputs.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta-dockerhub.outputs.tags }}
           labels: ${{ steps.meta-dockerhub.outputs.labels }}
@@ -92,6 +97,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ${{ inputs.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta-ghcr.outputs.tags }}
           labels: ${{ steps.meta-ghcr.outputs.labels }}
