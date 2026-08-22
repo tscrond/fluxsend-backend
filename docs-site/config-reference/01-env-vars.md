@@ -1,36 +1,59 @@
 # Environment variables
 
-The following table documents existing environment variables and their purpose in the application.
+The application reads its configuration through Viper with a layered precedence of defaults, config file, environment variables, and a few auth override flags. See [Configuration loading](./00-config-loading.md) for the full precedence and examples.
 
-| Variable | Description | Defaults | Mandatory |
+The following table documents the environment variables supported by the backend.
+
+| Variable | Description | Default | Required |
 |---|---|---|---|
-| APP_ENV | Sets logger mode to production or development <b>(Available: "production", "development")</b> | production | false |
-| AWS_ACCESS_KEY_ID | ID of AWS access key used for S3 bucket provider | "" | true |
-| AWS_REGION | AWS region for the S3 bucket | "" | true |
-| AWS_SECRET_ACCESS_KEY | AWS Secret Access Key for S3 bucket | "" | true |
-| BACKEND_ENDPOINT | Used for OAuth2 callback endpoints and constructing sharing URLs | "" | true |
-| FRONTEND_ENDPOINT | Used for frontend redirections in the OAuth2 flow | "" | false |
-| CLOUDFRONT_DOMAIN | Domain served by AWS Cloudfront for files | "" | false |
-| CLOUDFRONT_KEY_PAIR_ID | Cloudfront Key Pair ID | "" | false |
-| CLOUDFRONT_PRIVATE_KEY_PATH | Cloudfront Private Key Path | "" | false |
-| FLUXSEND_API_LISTEN_PORT | Listen port for Developer API service | "8091" | true |
-| FLUXSEND_API_ROUTE_PREFIX | Prefix for Developer API routes | "/api" | true |
-| FLUXSEND_LISTEN_PORT | Listen port for main backend service | "3000" | false |
-| GCS_BUCKET_NAME | GCS bucket name <b>(mandatory if using the GCS backend)</b> | "" | false |
-| GITHUB_OAUTH_CLIENT_ID | Github OAuth2 App client ID | "" | true |
-| GITHUB_OAUTH_CLIENT_SECRET | Github OAuth2 App client secret | "" | true |
-| GOOGLE_APPLICATION_CREDENTIALS | JSON credentials for service account with GCS access <b>(mandatory if using the GCS backend)</b> | "" | false |
-| GOOGLE_CLIENT_ID | Google Client ID - needed for Google OAuth2 | | true |
-| GOOGLE_CLIENT_SECRET | needed for Google OAuth2 | | true |
-| GOOGLE_PROJECT_ID | needed for Google OAuth2 (and GCS backend if applicable) | | true |
-| DB_HOST | Database host - needed for connection string | "" | true |
-| POSTGRES_DB | Postgres database name | "" | true |
-| POSTGRES_PASSWORD | Postgres DB password | "" | true |
-| POSTGRES_USER | Postgres user | "" | true |
-| MAIL_FROM | Email address permitted to send email on behalf of FluxSend | "noreply@fluxsend.win" | true |
-| SMTP_HOST | SMTP Server host | "" | true |
-| SMTP_PASSWORD | Password for SMTP permitted sender | "" | true |
-| SMTP_PORT | Port for SMTP communication | "587" | true |
-| SMTP_USERNAME | Username for SMTP user | "" | true |
-| STORAGE_PROVIDER | Storage provider <b>(Available: "s3", "gcs")</b> | "s3" | true |
-| TOKEN_ENCRYPTION_KEY | Encryption key for session management | "" | true |
+| APP_ENV | Runtime environment (`production` or `development`) | `production` | No |
+| BACKEND_ENDPOINT | Base URL for callbacks and public links | `""` | Yes |
+| FRONTEND_ENDPOINT | Frontend origin used for redirects and CORS | `""` | Yes |
+| FLUXSEND_LISTEN_PORT | Main backend listen port | `3000` | No |
+| FLUXSEND_API_LISTEN_PORT | Developer CLI API listen port | `8091` | No |
+| FLUXSEND_API_ROUTE_PREFIX | CLI API route prefix | `/api` | No |
+| ENABLE_GOOGLE_AUTH | Enables Google OAuth login | `false` | No |
+| ENABLE_GITHUB_AUTH | Enables GitHub OAuth login | `false` | No |
+| ENABLE_PASSWORD_AUTH | Enables email/password auth | `false` | No |
+| GOOGLE_CLIENT_ID | Google OAuth client ID | `""` | If Google auth enabled |
+| GOOGLE_CLIENT_SECRET | Google OAuth client secret | `""` | If Google auth enabled |
+| GITHUB_OAUTH_CLIENT_ID | GitHub OAuth app client ID | `""` | If GitHub auth enabled |
+| GITHUB_OAUTH_CLIENT_SECRET | GitHub OAuth app client secret | `""` | If GitHub auth enabled |
+| TOKEN_ENCRYPTION_KEY | Key used to encrypt provider access tokens at rest | `""` | Yes |
+| DB_HOST | PostgreSQL host | `""` | Yes |
+| POSTGRES_DB | PostgreSQL database name | `""` | Yes |
+| POSTGRES_USER | PostgreSQL database user | `""` | Yes |
+| POSTGRES_PASSWORD | PostgreSQL database password | `""` | Yes |
+| STORAGE_PROVIDER | Storage backend: `gcs`, `s3`, or `minio` | Auto-detected | No |
+| GCS_BUCKET_NAME | Base GCS bucket name | `""` | If `gcs` |
+| GOOGLE_APPLICATION_CREDENTIALS | GCS service account JSON path | `""` | If `gcs` |
+| GOOGLE_PROJECT_ID | GCP project ID for GCS | `""` | If `gcs` |
+| S3_BUCKET_NAME | Base S3 bucket name | `""` | If `s3` |
+| AWS_REGION | AWS region for S3/SES | `""` | If `s3` or SES |
+| AWS_ACCESS_KEY_ID | AWS access key for S3/SES | `""` | If using AWS credentials |
+| AWS_SECRET_ACCESS_KEY | AWS secret key for S3/SES | `""` | If using AWS credentials |
+| MINIO_BUCKET_NAME | Base MinIO bucket name | `""` | If `minio` |
+| MINIO_ENDPOINT | MinIO endpoint, such as `http://minio:9000` | `""` | If `minio` |
+| MINIO_ACCESS_KEY | MinIO access key / login | `""` | If `minio` |
+| MINIO_SECRET_KEY | MinIO secret key / password | `""` | If `minio` |
+| MINIO_USE_SSL | Use TLS when connecting to MinIO | `false` | No |
+| MAIL_FROM | Default sender email for password reset and mail notifications | `noreply@fluxsend.invalid` | Yes |
+| MAIL_PROVIDER | Mail provider (`standard` or `ses`) | `standard` | No |
+| SMTP_HOST | SMTP server hostname | `""` | If standard SMTP |
+| SMTP_PORT | SMTP server port | `587` | If standard SMTP |
+| SMTP_USERNAME | SMTP username | `""` | If standard SMTP |
+| SMTP_PASSWORD | SMTP password | `""` | If standard SMTP |
+| CLOUDFRONT_DOMAIN | CloudFront domain for signed downloads | `""` | If CDN downloads enabled |
+| CLOUDFRONT_KEY_PAIR_ID | CloudFront key pair ID | `""` | If CDN downloads enabled |
+| CLOUDFRONT_PRIVATE_KEY_PATH | CloudFront private key path | `""` | If CDN downloads enabled |
+| ENABLE_CLOUDFRONT_DOWNLOADS | Use signed CloudFront URLs instead of storage URLs | `false` | No |
+
+## Provider auto-detection
+
+If `STORAGE_PROVIDER` is not set, the backend auto-detects it from the environment:
+
+- `AWS_REGION`, `AWS_ACCESS_KEY_ID`, or `AWS_SECRET_ACCESS_KEY` set → `s3`
+- `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, or `MINIO_SECRET_KEY` set → `minio`
+- otherwise → `gcs`
+
+This is useful for self-hosted deployments where MinIO values are present without explicitly setting the storage provider.

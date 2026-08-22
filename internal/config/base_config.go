@@ -23,6 +23,11 @@ type StorageConfig struct {
 	GoogleProjectID              string
 	S3BucketName                 string
 	AWSRegion                    string
+	MinioBucketName              string
+	MinioEndpoint                string
+	MinioAccessKey               string
+	MinioSecretKey               string
+	MinioUseSSL                  bool
 }
 
 type MailConfig struct {
@@ -74,8 +79,10 @@ func NewBaseRuntimeConfig(v *viper.Viper) (*BaseRuntimeConfig, error) {
 	}
 	storageProvider := strings.ToLower(strings.TrimSpace(v.GetString("api.storage_provider")))
 	if storageProvider == "" {
-		if v.GetString("api.aws_region") != "" || v.GetString("api.aws_access_key_id") != "" || v.GetString("api.aws_secret_access_key") != "" {
+		if v.GetString("storage.aws_region") != "" || v.GetString("storage.aws_access_key_id") != "" || v.GetString("storage.aws_secret_access_key") != "" {
 			storageProvider = "s3"
+		} else if v.GetString("storage.minio_endpoint") != "" || v.GetString("storage.minio_access_key") != "" || v.GetString("storage.minio_secret_key") != "" {
+			storageProvider = "minio"
 		} else {
 			storageProvider = "gcs"
 		}
@@ -98,6 +105,11 @@ func NewBaseRuntimeConfig(v *viper.Viper) (*BaseRuntimeConfig, error) {
 			GoogleProjectID:              v.GetString("storage.google_project_id"),
 			S3BucketName:                 v.GetString("storage.s3_bucket_name"),
 			AWSRegion:                    v.GetString("storage.aws_region"),
+			MinioBucketName:              v.GetString("storage.minio_bucket_name"),
+			MinioEndpoint:                v.GetString("storage.minio_endpoint"),
+			MinioAccessKey:               v.GetString("storage.minio_access_key"),
+			MinioSecretKey:               v.GetString("storage.minio_secret_key"),
+			MinioUseSSL:                  v.GetBool("storage.minio_use_ssl"),
 		},
 		Mail: MailConfig{
 			Provider:           strings.ToLower(strings.TrimSpace(v.GetString("mail.provider"))),

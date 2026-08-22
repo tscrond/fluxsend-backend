@@ -26,7 +26,65 @@ helm install fluxsend fluxsend/fluxsend-backend \
 ### Default values
 
 ```yaml
-# paste your values.yaml here
+images:
+  backend: bobaklabs/fluxsend-backend:latest
+  frontend: bobaklabs/fluxsend-frontend:latest
+  docs: bobaklabs/fluxsend-docs:latest
+
+namespace: "default"
+
+appName: "fluxsend"
+replicas: 1
+mailFrom: "noreply@fluxsend.com"
+labels: {}
+# here specify:
+# podDisruptionBudget:
+#   minAvailable: <your_number>
+# or
+# podDisruptionBudget:
+#   maxUnavailable: <your_number>
+podDisruptionBudget:
+  maxUnavailable: null
+  minAvailable: null
+
+cloudFront:
+  enabled: false
+  domain: "changeme"
+  keyPairId: "changeme"
+  secretName: "changeme"
+
+ingress:
+  ingressClassName: haproxy
+  annotations: {}
+  tls:
+    secretName: "changeme"
+  hosts:
+    - hostname: "changeme.changeme"
+      servicePort: "3000"
+    - hostname: "docs.changeme.changeme"
+      servicePort: "4321"
+
+params:
+  frontendEndpoint: "__CHANGE_ME__"
+  backendEndpoint: "__CHANGE_ME__"
+  fluxsendApiPort: "__CHANGE_ME__"
+  logLevel: "development"
+
+secrets:
+  storage:
+    # s3 or gcs
+    type: "s3"
+    storageSecretName: "changeme"
+
+  dbSecretName: "changeme"
+  smtpSecretName: "changeme"
+  oauthSecretName: "changeme"
+  sessionEncryptionSecretName: "changeme"
+
+migrate:
+  enabled: false
+  legacyS3PrefixMigration: false
+  storageMappingMigration: false
 ```
 
 ### Secrets reference

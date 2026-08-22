@@ -1,41 +1,50 @@
 # Production setup
 
-## Prerequisites
+FluxSend can be deployed on any Linux host, container host, or small VPS. For the most self-host-friendly configuration, use PostgreSQL + MinIO + password auth without a cloud provider.
 
-FluxSend can be deployed on any Linux VPS, provided all [needed tools](../quickstart/01-prerequisites.md) and [cloud components](../config-reference/01-env-vars.md) are set up.
+## Recommended minimal architecture
 
-Most frictionless deployment path right now is setting up the Docker Compose stack.
+For a private deployment, the simplest production setup is:
 
-## Bare minimum
+- PostgreSQL for the app database
+- MinIO for object storage
+- password auth enabled for the UI
+- SMTP for registration and password-reset emails
+- a reverse proxy for TLS and domain routing
 
-To get minimum functionality out of the service, it is recommended to set up:
+This is the most straightforward way to run FluxSend without AWS, GCS, or a managed storage backend.
 
-- [Cloud storage (GCS or S3)](../config-reference/02-storage.md)
-- <b>At least one</b> [OAuth2 provider](../config-reference/03-auth.md)
-- An [SMTP sender](../config-reference/06-smtp.md) to support mail delivery
+## Storage and auth choices
+
+The app supports these combinations:
+
+- MinIO + password auth: best self-hosted option
+- S3 + OAuth or password auth: best for AWS-native deployments
+- GCS + OAuth or password auth: best for Google Cloud deployments
+
+See [Storage](../config-reference/02-storage.md) and [Authentication](../config-reference/03-auth.md).
 
 ## Full setup
 
-An optional service you can try deploying is Amazon Cloudfront which requires an S3 provider to work. Refer to [CDN section](../config-reference/05-cdn.md) to get more details on setting up the integration.
+Optional CloudFront integration is still available for S3-backed deployments. See [CDN](../config-reference/05-cdn.md).
 
-## Reverse Proxy
+## Reverse proxy
 
-To expose the service and/or configure TLS termination for a custom domain, using a reverse proxy of your choice is highly encouraged.
+To expose the service and terminate TLS, use a reverse proxy in front of the backend and frontend.
 
-Reverse proxy stacks to consider:
+Recommended options:
 
-- Nginx + Certbot (popular and reliable, semi-automatic certs provisioning)
-- HAProxy + Certbot (performant, semi-automatic certs)
-- Traefik (well-documented & reliable - with automatic certs)
-- Caddy (modern, automatic certs)
-- Kubernetes ingress controllers (complicated setup, most flexible, cloud-native approach)
+- Nginx + Certbot
+- Traefik
+- Caddy
+- HAProxy
+- Kubernetes ingress
 
 ## Deployment options
 
-Follow one of the provided setup guides to deploy FluxSend on your environment.
+Use one of the following deployment patterns:
 
-You can deploy the app three main ways:
-
-- [Standalone (systemd services)](./02-standalone.md)
-- [Docker/Docker compose](./03-docker.md)
+- [Standalone (systemd)](./02-standalone.md)
+- [Docker Compose](./03-docker.md)
+- [Self-hosted MinIO](./05-self-hosted-minio.md)
 - [Kubernetes](./04-kubernetes.md)
