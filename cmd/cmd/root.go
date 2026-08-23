@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"log"
 	"net/http"
 	"os"
 
@@ -35,9 +36,17 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "fluxsend-backend",
+	Use:   "fluxsend",
 	Short: "FluxSend Backend",
 	Run: func(cmd *cobra.Command, args []string) {
+		generateConfig, _ := cmd.Flags().GetString("generate-config")
+		log.Println("generateConfig:", generateConfig)
+
+		if generateConfig, _ := cmd.Flags().GetString("generate-config"); generateConfig != "" {
+			RunConfigGenerator(cmd, args)
+			return
+		}
+
 		if devAPI, _ := cmd.Flags().GetBool("dev-api"); devAPI {
 			RunDeveloperAPI(cmd, args)
 		} else {
@@ -68,10 +77,14 @@ func init() {
 	rootCmd.Flags().BoolP("github-auth", "g", false, "Enable GitHub OAuth authentication")
 	rootCmd.Flags().BoolP("google-auth", "o", false, "Enable Google OAuth authentication")
 	rootCmd.Flags().BoolP("password-auth", "p", false, "Enable password authentication")
+	rootCmd.Flags().String("env-file", "", "Path to .env file to load environment variables from")
+	rootCmd.Flags().String("generate-config", "$HOME/.fluxsend-backend.yaml", "Generate default config file in specified location and exit (if env file is specified - use it for generation)")
 }
 
 func RunDeveloperAPI(cmd *cobra.Command, args []string) {
-	v, err := config.BuildViper(cfgFile)
+	envFile, _ := cmd.Flags().GetString("env-file")
+
+	v, err := config.BuildViper(cfgFile, envFile)
 	if err != nil {
 		cobra.CheckErr(err)
 	}
@@ -112,7 +125,9 @@ func RunDeveloperAPI(cmd *cobra.Command, args []string) {
 }
 
 func RunFullBackend(cmd *cobra.Command, args []string) {
-	v, err := config.BuildViper(cfgFile)
+	envFile, _ := cmd.Flags().GetString("env-file")
+
+	v, err := config.BuildViper(cfgFile, envFile)
 	if err != nil {
 		cobra.CheckErr(err)
 	}
@@ -170,6 +185,19 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+}
+
+func RunConfigGenerator(cmd *cobra.Command, args []string) {
+	generateConfig, _ := cmd.Flags().GetString("generate-config")
+	envFile, _ := cmd.Flags().GetString("env-file")
+	v, err := config.BuildViper(cfgFile, envFile)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+
+	if err := config.GenerateDefaultConfig(v, generateConfig); err != nil {
+		cobra.CheckErr(err)
+	}
 }
 
 func applyAuthFlagOverrides(cmd *cobra.Command, v configSetter) {
