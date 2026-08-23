@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/gcs"
+	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/minio"
 	s3handler "github.com/tscrond/fluxsend-backend/internal/cloud_storage/s3"
 	"github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 )
@@ -18,6 +19,11 @@ type ProviderConfig struct {
 	GoogleProjectID              string
 	S3BucketName                 string
 	AWSRegion                    string
+	MinioBucketName              string
+	MinioEndpoint                string
+	MinioAccessKey               string
+	MinioSecretKey               string
+	MinioUseSSL                  bool
 }
 
 // TODO: use bucketMode parameter to define if storage backends:
@@ -62,7 +68,28 @@ func NewStorageProvider(log *zap.SugaredLogger, provider string, cfg ProviderCon
 
 		return s3handler.NewS3BucketHandler(log, bucketName, region)
 	case "minio":
-		return nil, errors.New("not implemented")
+		bucketName := cfg.MinioBucketName
+		if bucketName == "" {
+			// Backward-compatible fallbacks for older env setups.
+			bucketName = cfg.S3BucketName
+		}
+		if bucketName == "" {
+			bucketName = cfg.GCSBucketName
+		}
+		if bucketName == "" {
+			return nil, errors.New("missing MINIO_BUCKET_NAME for STORAGE_PROVIDER=minio")
+		}
+		if cfg.MinioEndpoint == "" {
+			return nil, errors.New("missing MINIO_ENDPOINT for STORAGE_PROVIDER=minio")
+		}
+		if cfg.MinioAccessKey == "" {
+			return nil, errors.New("missing MINIO_ACCESS_KEY for STORAGE_PROVIDER=minio")
+		}
+		if cfg.MinioSecretKey == "" {
+			return nil, errors.New("missing MINIO_SECRET_KEY for STORAGE_PROVIDER=minio")
+		}
+
+		return minio.NewMinioBucketHandler(log, bucketName, cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, cfg.MinioUseSSL)
 	default:
 		return nil, fmt.Errorf("unknown storage type %q, expected one of: gcs, s3, minio", provider)
 	}

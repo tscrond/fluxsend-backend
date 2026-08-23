@@ -14,7 +14,8 @@ build: ## build app
 	cd $(FRONTEND_DIR) &&\
 	docker build -t fluxsend-frontend:dev . &&\
 	cd - &&\
-	docker build -t fluxsend-backend:dev .
+	docker build -t fluxsend-backend:dev . &&\
+	docker build -t fluxsend-docs:dev -f Dockerfile.docs .
 
 .PHONY: deploy
 deploy: ## deploy backend and frontend (Test)

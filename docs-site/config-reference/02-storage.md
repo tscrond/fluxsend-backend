@@ -1,15 +1,55 @@
 # Storage
 
-FluxSend supports Google Cloud Storage and AWS S3 as object storage backends. The provider is selected via the `STORAGE_PROVIDER` env var or auto-detected at startup.
+FluxSend supports three storage backends: Google Cloud Storage, AWS S3, and self-hosted MinIO. The backend chooses the provider via `STORAGE_PROVIDER` or auto-detects it from the environment at startup.
 
-## Provider auto-detection
+## Provider selection
 
-If `STORAGE_PROVIDER` is not set, the application inspects the environment:
+If `STORAGE_PROVIDER` is unset, FluxSend checks the environment in this order:
 
-- If `AWS_REGION`, `AWS_ACCESS_KEY_ID`, or `AWS_SECRET_ACCESS_KEY` is set → **S3**
-- Otherwise → **GCS**
+- if `AWS_REGION`, `AWS_ACCESS_KEY_ID`, or `AWS_SECRET_ACCESS_KEY` is set → `s3`
+- else if `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, or `MINIO_SECRET_KEY` is set → `minio`
+- else → `gcs`
 
-To force a specific provider, set `STORAGE_PROVIDER=gcs` or `STORAGE_PROVIDER=s3`.
+To force a specific backend, set any of the following:
+
+```bash
+export STORAGE_PROVIDER=gcs
+export STORAGE_PROVIDER=s3
+export STORAGE_PROVIDER=minio
+```
+
+---
+
+## Self-hosted MinIO (recommended for self-hosting)
+
+This is the most self-host-friendly storage mode because it runs without any cloud provider dependency. MinIO exposes an S3-compatible API, so the FluxSend backend can use it as a regular object store while keeping the data on your own infrastructure.
+
+### Required variables
+
+| Variable | Example | Purpose |
+|---|---|---|
+| `STORAGE_PROVIDER` | `minio` | Force the MinIO backend |
+| `MINIO_BUCKET_NAME` | `fluxsend` | Bucket name used for object storage |
+| `MINIO_ENDPOINT` | `http://minio:9000` | MinIO API endpoint |
+| `MINIO_ACCESS_KEY` | `fluxsend` | Access key |
+| `MINIO_SECRET_KEY` | `super-secret` | Secret key |
+| `MINIO_USE_SSL` | `false` | Whether to use TLS |
+
+### Example config
+
+```yaml
+api:
+  storage_provider: "minio"
+
+storage:
+  minio_bucket_name: "fluxsend"
+  minio_endpoint: "http://minio:9000"
+  minio_access_key: "fluxsend"
+  minio_secret_key: "super-secret"
+  minio_use_ssl: false
+```
+
+This is the simplest option when you want a fully local or private deployment without AWS or GCS.
 
 ---
 
@@ -26,41 +66,18 @@ Create a service account in your GCP project and generate a JSON key file.
 | `roles/storage.objectAdmin` | Create, read, update, delete objects |
 | `roles/storage.admin` | Create and delete buckets |
 
-The full set of IAM permissions needed:
-
-- `storage.objects.create`
-- `storage.objects.get`
-- `storage.objects.list`
-- `storage.objects.update`
-- `storage.objects.delete`
-- `storage.buckets.get`
-- `storage.buckets.create`
-- `storage.buckets.delete`
-
-Signed URLs are signed locally using the private key embedded in the service account JSON file — no `iam.serviceAccounts.signBlob` permission is required.
-
 ### 2. Create a bucket
 
-Buckets are created **per user** at runtime. The base bucket name is configured via `GCS_BUCKET_NAME`; each user gets `{GCS_BUCKET_NAME}-{userId}`.
-
-The application creates buckets automatically with:
-
-- **Location:** `europe-west1`
-- **Uniform bucket-level access:** enabled
-- **Public access prevention:** enforced
+Buckets are created per user at runtime. The base bucket name is configured via `GCS_BUCKET_NAME`; each user gets `{GCS_BUCKET_NAME}-{userId}`.
 
 ### 3. Configure environment variables
 
 | Variable | Description |
 |---|---|
-| `STORAGE_PROVIDER` | Set to `gcs` (or omit for auto-detect) |
+| `STORAGE_PROVIDER` | Set to `gcs` |
 | `GCS_BUCKET_NAME` | Base bucket name |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to the service account JSON key file |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to the GCP JSON key file |
 | `GOOGLE_PROJECT_ID` | GCP project ID |
-
-### 4. Terraform
-
-You don't need to configure Cloud Storage bucket creation for GCS provider. The code uses the cloud SDK to create them automatically upon user creation.
 
 ---
 
@@ -68,156 +85,32 @@ You don't need to configure Cloud Storage bucket creation for GCS provider. The 
 
 ### 1. Create an IAM user or role
 
-**Minimum IAM policy:**
+Use an IAM user or role with access to the bucket used by FluxSend. The app can create buckets automatically on first use, but it still needs credentials to read and write objects.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:GetObjectAttributes",
-        "s3:ListBucket",
-        "s3:DeleteObject",
-        "s3:DeleteObjects",
-        "s3:CopyObject",
-        "s3:HeadBucket",
-        "s3:CreateBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::{BUCKET_NAME}",
-        "arn:aws:s3:::{BUCKET_NAME}/*"
-      ]
-    }
-  ]
-}
-```
-
-Presigned URLs are generated using the same credentials — `s3:GetObject` on the resource is sufficient; no additional permissions are needed.
-
-### 2. Create a bucket
-
-Unlike GCS, **all users share a single S3 bucket**. Per-user isolation is achieved via key prefixes: objects are stored as `{userId}/{fileName}`.
-
-The application creates the bucket automatically on first use if it does not exist.
-
-### 3. Configure environment variables
+### 2. Configure environment variables
 
 | Variable | Description |
 |---|---|
-| `STORAGE_PROVIDER` | Set to `s3` (or omit for auto-detect) |
-| `S3_BUCKET_NAME` | Bucket name (falls back to `GCS_BUCKET_NAME`) |
-| `AWS_REGION` | e.g. `eu-north-1` |
-| `AWS_ACCESS_KEY_ID` | Access key (optional — falls through to the SDK credential chain) |
-| `AWS_SECRET_ACCESS_KEY` | Secret key (optional — falls through to the SDK credential chain) |
+| `STORAGE_PROVIDER` | Set to `s3` |
+| `S3_BUCKET_NAME` | Bucket name |
+| `AWS_REGION` | Example: `eu-north-1` |
+| `AWS_ACCESS_KEY_ID` | Access key |
+| `AWS_SECRET_ACCESS_KEY` | Secret key |
 
-### 4. Terraform
+### 3. Notes
 
-You can use the following terraform module.
+FluxSend uses S3-compatible signed URLs for downloads and object operations. This is a good option when you already rely on AWS infrastructure.
 
-This module:
+---
 
-- Creates the S3 bucket
-- Adjusts S3 encryption key used by default AWS CloudFront distributions
-- Adds IAM policies
-- Enables easy bucket lifecycle management
-- Enables versioning by default
+## Storage behavior summary
 
-Example to define a new bucket with this module:
-```hcl
-# main.tf
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "6.37.0"
-    }
-  }
+- `gcs`: per-user bucket pattern with GCP credentials
+- `s3`: shared bucket pattern with AWS credentials
+- `minio`: self-hosted, S3-compatible bucket pattern with local credentials
 
-  backend "s3" {
-    bucket  = "<state_bucket_name>"
-    key     = "<your_state>"
-    region  = "<your_region>"
-    profile = "<your_profile>"
-    encrypt = true
-  }
-}
+For a private deployment, `minio` is the most straightforward and least coupled to external cloud services.
 
-provider "aws" {
-  region     = "<your_region>"
-  access_key = var.aws_access_key_id # adjust this
-  secret_key = var.aws_secret_access_key # adjust this
-}
-
-
-locals {
-  buckets = {
-    fluxsend-bucket-239123904 = {
-      bucket_name = "fluxsend-bucket-239123904"
-      environment = "prod"
-    }
-  }
-}
-
-module "s3" {
-  for_each         = local.buckets
-  source           = "../../modules/aws/s3"
-  bucket_name      = each.value.bucket_name
-  environment      = each.value.environment
-  bucket_lifecycle = lookup(each.value, "bucket_lifecycle", null)
-}
-
-# required policy bindings (example)
-resource "aws_iam_user" "fluxsend_prod_user" {
-  name = "fluxsend_prod-user"
-}
-
-resource "aws_iam_user_policy_attachment" "fluxsend_prod_attach" {
-  user       = aws_iam_user.fluxsend_prod_user.name
-  policy_arn = module.s3["fluxsend-bucket-239123904"].backup_policy_arn
-}
-
-resource "aws_iam_access_key" "fluxsend_prod_key" {
-  user = aws_iam_user.fluxsend_prod_user.name
-}
-
-output "fluxsend_prod_access_key_id" {
-  value = aws_iam_access_key.fluxsend_prod_key.id
-}
-
-output "fluxsend_prod_secret_access_key" {
-  value     = aws_iam_access_key.fluxsend_prod_key.secret
-  sensitive = true
-}
-```
-
-```hcl
-# variables.tf
-variable "bucket_name" {
-  type = string
-}
-
-variable "environment" {
-  type = string
-  default = "prod"
-}
-
-variable "bucket_lifecycle" {
-  description = "Lifecycle configuration for S3 backups. Set to null for permanent storage."
-
-  type = object({
-    expiration       = number
-    noncurrent_days  = number
-  })
-
-  default = null
-}
-
-variable "force_destroy" {
-  type = bool
   default = false
 }
 ```

@@ -1,53 +1,73 @@
 # Docker deployment
 
-Run FluxSend using Docker or Docker Compose.
+FluxSend can be run with Docker Compose or a standalone container. The repository includes a self-hosted MinIO stack that is the easiest local/private deployment path.
 
 ---
 
-## Docker Compose (recommended)
+## Recommended: self-hosted MinIO stack
 
-### Full stack (backend + frontend + docs)
+The project includes a Docker configuration tuned for MinIO and password auth:
 
 ```bash
 git clone https://github.com/tscrond/fluxsend-backend
 cd fluxsend-backend
-git clone https://github.com/tscrond/fluxsend-frontend ../fluxsend-frontend
-cp .env.example .env    # fill in your config
-docker compose up -d --build
+docker compose -f compose.minio.yaml up -d --build
 ```
 
-This starts:
+This stack includes:
 
 | Service | Container | Port |
 |---|---|---|
-| `frontend` | React SPA (Nginx) | `8000` |
-| `backend` | Go API server | `3000`, `8091` |
+| `frontend` | React SPA | `8000` |
+| `backend` | FluxSend API + CLI | `3000`, `8091` |
 | `postgres` | PostgreSQL 16 | `5432` |
-| `docs` | MkDocs documentation | `8080` |
+| `minio` | S3-compatible object storage | `9000`, `9001` |
+| `docs` | MkDocs docs site | `8080` |
 
-The frontend Nginx config proxies API requests (`/auth/`, `/files/`, `/workspaces/`, etc.) to the backend automatically.
+The default stack in `compose.minio.yaml` sets:
 
-### Backend only
+- `STORAGE_PROVIDER=minio`
+- `ENABLE_PASSWORD_AUTH=true`
+- `MINIO_ENDPOINT=http://minio:9000`
+- `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` from MinIO root credentials
 
-```bash
-docker compose up -d backend dev-postgres
-```
-
-### Environment
-
-The backend container reads its config from your host `.env` file (referenced via `${VAR}` in `docker-compose.yaml`). Pass additional config as environment variables or mount files as volumes:
-
-```yaml
-volumes:
-  - /path/to/bucket-auth.json:/config/bucket-auth.json:ro
-  - /path/to/cloudfront-key.pem:/config/cloudfront-key.pem:ro
-```
+This is the best option for a deployment with no cloud storage vendor involved.
 
 ---
 
-## Standalone Docker
+## Minimal Compose example
 
-### Backend
+```yaml
+services:
+  backend:
+    image: fluxsend-backend:dev
+    ports:
+      - "3000:3000"
+      - "8091:8091"
+    environment:
+      - STORAGE_PROVIDER=minio
+      - MINIO_BUCKET_NAME=fluxsend
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=fluxsend
+      - MINIO_SECRET_KEY=change-me
+      - MINIO_USE_SSL=false
+      - ENABLE_PASSWORD_AUTH=true
+      - ENABLE_GOOGLE_AUTH=false
+      - ENABLE_GITHUB_AUTH=false
+      - DB_HOST=postgres
+      - POSTGRES_USER=fluxsend
+      - POSTGRES_PASSWORD=change-me
+      - POSTGRES_DB=fluxsend
+      - FRONTEND_ENDPOINT=http://localhost:8000
+      - BACKEND_ENDPOINT=http://localhost:3000
+      - MAIL_FROM=noreply@example.com
+```
+
+Use a `.env` file or Compose `environment:` values for the rest of the backend config.
+
+---
+
+## Standalone Docker container
 
 ```bash
 docker build -t fluxsend-backend .
@@ -59,37 +79,14 @@ docker run -d \
   fluxsend-backend
 ```
 
-Note that migrations require the `internal/repo/migrations/` directory — the Docker image includes it automatically.
-
-### Frontend
-
-```bash
-git clone https://github.com/tscrond/fluxsend-frontend
-cd fluxsend-frontend
-docker build -t fluxsend-frontend .
-docker run -d \
-  --name fluxsend-frontend \
-  -p 8000:8000 \
-  -e NGINX_BACKEND_HOST=localhost \
-  -e NGINX_BACKEND_PORT=3000 \
-  -e NGINX_BACKEND_API_PORT=8091 \
-  fluxsend-frontend
-```
-
-The frontend container uses `nginx.conf` with environment variable substitution to locate the backend. On Linux, replace `host.docker.internal` with your host's IP or container network name.
+The backend reads the same env vars and config file settings as a standalone Linux install. Migration files are included in the image.
 
 ---
 
 ## Docker image registries
 
-### Backend
-
 - `docker.io/bobaklabs/fluxsend-backend:latest`
 - `ghcr.io/tscrond/fluxsend-backend:latest`
 
-### Frontend
+For self-hosted deployments, the MinIO Compose example is the most practical and least coupled to external infrastructure.
 
-- `docker.io/bobaklabs/fluxsend-frontend:latest`
-- `ghcr.io/tscrond/fluxsend-frontend:latest`
-
-Multi-arch images are built via CI on pushes to `main`.

@@ -41,6 +41,24 @@ services:
         source: ./config.example.full.yaml
         target: /config/config.yaml
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 15s
+      timeout: 20s
+      retries: 5
+    volumes:
+      - minio_data:/data
+  
   docs:
     image: fluxsend-docs:dev
     container_name: docs
@@ -53,3 +71,5 @@ services:
 # networks:
 #   proxy:
 #     external: true
+volumes:
+  minio_data:

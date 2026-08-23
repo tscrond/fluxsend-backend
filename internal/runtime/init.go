@@ -44,6 +44,11 @@ func InitObjectStorage(log *zap.SugaredLogger, backendEndpoint string, storageCo
 		GoogleProjectID:              storageConfig.GoogleProjectID,
 		S3BucketName:                 storageConfig.S3BucketName,
 		AWSRegion:                    storageConfig.AWSRegion,
+		MinioBucketName:              storageConfig.MinioBucketName,
+		MinioEndpoint:                storageConfig.MinioEndpoint,
+		MinioAccessKey:               storageConfig.MinioAccessKey,
+		MinioSecretKey:               storageConfig.MinioSecretKey,
+		MinioUseSSL:                  storageConfig.MinioUseSSL,
 	})
 }
 

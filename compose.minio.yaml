@@ -1,0 +1,117 @@
+services:
+  frontend:
+    image: fluxsend-frontend:dev
+    container_name: frontend
+    depends_on:
+      - backend
+    ports:
+      - 8000:8000/tcp
+    environment:
+      - BACKEND_ENDPOINT=http://localhost:3000
+      - NGINX_BACKEND_HOST=backend
+      - NGINX_BACKEND_PORT=3000
+      - NGINX_BACKEND_API_PORT=8091
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  backend:
+    depends_on:
+      - postgres
+    image: fluxsend-backend:dev
+    container_name: backend
+    restart: always
+    ports:
+      - 3000:3000/tcp
+      - 8091:8091/tcp
+    command: ["./fluxsend", "--password-auth"]
+    environment:
+      - FRONTEND_ENDPOINT=http://localhost:8000
+      - BACKEND_ENDPOINT=http://localhost:3000
+      # - STORAGE_PROVIDER=${STORAGE_PROVIDER:-gcs}
+      - STORAGE_PROVIDER=minio
+      # GCS config
+      - GOOGLE_APPLICATION_CREDENTIALS=/config/bucket-auth.json
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
+      - GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID}
+      # Google OAuth config
+      - GOOGLE_COOKIE_SECRET=${GOOGLE_COOKIE_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      # Github OAuth config
+      - GITHUB_OAUTH_CLIENT_ID=${GITHUB_OAUTH_CLIENT_ID}
+      - GITHUB_OAUTH_CLIENT_SECRET=${GITHUB_OAUTH_CLIENT_SECRET}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY}
+      # S3 config
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      # - ENABLE_CLOUDFRONT_DOWNLOADS=${ENABLE_CLOUDFRONT_DOWNLOADS:-false}
+      - ENABLE_CLOUDFRONT_DOWNLOADS=false
+      - CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN:-}
+      - CLOUDFRONT_KEY_PAIR_ID=${CLOUDFRONT_KEY_PAIR_ID:-}
+      - CLOUDFRONT_PRIVATE_KEY_PATH=${CLOUDFRONT_PRIVATE_KEY_PATH:-}
+      # Mail config
+      - MAIL_FROM=${MAIL_FROM:-noreply@fluxsend.win}
+      - SMTP_HOST=${SMTP_HOST:-smtp.mailgun.org}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      # DB config
+      - DB_HOST=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - APP_ENV=production
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_USE_SSL=false
+      - MINIO_BUCKET_NAME=fluxsend
+
+    volumes:
+      - /home/tskr/wazne/bucket-auth.json:/config/bucket-auth.json:ro
+      - /home/tskr/wazne/fluxsend_private_key.pem:/config/fluxsend_private_key.pem:ro
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 15s
+      timeout: 20s
+      retries: 5
+    volumes:
+      - minio_data:/data
+
+  docs:
+    image: fluxsend-docs:dev
+    container_name: docs
+    build:
+      context: .
+      dockerfile: Dockerfile.docs
+    ports:
+      - 8080:80/tcp
+
+# networks:
+#   proxy:
+#     external: true
+
+volumes:
+  minio_data:
