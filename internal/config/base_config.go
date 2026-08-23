@@ -79,7 +79,9 @@ func NewBaseRuntimeConfig(v *viper.Viper) (*BaseRuntimeConfig, error) {
 	}
 	storageProvider := strings.ToLower(strings.TrimSpace(v.GetString("api.storage_provider")))
 	if storageProvider == "" {
-		if v.GetString("storage.aws_region") != "" || v.GetString("storage.aws_access_key_id") != "" || v.GetString("storage.aws_secret_access_key") != "" {
+		if v.GetString("storage.aws_region") != "" ||
+			v.GetString("storage.aws_access_key_id") != "" ||
+			v.GetString("storage.aws_secret_access_key") != "" {
 			storageProvider = "s3"
 		} else if v.GetString("storage.minio_endpoint") != "" || v.GetString("storage.minio_access_key") != "" || v.GetString("storage.minio_secret_key") != "" {
 			storageProvider = "minio"
