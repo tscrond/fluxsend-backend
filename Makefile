@@ -17,6 +17,10 @@ build: ## build app
 	docker build -t fluxsend-backend:dev . &&\
 	docker build -t fluxsend-docs:dev -f Dockerfile.docs .
 
+.PHONY: binary
+binary: ## build backend binary
+	go build -o ./bin/fluxsend ./cmd/main.go
+
 .PHONY: deploy
 deploy: ## deploy backend and frontend (Test)
 	docker compose up -d --force-recreate --remove-orphans
