@@ -23,7 +23,7 @@ func GenerateDefaultConfig(v *viper.Viper, outputPath string) error {
 		)
 
 		if value == nil {
-			value = "CHANGE_ME"
+			continue
 		}
 
 		if err := setNestedValue(root, key, value); err != nil {
