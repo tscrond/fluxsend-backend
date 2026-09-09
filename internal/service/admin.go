@@ -23,19 +23,19 @@ type AdminService interface {
 }
 
 type CreatePlanRequest struct {
-	Name                          string
-	MaxTotalStorageBytes          int64
-	MaxFileSizeBytes              int64
-	MaxFiles                      int32
-	MaxFilesSentPerDay            int32
-	MaxSharesPerDay               int32
-	MaxFilesWorkspace             int64
-	MaxUserWorkspaces             int64
-	MaxTotalStorageBytesWorkspace int64
-	MaxUsersWorkspace             int64
-	MaxWorkspaceFolders           int64
-	MaxPrivateAPIKeys             int64
-	MaxWorkspaceAPIKeys           int64
+	Name                          string `json:"name"`
+	MaxTotalStorageBytes          int64  `json:"max_total_storage_bytes"`
+	MaxFileSizeBytes              int64  `json:"max_file_size_bytes"`
+	MaxFiles                      int32  `json:"max_files"`
+	MaxFilesSentPerDay            int32  `json:"max_files_sent_per_day"`
+	MaxSharesPerDay               int32  `json:"max_shares_per_day"`
+	MaxFilesWorkspace             int64  `json:"max_files_workspace"`
+	MaxUserWorkspaces             int64  `json:"max_user_workspaces"`
+	MaxTotalStorageBytesWorkspace int64  `json:"max_total_storage_bytes_workspace"`
+	MaxUsersWorkspace             int64  `json:"max_users_workspace"`
+	MaxWorkspaceFolders           int64  `json:"max_workspace_folders"`
+	MaxPrivateAPIKeys             int64  `json:"max_private_api_keys"`
+	MaxWorkspaceAPIKeys           int64  `json:"max_workspace_api_keys"`
 }
 
 type adminService struct {
