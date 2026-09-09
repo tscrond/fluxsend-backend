@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -1122,17 +1121,16 @@ func (s *APIServer) isWhitelistedEmail(email string) bool {
 		return true
 	}
 
-	log.Println("allowed kurwa:", allowed)
+	s.log.Debugw("whitelist", "allowed", allowed)
 	normalizedEmail := strings.TrimSpace(strings.ToLower(email))
-	log.Println("normalized kurwa email:", normalizedEmail)
 	for _, candidate := range allowed {
-		s.log.Infow("checking candidate", "candidate", candidate, "against whitelist", allowed)
+		s.log.Debugw("checking candidate", "candidate", candidate)
 		if strings.TrimSpace(strings.ToLower(candidate)) == normalizedEmail {
 			return true
 		}
 	}
 
-	s.log.Infow("email not whitelisted", "email", normalizedEmail)
+	s.log.Debugw("email not whitelisted", "email", normalizedEmail)
 	return false
 }
 
