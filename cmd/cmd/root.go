@@ -27,6 +27,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/tscrond/fluxsend-backend/internal/api"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
 	runtime "github.com/tscrond/fluxsend-backend/internal/runtime"
@@ -39,14 +40,13 @@ var rootCmd = &cobra.Command{
 	Use:   "fluxsend",
 	Short: "FluxSend Backend",
 	Run: func(cmd *cobra.Command, args []string) {
-		generateConfig, _ := cmd.Flags().GetString("generate-config")
-		log.Println("generateConfig:", generateConfig)
+		genConfig, _ := cmd.Flags().GetString("generate-config")
+		log.Println("Generating config file at:", genConfig)
 
 		if generateConfig, _ := cmd.Flags().GetString("generate-config"); generateConfig != "" {
 			RunConfigGenerator(cmd, args)
 			return
 		}
-
 		if devAPI, _ := cmd.Flags().GetBool("dev-api"); devAPI {
 			RunDeveloperAPI(cmd, args)
 		} else {
@@ -74,11 +74,13 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("dev-api", "d", false, "Run only developer API")
+	rootCmd.Flags().Bool("admin-server", false, "Start the dedicated admin server")
+	rootCmd.Flags().StringSlice("email-whitelist", nil, "Email addresses allowed to sign in via configured auth providers")
 	rootCmd.Flags().BoolP("github-auth", "g", false, "Enable GitHub OAuth authentication")
 	rootCmd.Flags().BoolP("google-auth", "o", false, "Enable Google OAuth authentication")
 	rootCmd.Flags().BoolP("password-auth", "p", false, "Enable password authentication")
 	rootCmd.Flags().String("env-file", "", "Path to .env file to load environment variables from")
-	rootCmd.Flags().String("generate-config", "$HOME/.fluxsend-backend.yaml", "Generate default config file in specified location and exit (if env file is specified - use it for generation)")
+	rootCmd.Flags().String("generate-config", "", "Generate default config file in specified location and exit (if env file is specified - use it for generation)")
 }
 
 func RunDeveloperAPI(cmd *cobra.Command, args []string) {
@@ -133,6 +135,7 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 	}
 
 	applyAuthFlagOverrides(cmd, v)
+	applyAdminFlagOverrides(cmd, v)
 
 	appConfig := config.NewAppConfig(v)
 	log := logger.New(appConfig.Env)
@@ -163,25 +166,68 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+	adminConfig, err := config.NewAdminServerConfig(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	apiServer := runtime.BuildAPIServer(log, apiConfig, baseRuntime, apiServerRuntime)
 	cliServer := runtime.BuildCLIServer(log, cliConfig, baseRuntime)
 
-	if err := runtime.RunHTTPServers(log,
-		runtime.NamedHTTPServer{
+	servers := []runtime.NamedHTTPServer{
+		{
 			Name: "api",
 			Srv: &http.Server{
 				Addr:    ":" + apiConfig.ListenPort,
 				Handler: apiServer.Handler(),
 			},
 		},
-		runtime.NamedHTTPServer{
+		{
 			Name: "cli",
 			Srv: &http.Server{
 				Addr:    ":" + cliConfig.ListenPort,
 				Handler: cliServer.Handler(),
 			},
 		},
-	); err != nil {
+	}
+
+	if adminConfig.Enabled {
+		adminServer := api.NewAdminServer(config.BackendConfig{
+			ListenPort:             ":" + adminConfig.ListenPort,
+			BackendEndpoint:        apiConfig.BackendEndpoint,
+			FrontendEndpoint:       apiConfig.FrontendEndpoint,
+			MailFrom:               apiConfig.MailFrom,
+			HTMLSanitizationPolicy: baseRuntime.HTMLSanitizationPolicy,
+			AuthWhitelist:          []string{},
+			AdminUsername:          adminConfig.AdminUsername,
+			AdminPassword:          adminConfig.AdminPassword,
+		}, api.AdminServerDependencies{
+			CoreHandlersDependencies: api.CoreHandlersDependencies{
+				Log:              log,
+				EmailSender:      baseRuntime.EmailSender,
+				BucketHandler:    baseRuntime.BucketHandler,
+				CloudFrontSigner: baseRuntime.CloudFrontSigner,
+				Repository:       baseRuntime.Repository,
+				Files:            baseRuntime.FileService,
+				Shares:           baseRuntime.ShareService,
+				Users:            baseRuntime.UserService,
+				Workspaces:       baseRuntime.WorkspaceService,
+				WorkspaceFiles:   baseRuntime.WorkspaceFileService,
+				ApiKeys:          baseRuntime.ApiKeyService,
+				PasswordAuth:     baseRuntime.PasswordAuthService,
+			},
+			AdminService: baseRuntime.AdminService,
+		})
+		servers = append(servers, runtime.NamedHTTPServer{
+			Name: "admin",
+			Srv: &http.Server{
+				Addr:    ":" + adminConfig.ListenPort,
+				Handler: adminServer.Handler(),
+			},
+		})
+	}
+
+	if err := runtime.RunHTTPServers(log, servers...); err != nil {
 		log.Fatal(err)
 	}
 
@@ -222,6 +268,16 @@ func applyAuthFlagOverrides(cmd *cobra.Command, v configSetter) {
 		}
 
 		v.Set(mapping.configKey, value)
+	}
+}
+
+func applyAdminFlagOverrides(cmd *cobra.Command, v configSetter) {
+	if flag := cmd.Flags().Lookup("admin-server"); flag != nil && flag.Changed {
+		value, err := cmd.Flags().GetBool("admin-server")
+		if err != nil {
+			cobra.CheckErr(err)
+		}
+		v.Set("admin.enabled", value)
 	}
 }
 

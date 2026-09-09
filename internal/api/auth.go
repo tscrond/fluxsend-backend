@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -27,16 +28,89 @@ import (
 )
 
 const (
-	IsProd               = true
-	sessionCookieName    = "session_id"
-	oauthStateCookieName = "oauth_state"
-	sessionDuration      = 24 * time.Hour
+	IsProd                            = true
+	sessionCookieName                 = "session_id"
+	oauthStateCookieName              = "oauth_state"
+	sessionDuration                   = 24 * time.Hour
+	passwordResetChallengePurpose     = "password_reset"
+	passwordResetSelfChallengePurpose = "password_reset_self"
+	authRateLimitScopePasswordReset   = "password_reset_verify"
+	authRateLimitScopeResetSelfInit   = "password_reset_self_init"
+	passwordResetChallengeTTL         = 5 * time.Minute
+	passwordResetRequestCooldown      = 60 * time.Second
 )
 
 var emailPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 
 type passwordAttachChallengeContext struct {
 	PasswordHash string `json:"password_hash"`
+}
+
+func hasPasswordIdentity(identities []sqlc.Identity) bool {
+	for _, identity := range identities {
+		if identity.Provider == "password" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func passwordResetSelfUserCooldownKey(userID uuid.UUID) string {
+	return "password-reset-self:user:" + userID.String()
+}
+
+func passwordResetSelfIPCooldownKey(ip string) string {
+	return "password-reset-self:ip:" + ip
+}
+
+func (s *APIServer) isAuthCooldownActive(ctx context.Context, key, scope string) (bool, error) {
+	bucket, err := s.getOrCreateAuthRateLimit(ctx, key, scope)
+	if err != nil {
+		return false, err
+	}
+
+	return isRateLimitBlocked(bucket, 0), nil
+}
+
+func (s *APIServer) blockAuthCooldown(ctx context.Context, key, scope string, until time.Time) error {
+	_, err := s.repository.Queries().BlockUntil(ctx, sqlc.BlockUntilParams{
+		Key:          key,
+		Scope:        scope,
+		BlockedUntil: sql.NullTime{Time: until, Valid: true},
+	})
+	return err
+}
+
+func (s *APIServer) resolvePasswordResetUser(ctx context.Context, challenge sqlc.EmailVerificationChallenge, email string) (sqlc.User, error) {
+	switch challenge.Purpose {
+	case passwordResetChallengePurpose:
+		userIdentity, err := s.passwordAuth.GetUserPasswordIdentity(ctx, email)
+		if err != nil {
+			return sqlc.User{}, err
+		}
+		if userIdentity == nil || userIdentity.Provider != "password" {
+			return sqlc.User{}, sql.ErrNoRows
+		}
+
+		return s.repository.Queries().GetUserByEmail(ctx, email)
+	case passwordResetSelfChallengePurpose:
+		if !challenge.UserID.Valid {
+			return sqlc.User{}, sql.ErrNoRows
+		}
+
+		identities, err := s.repository.Queries().GetIdentitiesByUserID(ctx, challenge.UserID.UUID)
+		if err != nil {
+			return sqlc.User{}, err
+		}
+		if !hasPasswordIdentity(identities) {
+			return sqlc.User{}, sql.ErrNoRows
+		}
+
+		return s.repository.Queries().GetUserById(ctx, challenge.UserID.UUID)
+	default:
+		return sqlc.User{}, sql.ErrNoRows
+	}
 }
 
 func (s *APIServer) authNotEnabledHandler(w http.ResponseWriter, r *http.Request) {
@@ -85,6 +159,11 @@ func (s *APIServer) passwordLoginHandler(w http.ResponseWriter, r *http.Request)
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 	if !emailPattern.MatchString(req.Email) {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
+		return
+	}
+
+	if !s.isWhitelistedEmail(req.Email) {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "forbidden", nil)
 		return
 	}
 
@@ -181,11 +260,9 @@ func (s *APIServer) createPasswordAttachRequestHandler(w http.ResponseWriter, r 
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
-	for _, identity := range identities {
-		if identity.Provider == "password" {
-			pkg.WriteJSONResponse(w, http.StatusConflict, "password_identity_exists", nil)
-			return
-		}
+	if hasPasswordIdentity(identities) {
+		pkg.WriteJSONResponse(w, http.StatusConflict, "password_identity_exists", nil)
+		return
 	}
 
 	passwordHash, err := pkghash.HashPasswordArgon2id(req.Password)
@@ -424,19 +501,8 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 	code := strings.TrimSpace(req.Code)
 	newPassword := strings.TrimSpace(req.NewPassword)
 
-	if email == "" || code == "" {
+	if code == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "missing_fields", nil)
-		return
-	}
-
-	if !emailPattern.MatchString(email) {
-		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
-		return
-	}
-
-	userIdentity, err := s.passwordAuth.GetUserPasswordIdentity(r.Context(), email)
-	if userIdentity == nil || userIdentity.Provider != "password" {
-		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
 
@@ -454,12 +520,38 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	if challenge.Purpose != "password_reset" {
+	if challenge.Purpose != passwordResetChallengePurpose && challenge.Purpose != passwordResetSelfChallengePurpose {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
 
-	if strings.TrimSpace(strings.ToLower(challenge.Email)) != email {
+	if email == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "missing_fields", nil)
+		return
+	}
+
+	if challenge.Purpose == passwordResetChallengePurpose {
+		if !emailPattern.MatchString(email) {
+			pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
+			return
+		}
+
+		if strings.TrimSpace(strings.ToLower(challenge.Email)) != email {
+			pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+			return
+		}
+	}
+
+	user, err := s.resolvePasswordResetUser(r.Context(), challenge, email)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			s.log.Errorw("failed to resolve user for password reset", "challenge_id", parsedChallengeID, "error", err)
+		}
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
+		return
+	}
+
+	if challenge.Purpose == passwordResetSelfChallengePurpose && strings.TrimSpace(strings.ToLower(user.UserEmail)) != email {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
@@ -475,7 +567,7 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 	}
 
 	rateLimitKey := "challenge:" + parsedChallengeID.String()
-	rateLimitBucket, err := s.getOrCreateAuthRateLimit(r.Context(), rateLimitKey, "password_reset_verify")
+	rateLimitBucket, err := s.getOrCreateAuthRateLimit(r.Context(), rateLimitKey, authRateLimitScopePasswordReset)
 	if err != nil {
 		s.log.Errorw("failed to load password reset verification rate limit", "challenge_id", parsedChallengeID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
@@ -487,7 +579,7 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 	}
 
 	if !constantTimeHashMatch(hashEmailVerificationToken(code), challenge.CodeHash) {
-		if err := s.recordFailedChallengeAttempt(r.Context(), rateLimitKey, "password_reset_verify", challenge.MaxAttempts, challenge.ExpiresAt); err != nil {
+		if err := s.recordFailedChallengeAttempt(r.Context(), rateLimitKey, authRateLimitScopePasswordReset, challenge.MaxAttempts, challenge.ExpiresAt); err != nil {
 			s.log.Errorw("failed to record password reset verification attempt", "challenge_id", parsedChallengeID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 			return
@@ -503,13 +595,6 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 
 	if len(newPassword) < 8 {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "weak_password", nil)
-		return
-	}
-
-	user, err := s.repository.Queries().GetUserByEmail(r.Context(), email)
-	if err != nil {
-		s.log.Errorw("failed to resolve user for password reset", "error", err)
-		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
 
@@ -612,12 +697,12 @@ func (s *APIServer) createPasswordResetRequestHandler(w http.ResponseWriter, r *
 		challenge, createErr := s.repository.Queries().CreateEmailVerificationChallenge(r.Context(), sqlc.CreateEmailVerificationChallengeParams{
 			Email:             req.Email,
 			UserID:            uuid.NullUUID{UUID: user.ID, Valid: true},
-			Purpose:           "password_reset",
+			Purpose:           passwordResetChallengePurpose,
 			CodeHash:          hashEmailVerificationToken(token),
-			ExpiresAt:         time.Now().Add(5 * time.Minute),
+			ExpiresAt:         time.Now().Add(passwordResetChallengeTTL),
 			RequestedByIp:     pkg.GetClientIPFromContext(r.Context()),
 			RequestContext:    json.RawMessage(`{}`),
-			ResendAvailableAt: time.Now().Add(60 * time.Second),
+			ResendAvailableAt: time.Now().Add(passwordResetRequestCooldown),
 		})
 		if createErr != nil {
 			s.log.Errorw("failed to create password reset challenge", "error", createErr)
@@ -639,6 +724,144 @@ func (s *APIServer) createPasswordResetRequestHandler(w http.ResponseWriter, r *
 		}
 	} else if err != sql.ErrNoRows {
 		s.log.Errorw("failed to look up user for password reset", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	pkg.WriteJSONResponse(w, http.StatusOK, "password_reset_request_success", map[string]any{"sent": true})
+}
+
+func (s *APIServer) createSelfPasswordResetRequestHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.log.Errorw("invalid method for authenticated password reset request", "method", r.Method)
+		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", nil)
+		return
+	}
+
+	authUser, userID, ok := parseAuthorizedUserUUID(r)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", nil)
+		return
+	}
+	accountEmail := strings.TrimSpace(strings.ToLower(authUser.Email))
+
+	var req struct {
+		Email string `json:"email"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.log.Errorw("failed to decode authenticated password reset request", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_request", nil)
+		return
+	}
+
+	if req.Email == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "missing_fields", nil)
+		return
+	}
+
+	deliveryEmail := strings.TrimSpace(strings.ToLower(req.Email))
+	if !emailPattern.MatchString(deliveryEmail) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
+		return
+	}
+
+	identities, err := s.repository.Queries().GetIdentitiesByUserID(r.Context(), userID)
+	if err != nil {
+		s.log.Errorw("failed to load identities for authenticated password reset", "user_id", userID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	if !hasPasswordIdentity(identities) {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "password_reset_not_available", map[string]any{
+			"msg": "Password reset is not available for this account.",
+		})
+		return
+	}
+
+	clientIP := pkg.GetClientIPFromContext(r.Context())
+	userCooldownKey := passwordResetSelfUserCooldownKey(userID)
+	ipCooldownKey := passwordResetSelfIPCooldownKey(clientIP)
+
+	userCooldownActive, err := s.isAuthCooldownActive(r.Context(), userCooldownKey, authRateLimitScopeResetSelfInit)
+	if err != nil {
+		s.log.Errorw("failed to load authenticated password reset user cooldown", "user_id", userID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	if userCooldownActive {
+		pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "password_reset_cooldown", map[string]any{
+			"msg": "Please wait before requesting another password reset link.",
+		})
+		return
+	}
+
+	ipCooldownActive, err := s.isAuthCooldownActive(r.Context(), ipCooldownKey, authRateLimitScopeResetSelfInit)
+	if err != nil {
+		s.log.Errorw("failed to load authenticated password reset ip cooldown", "user_id", userID, "ip", clientIP, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	if ipCooldownActive {
+		pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "password_reset_cooldown", map[string]any{
+			"msg": "Please wait before requesting another password reset link.",
+		})
+		return
+	}
+
+	if err := s.repository.Queries().ConsumeActiveEmailVerificationChallengesByUserAndPurpose(r.Context(), sqlc.ConsumeActiveEmailVerificationChallengesByUserAndPurposeParams{
+		UserID:  uuid.NullUUID{UUID: userID, Valid: true},
+		Purpose: passwordResetSelfChallengePurpose,
+	}); err != nil {
+		s.log.Errorw("failed to invalidate active authenticated password reset challenges", "user_id", userID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	token, err := pkg.GenerateEmailConfirmationCode()
+	if err != nil {
+		s.log.Errorw("failed to generate authenticated password reset verification code", "user_id", userID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	cooldownUntil := time.Now().Add(passwordResetRequestCooldown)
+	challenge, err := s.repository.Queries().CreateEmailVerificationChallenge(r.Context(), sqlc.CreateEmailVerificationChallengeParams{
+		Email:             deliveryEmail,
+		UserID:            uuid.NullUUID{UUID: userID, Valid: true},
+		Purpose:           passwordResetSelfChallengePurpose,
+		CodeHash:          hashEmailVerificationToken(token),
+		ExpiresAt:         time.Now().Add(passwordResetChallengeTTL),
+		RequestedByIp:     clientIP,
+		RequestContext:    json.RawMessage(`{}`),
+		ResendAvailableAt: cooldownUntil,
+	})
+	if err != nil {
+		s.log.Errorw("failed to create authenticated password reset challenge", "user_id", userID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	if err := s.blockAuthCooldown(r.Context(), userCooldownKey, authRateLimitScopeResetSelfInit, cooldownUntil); err != nil {
+		s.log.Errorw("failed to store authenticated password reset user cooldown", "user_id", userID, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	if err := s.blockAuthCooldown(r.Context(), ipCooldownKey, authRateLimitScopeResetSelfInit, cooldownUntil); err != nil {
+		s.log.Errorw("failed to store authenticated password reset ip cooldown", "user_id", userID, "ip", clientIP, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+
+	verifyLink := fmt.Sprintf("%s/password/reset/verify/%s?email=%s&code=%s&flow=self",
+		s.backendConfig.FrontendEndpoint,
+		url.PathEscape(challenge.ID.String()),
+		url.QueryEscape(accountEmail),
+		url.QueryEscape(token),
+	)
+
+	if err := s.passwordAuth.SendPasswordResetEmail(r.Context(), deliveryEmail, verifyLink); err != nil {
+		s.log.Errorw("failed to send authenticated password reset email", "user_id", userID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
@@ -676,6 +899,12 @@ func (s *APIServer) createRegistrationRequest(w http.ResponseWriter, r *http.Req
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_email", nil)
 		return
 	}
+
+	if !s.isWhitelistedEmail(req.Email) {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "forbidden", nil)
+		return
+	}
+
 	if len(req.Password) < 8 {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "weak_password", nil)
 		return
@@ -835,6 +1064,12 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	result.Email = strings.TrimSpace(strings.ToLower(result.Email))
+	if result.Email == "" || !result.EmailVerified || !emailPattern.MatchString(result.Email) || !s.isWhitelistedEmail(result.Email) {
+		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=forbidden", http.StatusTemporaryRedirect)
+		return
+	}
+
 	userID, err := s.findOrCreateUserFromResult(ctx, result.Email, result.Provider, result.ProviderUserID, result.EmailVerified, result.Name, result.AvatarURL)
 	if err != nil {
 		log.Errorw("error finding or creating user", "error", err)
@@ -879,6 +1114,26 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 	})
 
 	http.Redirect(w, r, s.backendConfig.FrontendEndpoint, http.StatusTemporaryRedirect)
+}
+
+func (s *APIServer) isWhitelistedEmail(email string) bool {
+	allowed := s.backendConfig.AuthWhitelist
+	if len(allowed) == 0 {
+		return true
+	}
+
+	log.Println("allowed kurwa:", allowed)
+	normalizedEmail := strings.TrimSpace(strings.ToLower(email))
+	log.Println("normalized kurwa email:", normalizedEmail)
+	for _, candidate := range allowed {
+		s.log.Infow("checking candidate", "candidate", candidate, "against whitelist", allowed)
+		if strings.TrimSpace(strings.ToLower(candidate)) == normalizedEmail {
+			return true
+		}
+	}
+
+	s.log.Infow("email not whitelisted", "email", normalizedEmail)
+	return false
 }
 
 // findOrCreateUserFromResult looks up a user by their provider identity, creating one if they don't exist yet.

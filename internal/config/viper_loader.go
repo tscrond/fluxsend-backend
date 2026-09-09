@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/csv"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
@@ -73,6 +75,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mail.provider", "standard")
 	v.SetDefault("cli.listen_port", "8091")
 	v.SetDefault("cli.route_prefix", "/api")
+	v.SetDefault("admin.enabled", false)
+	v.SetDefault("admin.listen_port", "1414")
+	v.SetDefault("admin.admin_username", "")
+	v.SetDefault("admin.admin_password", "")
+	v.SetDefault("admin.email_whitelist", []string{})
 }
 
 func bindEnvVars(v *viper.Viper) error {
@@ -83,6 +90,11 @@ func bindEnvVars(v *viper.Viper) error {
 		}
 
 		fmt.Printf("[DEBUG] environment: %s=%q -> %s\n", envVar, value, key)
+
+		if key == "api.email_whitelist" {
+			setConfigValue(v, key, value)
+			continue
+		}
 
 		if err := v.BindEnv(key, envVar); err != nil {
 			return fmt.Errorf(
@@ -96,7 +108,6 @@ func bindEnvVars(v *viper.Viper) error {
 
 	return nil
 }
-
 func loadEnvFile(v *viper.Viper, path string) error {
 	values, err := godotenv.Read(path)
 	if err != nil {
@@ -108,9 +119,39 @@ func loadEnvFile(v *viper.Viper, path string) error {
 	for key, envVar := range envMap {
 		if value, ok := values[envVar]; ok {
 			fmt.Printf("[DEBUG] .env: %s=%q -> %s\n", envVar, value, key)
-			v.Set(key, value)
+			setConfigValue(v, key, value)
 		}
 	}
 
 	return nil
+}
+
+func setConfigValue(v *viper.Viper, key, value string) {
+	switch key {
+	case "api.email_whitelist":
+		v.Set(key, parseEmailWhitelist(value))
+	default:
+		v.Set(key, value)
+	}
+}
+
+func parseEmailWhitelist(value string) []string {
+	r := csv.NewReader(strings.NewReader(value))
+	r.TrimLeadingSpace = true
+	r.FieldsPerRecord = -1
+
+	fields, err := r.Read()
+	if err != nil {
+		return nil
+	}
+
+	result := make([]string, 0, len(fields))
+	for _, field := range fields {
+		field = strings.ToLower(strings.TrimSpace(strings.Trim(field, `"'`)))
+		if field != "" {
+			result = append(result, field)
+		}
+	}
+
+	return result
 }

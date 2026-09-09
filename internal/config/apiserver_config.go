@@ -1,7 +1,10 @@
 package config
 
 import (
+	"encoding/csv"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -20,6 +23,7 @@ type APIServerConfig struct {
 	EnableGoogleAuth   bool
 	EnableGitHubAuth   bool
 	EnablePasswordAuth bool
+	AuthWhitelist      []string
 }
 
 func NewAPIServerConfig(v *viper.Viper) (*APIServerConfig, error) {
@@ -90,6 +94,9 @@ func NewAPIServerConfig(v *viper.Viper) (*APIServerConfig, error) {
 		}
 	}
 
+	authWhitelist := whitelistValues(v, "api.email_whitelist")
+	log.Printf("loaded email whitelist: %v", authWhitelist)
+
 	apiConfig := APIServerConfig{
 		ListenPort:         v.GetString("api.listen_port"),
 		GoogleClientID:     googleClientID,
@@ -109,6 +116,7 @@ func NewAPIServerConfig(v *viper.Viper) (*APIServerConfig, error) {
 		EnableGoogleAuth:   enableGoogleAuth,
 		EnableGitHubAuth:   enableGitHubAuth,
 		EnablePasswordAuth: enablePasswordAuth,
+		AuthWhitelist:      authWhitelist,
 	}
 
 	return &apiConfig, nil
@@ -124,4 +132,72 @@ func requiredString(v *viper.Viper, key string) (string, error) {
 		return "", fmt.Errorf("missing required config: %s", key)
 	}
 	return value, nil
+}
+
+func whitelistValues(v *viper.Viper, key string) []string {
+	rawValues := []string{}
+
+	switch value := v.Get(key).(type) {
+	case []string:
+		rawValues = append(rawValues, value...)
+	case []any:
+		for _, item := range value {
+			if s, ok := item.(string); ok {
+				rawValues = append(rawValues, s)
+			}
+		}
+	case string:
+		raw := strings.TrimSpace(value)
+		if raw != "" {
+			r := csv.NewReader(strings.NewReader(raw))
+			r.TrimLeadingSpace = true
+			r.FieldsPerRecord = -1
+			if fields, err := r.Read(); err == nil {
+				rawValues = append(rawValues, fields...)
+			} else {
+				rawValues = append(rawValues, strings.Split(raw, ",")...)
+			}
+		}
+	}
+
+	if len(rawValues) == 0 {
+		rawValues = append(rawValues, v.GetStringSlice(key)...)
+	}
+
+	expandedValues := make([]string, 0, len(rawValues))
+	for _, raw := range rawValues {
+		expandedValues = append(expandedValues, parseCommaSeparatedValues(raw)...)
+	}
+
+	if len(expandedValues) > 0 {
+		rawValues = expandedValues
+	}
+
+	values := make([]string, 0, len(rawValues))
+	for _, value := range rawValues {
+		normalized := strings.TrimSpace(strings.Trim(value, "\"'"))
+		if normalized == "" {
+			continue
+		}
+		values = append(values, strings.ToLower(normalized))
+	}
+
+	return values
+}
+
+func parseCommaSeparatedValues(raw string) []string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil
+	}
+
+	r := csv.NewReader(strings.NewReader(trimmed))
+	r.TrimLeadingSpace = true
+	r.FieldsPerRecord = -1
+	fields, err := r.Read()
+	if err != nil {
+		return strings.Split(trimmed, ",")
+	}
+
+	return fields
 }
