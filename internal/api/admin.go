@@ -51,6 +51,7 @@ func (s *AdminServer) registerAdminRoutes(r chi.Router) {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			username, password, ok := r.BasicAuth()
 			if !ok || username != s.backendConfig.AdminUsername || password != s.backendConfig.AdminPassword {
+				w.Header().Set("WWW-Authenticate", `Basic realm="admin"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
