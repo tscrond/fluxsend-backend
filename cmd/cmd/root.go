@@ -267,6 +267,15 @@ func applyAuthFlagOverrides(cmd *cobra.Command, v configSetter) {
 
 		v.Set(mapping.configKey, value)
 	}
+
+	if flag := cmd.Flags().Lookup("email-whitelist"); flag != nil && flag.Changed {
+		values, err := cmd.Flags().GetStringSlice("email-whitelist")
+		if err != nil {
+			cobra.CheckErr(err)
+		}
+
+		v.Set("api.email_whitelist", values)
+	}
 }
 
 func applyAdminFlagOverrides(cmd *cobra.Command, v configSetter) {
