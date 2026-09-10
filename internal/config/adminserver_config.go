@@ -18,12 +18,13 @@ func NewAdminServerConfig(v *viper.Viper) (*AdminServerConfig, error) {
 		listenPort = "1414"
 	}
 
-	if adminUsername == "" && adminPassword == "" && !v.GetBool("admin.enabled") {
+	enabled := v.GetBool("admin.enabled")
+	if !enabled || adminUsername == "" || adminPassword == "" {
 		return &AdminServerConfig{Enabled: false, ListenPort: listenPort}, nil
 	}
 
 	return &AdminServerConfig{
-		Enabled:       v.GetBool("admin.enabled"),
+		Enabled:       true,
 		ListenPort:    listenPort,
 		AdminUsername: adminUsername,
 		AdminPassword: adminPassword,
