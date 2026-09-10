@@ -14,9 +14,9 @@ curl_json() {
   local path="$2"
   local data="${3:-}"
   if [[ -n "$data" ]]; then
-    curl -sS -u "$AUTH" -H 'Content-Type: application/json' -X "$method" --data "$data" "$BASE_URL$path"
+    curl -fsS -u "$AUTH" -H 'Content-Type: application/json' -X "$method" --data "$data" "$BASE_URL$path"
   else
-    curl -sS -u "$AUTH" -X "$method" "$BASE_URL$path"
+    curl -fsS -u "$AUTH" -X "$method" "$BASE_URL$path"
   fi
 }
 
