@@ -1121,16 +1121,13 @@ func (s *APIServer) isWhitelistedEmail(email string) bool {
 		return true
 	}
 
-	s.log.Debugw("whitelist", "allowed", allowed)
 	normalizedEmail := strings.TrimSpace(strings.ToLower(email))
 	for _, candidate := range allowed {
-		s.log.Debugw("checking candidate", "candidate", candidate)
 		if strings.TrimSpace(strings.ToLower(candidate)) == normalizedEmail {
 			return true
 		}
 	}
 
-	s.log.Debugw("email not whitelisted", "email", normalizedEmail)
 	return false
 }
 
