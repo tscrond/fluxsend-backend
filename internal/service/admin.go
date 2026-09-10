@@ -93,6 +93,9 @@ func (s *adminService) CreatePlan(ctx context.Context, req CreatePlanRequest) (s
 }
 
 func (s *adminService) UpdatePlan(ctx context.Context, id uuid.UUID, req CreatePlanRequest) error {
+	if req.Name == "" {
+		return fmt.Errorf("plan name is required")
+	}
 	return s.repository.Queries().UpdatePlanAdmin(ctx, sqlc.UpdatePlanAdminParams{
 		Name:                          req.Name,
 		MaxTotalStorageBytes:          req.MaxTotalStorageBytes,
