@@ -40,10 +40,8 @@ var rootCmd = &cobra.Command{
 	Use:   "fluxsend",
 	Short: "FluxSend Backend",
 	Run: func(cmd *cobra.Command, args []string) {
-		genConfig, _ := cmd.Flags().GetString("generate-config")
-		log.Println("Generating config file at:", genConfig)
-
-		if generateConfig, _ := cmd.Flags().GetString("generate-config"); generateConfig != "" {
+		if genConfig, _ := cmd.Flags().GetString("generate-config"); genConfig != "" {
+			log.Println("Generating config file at:", genConfig)
 			RunConfigGenerator(cmd, args)
 			return
 		}
