@@ -95,8 +95,6 @@ func NewAPIServerConfig(v *viper.Viper) (*APIServerConfig, error) {
 	}
 
 	authWhitelist := whitelistValues(v, "api.email_whitelist")
-	log.Printf("loaded email whitelist: %v", authWhitelist)
-
 	apiConfig := APIServerConfig{
 		ListenPort:         v.GetString("api.listen_port"),
 		GoogleClientID:     googleClientID,
