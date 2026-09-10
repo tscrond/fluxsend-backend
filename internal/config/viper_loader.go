@@ -79,7 +79,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("admin.listen_port", "1414")
 	v.SetDefault("admin.admin_username", "")
 	v.SetDefault("admin.admin_password", "")
-	v.SetDefault("admin.email_whitelist", []string{})
+	v.SetDefault("api.email_whitelist", []string{})
 }
 
 func bindEnvVars(v *viper.Viper) error {
