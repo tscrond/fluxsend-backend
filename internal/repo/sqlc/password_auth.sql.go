@@ -43,6 +43,24 @@ func (q *Queries) BlockUntil(ctx context.Context, arg BlockUntilParams) (AuthRat
 	return i, err
 }
 
+const consumeActiveEmailVerificationChallengesByUserAndPurpose = `-- name: ConsumeActiveEmailVerificationChallengesByUserAndPurpose :exec
+UPDATE email_verification_challenges
+SET consumed_at = now()
+WHERE user_id = $1
+    AND purpose = $2
+    AND consumed_at IS NULL
+`
+
+type ConsumeActiveEmailVerificationChallengesByUserAndPurposeParams struct {
+	UserID  uuid.NullUUID `json:"user_id"`
+	Purpose string        `json:"purpose"`
+}
+
+func (q *Queries) ConsumeActiveEmailVerificationChallengesByUserAndPurpose(ctx context.Context, arg ConsumeActiveEmailVerificationChallengesByUserAndPurposeParams) error {
+	_, err := q.db.ExecContext(ctx, consumeActiveEmailVerificationChallengesByUserAndPurpose, arg.UserID, arg.Purpose)
+	return err
+}
+
 const consumeEmailVerificationChallenge = `-- name: ConsumeEmailVerificationChallenge :one
 UPDATE email_verification_challenges
 SET consumed_at = now()

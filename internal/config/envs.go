@@ -23,6 +23,7 @@ func GetEnvVarMap() map[string]string {
 		"api.cloudfront.domain":                  "CLOUDFRONT_DOMAIN",
 		"api.cloudfront.key_pair_id":             "CLOUDFRONT_KEY_PAIR_ID",
 		"api.cloudfront.private_key_path":        "CLOUDFRONT_PRIVATE_KEY_PATH",
+		"api.email_whitelist":                    "EMAIL_WHITELIST",
 		"storage.gcs_bucket_name":                "GCS_BUCKET_NAME",
 		"storage.google_application_credentials": "GOOGLE_APPLICATION_CREDENTIALS",
 		"storage.google_project_id":              "GOOGLE_PROJECT_ID",
@@ -47,5 +48,9 @@ func GetEnvVarMap() map[string]string {
 		"cli.listen_port":                        "FLUXSEND_API_LISTEN_PORT",
 		"cli.backend_endpoint":                   "BACKEND_ENDPOINT",
 		"cli.route_prefix":                       "FLUXSEND_API_ROUTE_PREFIX",
+		"admin.enabled":                          "ADMIN_SERVER_ENABLED",
+		"admin.admin_username":                   "ADMIN_USERNAME",
+		"admin.admin_password":                   "ADMIN_PASSWORD",
+		"admin.listen_port":                      "ADMIN_LISTEN_PORT",
 	}
 }

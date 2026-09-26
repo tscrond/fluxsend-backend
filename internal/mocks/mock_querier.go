@@ -209,6 +209,20 @@ func (mr *MockQuerierMockRecorder) CompleteFileUpload(ctx, arg any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteFileUpload", reflect.TypeOf((*MockQuerier)(nil).CompleteFileUpload), ctx, arg)
 }
 
+// ConsumeActiveEmailVerificationChallengesByUserAndPurpose mocks base method.
+func (m *MockQuerier) ConsumeActiveEmailVerificationChallengesByUserAndPurpose(ctx context.Context, arg sqlc.ConsumeActiveEmailVerificationChallengesByUserAndPurposeParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConsumeActiveEmailVerificationChallengesByUserAndPurpose", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ConsumeActiveEmailVerificationChallengesByUserAndPurpose indicates an expected call of ConsumeActiveEmailVerificationChallengesByUserAndPurpose.
+func (mr *MockQuerierMockRecorder) ConsumeActiveEmailVerificationChallengesByUserAndPurpose(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConsumeActiveEmailVerificationChallengesByUserAndPurpose", reflect.TypeOf((*MockQuerier)(nil).ConsumeActiveEmailVerificationChallengesByUserAndPurpose), ctx, arg)
+}
+
 // ConsumeEmailVerificationChallenge mocks base method.
 func (m *MockQuerier) ConsumeEmailVerificationChallenge(ctx context.Context, id uuid.UUID) (sqlc.EmailVerificationChallenge, error) {
 	m.ctrl.T.Helper()
@@ -341,6 +355,21 @@ func (m *MockQuerier) CreatePasswordCredentials(ctx context.Context, arg sqlc.Cr
 func (mr *MockQuerierMockRecorder) CreatePasswordCredentials(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePasswordCredentials", reflect.TypeOf((*MockQuerier)(nil).CreatePasswordCredentials), ctx, arg)
+}
+
+// CreatePlanAdmin mocks base method.
+func (m *MockQuerier) CreatePlanAdmin(ctx context.Context, arg sqlc.CreatePlanAdminParams) (sqlc.Plan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePlanAdmin", ctx, arg)
+	ret0, _ := ret[0].(sqlc.Plan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePlanAdmin indicates an expected call of CreatePlanAdmin.
+func (mr *MockQuerierMockRecorder) CreatePlanAdmin(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePlanAdmin", reflect.TypeOf((*MockQuerier)(nil).CreatePlanAdmin), ctx, arg)
 }
 
 // CreateSession mocks base method.
@@ -1170,6 +1199,21 @@ func (mr *MockQuerierMockRecorder) GetTokenExpirationTime(ctx, sharingToken any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenExpirationTime", reflect.TypeOf((*MockQuerier)(nil).GetTokenExpirationTime), ctx, sharingToken)
 }
 
+// GetUserAdminByID mocks base method.
+func (m *MockQuerier) GetUserAdminByID(ctx context.Context, id uuid.UUID) (sqlc.GetUserAdminByIDRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserAdminByID", ctx, id)
+	ret0, _ := ret[0].(sqlc.GetUserAdminByIDRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserAdminByID indicates an expected call of GetUserAdminByID.
+func (mr *MockQuerierMockRecorder) GetUserAdminByID(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserAdminByID", reflect.TypeOf((*MockQuerier)(nil).GetUserAdminByID), ctx, id)
+}
+
 // GetUserBucketById mocks base method.
 func (m *MockQuerier) GetUserBucketById(ctx context.Context, id uuid.UUID) (sql.NullString, error) {
 	m.ctrl.T.Helper()
@@ -1710,6 +1754,21 @@ func (mr *MockQuerierMockRecorder) ListFileUploadPartsByUploadID(ctx, uploadID a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFileUploadPartsByUploadID", reflect.TypeOf((*MockQuerier)(nil).ListFileUploadPartsByUploadID), ctx, uploadID)
 }
 
+// ListPlansAdmin mocks base method.
+func (m *MockQuerier) ListPlansAdmin(ctx context.Context) ([]sqlc.Plan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPlansAdmin", ctx)
+	ret0, _ := ret[0].([]sqlc.Plan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPlansAdmin indicates an expected call of ListPlansAdmin.
+func (mr *MockQuerierMockRecorder) ListPlansAdmin(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPlansAdmin", reflect.TypeOf((*MockQuerier)(nil).ListPlansAdmin), ctx)
+}
+
 // ListPrivateAPIKeysByUserID mocks base method.
 func (m *MockQuerier) ListPrivateAPIKeysByUserID(ctx context.Context, userID uuid.UUID) ([]sqlc.ListPrivateAPIKeysByUserIDRow, error) {
 	m.ctrl.T.Helper()
@@ -1723,6 +1782,21 @@ func (m *MockQuerier) ListPrivateAPIKeysByUserID(ctx context.Context, userID uui
 func (mr *MockQuerierMockRecorder) ListPrivateAPIKeysByUserID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPrivateAPIKeysByUserID", reflect.TypeOf((*MockQuerier)(nil).ListPrivateAPIKeysByUserID), ctx, userID)
+}
+
+// ListUsersAdmin mocks base method.
+func (m *MockQuerier) ListUsersAdmin(ctx context.Context) ([]sqlc.ListUsersAdminRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUsersAdmin", ctx)
+	ret0, _ := ret[0].([]sqlc.ListUsersAdminRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListUsersAdmin indicates an expected call of ListUsersAdmin.
+func (mr *MockQuerierMockRecorder) ListUsersAdmin(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUsersAdmin", reflect.TypeOf((*MockQuerier)(nil).ListUsersAdmin), ctx)
 }
 
 // ListWorkspaceAPIKeys mocks base method.
@@ -1858,6 +1932,21 @@ func (mr *MockQuerierMockRecorder) SaveFileUploadPart(ctx, arg any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFileUploadPart", reflect.TypeOf((*MockQuerier)(nil).SaveFileUploadPart), ctx, arg)
 }
 
+// ServerCapacitySummary mocks base method.
+func (m *MockQuerier) ServerCapacitySummary(ctx context.Context) (sqlc.ServerCapacitySummaryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServerCapacitySummary", ctx)
+	ret0, _ := ret[0].(sqlc.ServerCapacitySummaryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServerCapacitySummary indicates an expected call of ServerCapacitySummary.
+func (mr *MockQuerierMockRecorder) ServerCapacitySummary(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServerCapacitySummary", reflect.TypeOf((*MockQuerier)(nil).ServerCapacitySummary), ctx)
+}
+
 // UpdateFileNameByID mocks base method.
 func (m *MockQuerier) UpdateFileNameByID(ctx context.Context, arg sqlc.UpdateFileNameByIDParams) error {
 	m.ctrl.T.Helper()
@@ -1928,6 +2017,20 @@ func (m *MockQuerier) UpdatePasswordCredentials(ctx context.Context, arg sqlc.Up
 func (mr *MockQuerierMockRecorder) UpdatePasswordCredentials(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePasswordCredentials", reflect.TypeOf((*MockQuerier)(nil).UpdatePasswordCredentials), ctx, arg)
+}
+
+// UpdatePlanAdmin mocks base method.
+func (m *MockQuerier) UpdatePlanAdmin(ctx context.Context, arg sqlc.UpdatePlanAdminParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePlanAdmin", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePlanAdmin indicates an expected call of UpdatePlanAdmin.
+func (mr *MockQuerierMockRecorder) UpdatePlanAdmin(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePlanAdmin", reflect.TypeOf((*MockQuerier)(nil).UpdatePlanAdmin), ctx, arg)
 }
 
 // UpdatePrivateDownloadToken mocks base method.

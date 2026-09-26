@@ -24,6 +24,7 @@ type Querier interface {
 	CheckWorkspaceResourceQuota(ctx context.Context, id uuid.UUID) (CheckWorkspaceResourceQuotaRow, error)
 	CheckWorkspacesPerUserQuota(ctx context.Context, ownerID uuid.UUID) (bool, error)
 	CompleteFileUpload(ctx context.Context, arg CompleteFileUploadParams) (uuid.UUID, error)
+	ConsumeActiveEmailVerificationChallengesByUserAndPurpose(ctx context.Context, arg ConsumeActiveEmailVerificationChallengesByUserAndPurposeParams) error
 	ConsumeEmailVerificationChallenge(ctx context.Context, id uuid.UUID) (EmailVerificationChallenge, error)
 	CountUnseenShares(ctx context.Context, sharedFor sql.NullString) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
@@ -33,6 +34,7 @@ type Querier interface {
 	CreateFileUpload(ctx context.Context, arg CreateFileUploadParams) (FileUpload, error)
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (Identity, error)
 	CreatePasswordCredentials(ctx context.Context, arg CreatePasswordCredentialsParams) (PasswordCredential, error)
+	CreatePlanAdmin(ctx context.Context, arg CreatePlanAdminParams) (Plan, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, userEmail string) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
@@ -94,6 +96,7 @@ type Querier interface {
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetSharedFileIdFromToken(ctx context.Context, sharingToken string) (sql.NullInt32, error)
 	GetTokenExpirationTime(ctx context.Context, sharingToken string) (time.Time, error)
+	GetUserAdminByID(ctx context.Context, id uuid.UUID) (GetUserAdminByIDRow, error)
 	GetUserBucketById(ctx context.Context, id uuid.UUID) (sql.NullString, error)
 	GetUserByEmail(ctx context.Context, userEmail string) (User, error)
 	GetUserById(ctx context.Context, id uuid.UUID) (User, error)
@@ -130,7 +133,9 @@ type Querier interface {
 	ListAPIKeyScopes(ctx context.Context, apiKeyID uuid.UUID) ([]string, error)
 	ListFileIDsWithoutPrivateToken(ctx context.Context) ([]int32, error)
 	ListFileUploadPartsByUploadID(ctx context.Context, uploadID uuid.UUID) ([]FileUploadPart, error)
+	ListPlansAdmin(ctx context.Context) ([]Plan, error)
 	ListPrivateAPIKeysByUserID(ctx context.Context, userID uuid.UUID) ([]ListPrivateAPIKeysByUserIDRow, error)
+	ListUsersAdmin(ctx context.Context) ([]ListUsersAdminRow, error)
 	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceAPIKeysRow, error)
 	MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (Share, error)
 	MoveWorkspaceFile(ctx context.Context, arg MoveWorkspaceFileParams) error
@@ -140,11 +145,13 @@ type Querier interface {
 	RevokePrivateAPIKey(ctx context.Context, arg RevokePrivateAPIKeyParams) (ApiKey, error)
 	RevokeWorkspaceAPIKey(ctx context.Context, arg RevokeWorkspaceAPIKeyParams) (ApiKey, error)
 	SaveFileUploadPart(ctx context.Context, arg SaveFileUploadPartParams) (int64, error)
+	ServerCapacitySummary(ctx context.Context) (ServerCapacitySummaryRow, error)
 	UpdateFileNameByID(ctx context.Context, arg UpdateFileNameByIDParams) error
 	UpdateFileNameByOwnerAndName(ctx context.Context, arg UpdateFileNameByOwnerAndNameParams) error
 	UpdateFileUploadParts(ctx context.Context, arg UpdateFileUploadPartsParams) error
 	UpdateNoteForFile(ctx context.Context, arg UpdateNoteForFileParams) (Note, error)
 	UpdatePasswordCredentials(ctx context.Context, arg UpdatePasswordCredentialsParams) (PasswordCredential, error)
+	UpdatePlanAdmin(ctx context.Context, arg UpdatePlanAdminParams) error
 	UpdatePrivateDownloadToken(ctx context.Context, arg UpdatePrivateDownloadTokenParams) error
 	UpdateResendAvailableAt(ctx context.Context, arg UpdateResendAvailableAtParams) (EmailVerificationChallenge, error)
 	UpdateUserBucketNameById(ctx context.Context, arg UpdateUserBucketNameByIdParams) error

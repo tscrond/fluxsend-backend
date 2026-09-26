@@ -32,7 +32,8 @@ services:
     ports:
       - 3000:3000/tcp
       - 8091:8091/tcp
-    command: ["./fluxsend", "--github-auth", "--password-auth", "--google-auth"]
+      - 1414:1414/tcp
+    command: ["./fluxsend", "--github-auth", "--password-auth", "--google-auth", "--admin-server"]
     environment:
       - FRONTEND_ENDPOINT=http://localhost:8000
       - BACKEND_ENDPOINT=http://localhost:3000
@@ -72,6 +73,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - APP_ENV=production
+      - ADMIN_SERVER_ENABLED=true
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - EMAIL_WHITELIST=${EMAIL_WHITELIST:-}
+      - ADMIN_LISTEN_PORT=${ADMIN_LISTEN_PORT:-1414}
 
     volumes:
       - /home/tskr/wazne/bucket-auth.json:/config/bucket-auth.json:ro

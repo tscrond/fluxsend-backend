@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FluxSend Admin Preview</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 980px;
+        margin: 32px auto;
+        padding: 0 16px;
+        color: #111827;
+        background: #f9fafb;
+      }
+      .panel {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        margin: 8px 0 4px;
+        font-weight: 600;
+      }
+      input, button, textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      button {
+        cursor: pointer;
+        background: #111827;
+        color: white;
+        border: 0;
+        font-weight: 600;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      pre {
+        white-space: pre-wrap;
+        background: #111827;
+        color: #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        min-height: 120px;
+        overflow: auto;
+      }
+      .inline {
+        display: flex;
+        gap: 8px;
+      }
+      .inline > * { flex: 1; }
+    </style>
+  </head>
+  <body>
+    <h1>FluxSend Admin Preview</h1>
+
+    <div class="panel">
+      <div class="row">
+        <div>
+          <label>Base URL</label>
+          <input id="baseUrl" value="http://localhost:1414" />
+        </div>
+        <div>
+          <label>Authorization</label>
+          <div class="inline">
+            <input id="username" placeholder="username" value="admin" />
+            <input id="password" type="password" placeholder="password" value="admin" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <button data-endpoint="/admin/health">Health</button>
+      <button data-endpoint="/admin/users">List users</button>
+      <button data-endpoint="/admin/plans">List plans</button>
+      <button data-endpoint="/admin/capacity">Capacity</button>
+    </div>
+
+    <div class="panel">
+      <label>Create user email</label>
+      <input id="userEmail" value="demo@example.com" />
+      <button data-action="create-user">Create user</button>
+    </div>
+
+    <div class="panel">
+      <label>Create plan JSON</label>
+      <textarea id="planBody" rows="9">{
+  "name": "Preview Plan",
+  "max_total_storage_bytes": 10737418240,
+  "max_file_size_bytes": 10485760,
+  "max_files": 100,
+  "max_files_sent_per_day": 20,
+  "max_shares_per_day": 10,
+  "max_files_workspace": 300,
+  "max_user_workspaces": 5,
+  "max_total_storage_bytes_workspace": 1073741824,
+  "max_users_workspace": 10,
+  "max_workspace_folders": 20,
+  "max_private_api_keys": 10,
+  "max_workspace_api_keys": 10
+}</textarea>
+      <button data-action="create-plan">Create plan</button>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <div>
+          <label>User ID</label>
+          <input id="userId" placeholder="user id UUID" />
+        </div>
+        <div>
+          <label>Plan ID</label>
+          <input id="planId" placeholder="plan id UUID" />
+        </div>
+      </div>
+      <button data-action="assign-plan">Assign plan</button>
+    </div>
+
+    <div class="panel">
+      <h2>Response</h2>
+      <pre id="output">Click a button to inspect a response.</pre>
+    </div>
+
+    <script>
+      const output = document.getElementById('output');
+      const baseUrlInput = document.getElementById('baseUrl');
+      const usernameInput = document.getElementById('username');
+      const passwordInput = document.getElementById('password');
+
+      function authHeader() {
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+        return 'Basic ' + btoa(`${username}:${password}`);
+      }
+
+      async function fetchAdmin(path, options = {}) {
+        const baseUrl = baseUrlInput.value.replace(/\/$/, '');
+        const res = await fetch(`${baseUrl}${path}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader(),
+            ...(options.headers || {}),
+          },
+        });
+
+        const text = await res.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = text;
+        }
+
+        output.textContent = JSON.stringify({
+          status: res.status,
+          ok: res.ok,
+          body: json,
+        }, null, 2);
+      }
+
+      document.querySelectorAll('[data-endpoint]').forEach((button) => {
+        button.addEventListener('click', () => fetchAdmin(button.dataset.endpoint, { method: 'GET' }));
+      });
+
+      document.querySelector('[data-action="create-user"]').addEventListener('click', () => {
+        const email = document.getElementById('userEmail').value;
+        fetchAdmin('/admin/users', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+        });
+      });
+
+      document.querySelector('[data-action="create-plan"]').addEventListener('click', () => {
+        fetchAdmin('/admin/plans', {
+          method: 'POST',
+          body: document.getElementById('planBody').value,
+        });
+      });
+
+      document.querySelector('[data-action="assign-plan"]').addEventListener('click', () => {
+        const userId = document.getElementById('userId').value;
+        const planId = document.getElementById('planId').value;
+        fetchAdmin(`/admin/users/${userId}/plan`, {
+          method: 'POST',
+          body: JSON.stringify({ plan_id: planId }),
+        });
+      });
+    </script>
+  </body>
+</html>

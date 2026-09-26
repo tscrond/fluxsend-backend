@@ -111,7 +111,7 @@ func (s *CloudFrontURLSigner) SignURL(bucket, object string, expiresAt time.Time
 
 	signedURL, err := signer.SignWithPolicy(resourceURL.String(), policy)
 
-	log.Println(signedURL)
+	//log.Println("SIGNED URL:", signedURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign CloudFront URL: %w", err)
 	}

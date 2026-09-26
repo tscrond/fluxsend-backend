@@ -25,6 +25,13 @@ RETURNING *;
 SELECT * FROM email_verification_challenges
 WHERE id = $1;
 
+-- name: ConsumeActiveEmailVerificationChallengesByUserAndPurpose :exec
+UPDATE email_verification_challenges
+SET consumed_at = now()
+WHERE user_id = $1
+    AND purpose = $2
+    AND consumed_at IS NULL;
+
 -- name: DeleteEmailVerificationChallengeById :exec
 DELETE FROM email_verification_challenges
 WHERE id = $1;
