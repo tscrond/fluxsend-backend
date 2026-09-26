@@ -196,7 +196,7 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 			FrontendEndpoint:       apiConfig.FrontendEndpoint,
 			MailFrom:               apiConfig.MailFrom,
 			HTMLSanitizationPolicy: baseRuntime.HTMLSanitizationPolicy,
-			AuthWhitelist:          []string{},
+			AuthWhitelist:          apiConfig.AuthWhitelist,
 			AdminUsername:          adminConfig.AdminUsername,
 			AdminPassword:          adminConfig.AdminPassword,
 		}, api.AdminServerDependencies{
