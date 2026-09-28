@@ -11,16 +11,19 @@ import (
 
 func GenerateDefaultConfig(v *viper.Viper, outputPath string) error {
 	root := make(map[string]any)
+	debugEnabled := configDebugLoggingEnabled(v, nil)
 
 	for key := range GetEnvVarMap() {
 		value := v.Get(key)
 
-		fmt.Printf(
-			"[DEBUG] generate: key=%s value=%#v isSet=%v\n",
-			key,
-			value,
-			v.IsSet(key),
-		)
+		if debugEnabled {
+			fmt.Printf(
+				"[DEBUG] generate: key=%s value=%#v isSet=%v\n",
+				key,
+				value,
+				v.IsSet(key),
+			)
+		}
 
 		if value == nil {
 			continue

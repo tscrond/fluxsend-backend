@@ -44,6 +44,7 @@ func GetEnvVarMap() map[string]string {
 		"mail.smtp_port":                         "SMTP_PORT",
 		"mail.smtp_username":                     "SMTP_USERNAME",
 		"mail.smtp_password":                     "SMTP_PASSWORD",
+		configDebugLoggingKey:                    configDebugLoggingEnvVar,
 		"app.env":                                "APP_ENV",
 		"cli.listen_port":                        "FLUXSEND_API_LISTEN_PORT",
 		"cli.backend_endpoint":                   "BACKEND_ENDPOINT",
