@@ -167,18 +167,18 @@ func (mr *MockFileServiceMockRecorder) GetFolders(ctx, userID, path any) *gomock
 }
 
 // GetNote mocks base method.
-func (m *MockFileService) GetNote(ctx context.Context, userID uuid.UUID, checksum string) (string, error) {
+func (m *MockFileService) GetNote(ctx context.Context, userID uuid.UUID, checksum, fileName string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNote", ctx, userID, checksum)
+	ret := m.ctrl.Call(m, "GetNote", ctx, userID, checksum, fileName)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNote indicates an expected call of GetNote.
-func (mr *MockFileServiceMockRecorder) GetNote(ctx, userID, checksum any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) GetNote(ctx, userID, checksum, fileName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNote", reflect.TypeOf((*MockFileService)(nil).GetNote), ctx, userID, checksum)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNote", reflect.TypeOf((*MockFileService)(nil).GetNote), ctx, userID, checksum, fileName)
 }
 
 // MoveFile mocks base method.
@@ -240,18 +240,18 @@ func (mr *MockFileServiceMockRecorder) UploadPart(ctx, uploadId, partNumber, bod
 }
 
 // UpsertNote mocks base method.
-func (m *MockFileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum, content string) (string, error) {
+func (m *MockFileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum, fileName, content string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpsertNote", ctx, userID, checksum, content)
+	ret := m.ctrl.Call(m, "UpsertNote", ctx, userID, checksum, fileName, content)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpsertNote indicates an expected call of UpsertNote.
-func (mr *MockFileServiceMockRecorder) UpsertNote(ctx, userID, checksum, content any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) UpsertNote(ctx, userID, checksum, fileName, content any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertNote", reflect.TypeOf((*MockFileService)(nil).UpsertNote), ctx, userID, checksum, content)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertNote", reflect.TypeOf((*MockFileService)(nil).UpsertNote), ctx, userID, checksum, fileName, content)
 }
 
 // MockShareService is a mock of ShareService interface.

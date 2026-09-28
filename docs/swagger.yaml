@@ -309,11 +309,17 @@ paths:
       - Downloads
   /api/files/{checksum}/note:
     get:
-      description: Returns the note content for a file checksum.
+      description: Returns the note content for a file identified by checksum and
+        file name.
       parameters:
       - description: File checksum
         in: path
         name: checksum
+        required: true
+        type: string
+      - description: File name
+        in: query
+        name: file_name
         required: true
         type: string
       produces:
@@ -334,17 +340,28 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
       summary: Get file note
       tags:
       - Files
     put:
       consumes:
       - application/json
-      description: Updates or creates the note for a file checksum.
+      description: Updates or creates the note for a file identified by checksum and
+        file name.
       parameters:
       - description: File checksum
         in: path
         name: checksum
+        required: true
+        type: string
+      - description: File name
+        in: query
+        name: file_name
         required: true
         type: string
       - description: Note content request
@@ -368,6 +385,11 @@ paths:
             type: object
         "401":
           description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties: true
             type: object

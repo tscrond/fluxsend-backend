@@ -53,8 +53,8 @@ type FileService interface {
 	DeleteFolder(ctx context.Context, userID uuid.UUID, folderPath string, recursive bool) (int, error)
 	MoveFile(ctx context.Context, userID uuid.UUID, source, destination string) error
 	MoveFolder(ctx context.Context, userID uuid.UUID, source, destination string) (int, error)
-	GetNote(ctx context.Context, userID uuid.UUID, checksum string) (string, error)
-	UpsertNote(ctx context.Context, userID uuid.UUID, checksum, content string) (string, error)
+	GetNote(ctx context.Context, userID uuid.UUID, checksum, fileName string) (string, error)
+	UpsertNote(ctx context.Context, userID uuid.UUID, checksum, fileName, content string) (string, error)
 }
 
 type fileService struct {
@@ -814,8 +814,8 @@ func (s *fileService) MoveFolder(ctx context.Context, userID uuid.UUID, source, 
 	return moved, nil
 }
 
-func (s *fileService) GetNote(ctx context.Context, userID uuid.UUID, checksum string) (string, error) {
-	fileID, err := s.findOwnedFileIDByChecksum(ctx, userID, checksum)
+func (s *fileService) GetNote(ctx context.Context, userID uuid.UUID, checksum, fileName string) (string, error) {
+	fileID, err := s.findOwnedFileIDByChecksum(ctx, userID, checksum, fileName)
 	if err != nil {
 		return "", err
 	}
@@ -824,17 +824,20 @@ func (s *fileService) GetNote(ctx context.Context, userID uuid.UUID, checksum st
 		FileID: sql.NullInt32{Valid: true, Int32: fileID},
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
 		return "", err
 	}
 	return note.Content, nil
 }
 
-func (s *fileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum, content string) (string, error) {
+func (s *fileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum, fileName, content string) (string, error) {
 	sanitized := s.sanitizer.Sanitize(content)
 	if utf8.RuneCountInString(sanitized) > 500 {
 		return "", ErrNoteTooLong
 	}
-	fileID, err := s.findOwnedFileIDByChecksum(ctx, userID, checksum)
+	fileID, err := s.findOwnedFileIDByChecksum(ctx, userID, checksum, fileName)
 	if err != nil {
 		return "", err
 	}
@@ -848,11 +851,18 @@ func (s *fileService) UpsertNote(ctx context.Context, userID uuid.UUID, checksum
 	return sanitized, nil
 }
 
-func (s *fileService) findOwnedFileIDByChecksum(ctx context.Context, userID uuid.UUID, checksum string) (int32, error) {
-	return s.queries.GetFileFromChecksum(ctx, sqlc.GetFileFromChecksumParams{
-		OwnerID:     userID,
-		Md5Checksum: checksum,
+func (s *fileService) findOwnedFileIDByChecksum(ctx context.Context, userID uuid.UUID, checksum, fileName string) (int32, error) {
+	file, err := s.queries.GetFileByOwnerAndName(ctx, sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  userID,
+		FileName: fileName,
 	})
+	if err != nil {
+		return 0, err
+	}
+	if file.Md5Checksum != checksum {
+		return 0, sql.ErrNoRows
+	}
+	return file.ID, nil
 }
 
 // resolveUserBucketName resolves the stored bucket name for a user, falling back

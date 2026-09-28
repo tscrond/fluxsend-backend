@@ -936,7 +936,7 @@ const docTemplate = `{
         },
         "/api/files/{checksum}/note": {
             "get": {
-                "description": "Returns the note content for a file checksum.",
+                "description": "Returns the note content for a file identified by checksum and file name.",
                 "produces": [
                     "application/json"
                 ],
@@ -950,6 +950,13 @@ const docTemplate = `{
                         "description": "File checksum",
                         "name": "checksum",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "file_name",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -974,11 +981,18 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             },
             "put": {
-                "description": "Updates or creates the note for a file checksum.",
+                "description": "Updates or creates the note for a file identified by checksum and file name.",
                 "consumes": [
                     "application/json"
                 ],
@@ -995,6 +1009,13 @@ const docTemplate = `{
                         "description": "File checksum",
                         "name": "checksum",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "file_name",
+                        "in": "query",
                         "required": true
                     },
                     {
@@ -1024,6 +1045,13 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
