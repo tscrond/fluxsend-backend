@@ -368,11 +368,17 @@ paths:
                 - Downloads
     /api/files/{checksum}/note:
         get:
-            description: Returns the note content for a file checksum.
+            description: Returns the note content for a file identified by checksum and file name.
             parameters:
                 - description: File checksum
                   in: path
                   name: checksum
+                  required: true
+                  schema:
+                    type: string
+                - description: File name
+                  in: query
+                  name: file_name
                   required: true
                   schema:
                     type: string
@@ -398,15 +404,28 @@ paths:
                                 additionalProperties: true
                                 type: object
                     description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                additionalProperties: true
+                                type: object
+                    description: Not Found
             summary: Get file note
             tags:
                 - Files
         put:
-            description: Updates or creates the note for a file checksum.
+            description: Updates or creates the note for a file identified by checksum and file name.
             parameters:
                 - description: File checksum
                   in: path
                   name: checksum
+                  required: true
+                  schema:
+                    type: string
+                - description: File name
+                  in: query
+                  name: file_name
                   required: true
                   schema:
                     type: string
@@ -440,6 +459,13 @@ paths:
                                 additionalProperties: true
                                 type: object
                     description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                additionalProperties: true
+                                type: object
+                    description: Not Found
             summary: Edit file note
             tags:
                 - Files

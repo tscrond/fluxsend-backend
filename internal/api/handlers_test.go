@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -220,6 +222,61 @@ func TestServerHandlers_PublicShareRoutesBypassAuth(t *testing.T) {
 			assert.Equal(t, tt.statusCode, w.Code)
 		})
 	}
+}
+
+func TestGetFileNotes_FileNameRequired(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, _ := newTestServer(ctrl)
+	userID := uuid.New()
+
+	req := httptest.NewRequest(http.MethodGet, "/files/abc123/note", nil)
+	req = injectAuth(req, "test@example.com", userID.String(), defaultPlan(uuid.NewString()))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("checksum", "abc123")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	srv.getFileNotes(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetFileNotes_UsesFileName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+	userID := uuid.New()
+
+	deps.files.EXPECT().GetNote(gomock.Any(), userID, "abc123", "docs/report.txt").Return("note", nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/files/abc123/note?file_name=docs%2Freport.txt", nil)
+	req = injectAuth(req, "test@example.com", userID.String(), defaultPlan(uuid.NewString()))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("checksum", "abc123")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	srv.getFileNotes(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetFileNotes_FileNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+	userID := uuid.New()
+
+	deps.files.EXPECT().GetNote(gomock.Any(), userID, "abc123", "docs/report.txt").Return("", sql.ErrNoRows)
+
+	req := httptest.NewRequest(http.MethodGet, "/files/abc123/note?file_name=docs%2Freport.txt", nil)
+	req = injectAuth(req, "test@example.com", userID.String(), defaultPlan(uuid.NewString()))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("checksum", "abc123")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	srv.getFileNotes(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestUploadHandler_FileTooLarge(t *testing.T) {

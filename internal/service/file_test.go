@@ -510,18 +510,19 @@ func TestFileService_GetNote_HappyPath(t *testing.T) {
 	userID := uuid.New()
 	fileID := int32(7)
 	const checksum = "abc123"
+	const fileName = "docs/report.txt"
 	const noteContent = "This is a note"
 
-	q.EXPECT().GetFileFromChecksum(gomock.Any(), sqlc.GetFileFromChecksumParams{
-		OwnerID:     userID,
-		Md5Checksum: checksum,
-	}).Return(fileID, nil)
+	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  userID,
+		FileName: fileName,
+	}).Return(sqlc.GetFileByOwnerAndNameRow{ID: fileID, FileName: fileName, Md5Checksum: checksum}, nil)
 	q.EXPECT().GetNoteForFileById(gomock.Any(), sqlc.GetNoteForFileByIdParams{
 		UserID: userID,
 		FileID: sql.NullInt32{Valid: true, Int32: fileID},
 	}).Return(sqlc.Note{Content: noteContent}, nil)
 
-	content, err := svc.GetNote(context.Background(), userID, checksum)
+	content, err := svc.GetNote(context.Background(), userID, checksum, fileName)
 	require.NoError(t, err)
 	assert.Equal(t, noteContent, content)
 }
@@ -532,14 +533,57 @@ func TestFileService_GetNote_FileNotFound(t *testing.T) {
 	stor := mocks.NewMockObjectStorage(ctrl)
 	svc := newFileTestSvc(q, stor)
 	userID := uuid.New()
+	const fileName = "docs/report.txt"
 
-	q.EXPECT().GetFileFromChecksum(gomock.Any(), sqlc.GetFileFromChecksumParams{
-		OwnerID:     userID,
-		Md5Checksum: "bad-checksum",
-	}).Return(int32(0), sql.ErrNoRows)
+	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  userID,
+		FileName: fileName,
+	}).Return(sqlc.GetFileByOwnerAndNameRow{}, sql.ErrNoRows)
 
-	_, err := svc.GetNote(context.Background(), userID, "bad-checksum")
+	_, err := svc.GetNote(context.Background(), userID, "bad-checksum", fileName)
 	assert.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func TestFileService_GetNote_ChecksumMismatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := newFileTestSvc(q, stor)
+	userID := uuid.New()
+	const fileName = "docs/report.txt"
+
+	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  userID,
+		FileName: fileName,
+	}).Return(sqlc.GetFileByOwnerAndNameRow{ID: 7, FileName: fileName, Md5Checksum: "other-checksum"}, nil)
+
+	_, err := svc.GetNote(context.Background(), userID, "bad-checksum", fileName)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func TestFileService_GetNote_EmptyWhenNoteMissing(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := newFileTestSvc(q, stor)
+
+	userID := uuid.New()
+	fileID := int32(7)
+	const checksum = "abc123"
+	const fileName = "docs/report.txt"
+
+	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  userID,
+		FileName: fileName,
+	}).Return(sqlc.GetFileByOwnerAndNameRow{ID: fileID, FileName: fileName, Md5Checksum: checksum}, nil)
+	q.EXPECT().GetNoteForFileById(gomock.Any(), sqlc.GetNoteForFileByIdParams{
+		UserID: userID,
+		FileID: sql.NullInt32{Valid: true, Int32: fileID},
+	}).Return(sqlc.Note{}, sql.ErrNoRows)
+
+	content, err := svc.GetNote(context.Background(), userID, checksum, fileName)
+	require.NoError(t, err)
+	assert.Equal(t, "", content)
 }
 
 func TestFileService_UpsertNote_HappyPath(t *testing.T) {
@@ -551,19 +595,20 @@ func TestFileService_UpsertNote_HappyPath(t *testing.T) {
 	userID := uuid.New()
 	fileID := int32(7)
 	const checksum = "abc123"
+	const fileName = "docs/report.txt"
 	const content = "My note"
 
-	q.EXPECT().GetFileFromChecksum(gomock.Any(), sqlc.GetFileFromChecksumParams{
-		OwnerID:     userID,
-		Md5Checksum: checksum,
-	}).Return(fileID, nil)
+	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{
+		OwnerID:  userID,
+		FileName: fileName,
+	}).Return(sqlc.GetFileByOwnerAndNameRow{ID: fileID, FileName: fileName, Md5Checksum: checksum}, nil)
 	q.EXPECT().UpdateNoteForFile(gomock.Any(), sqlc.UpdateNoteForFileParams{
 		UserID:  userID,
 		FileID:  sql.NullInt32{Valid: true, Int32: fileID},
 		Content: content,
 	}).Return(sqlc.Note{Content: content}, nil)
 
-	saved, err := svc.UpsertNote(context.Background(), userID, checksum, content)
+	saved, err := svc.UpsertNote(context.Background(), userID, checksum, fileName, content)
 	require.NoError(t, err)
 	assert.Equal(t, content, saved)
 }
@@ -576,6 +621,6 @@ func TestFileService_UpsertNote_TooLong(t *testing.T) {
 
 	longContent := strings.Repeat("x", 501)
 
-	_, err := svc.UpsertNote(context.Background(), uuid.New(), "checksum", longContent)
+	_, err := svc.UpsertNote(context.Background(), uuid.New(), "checksum", "docs/report.txt", longContent)
 	assert.ErrorIs(t, err, ErrNoteTooLong)
 }

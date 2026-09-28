@@ -32,8 +32,8 @@ This page is generated from the current OpenAPI 3 document. Regenerate it with `
 | POST | /api/files/move | Move file | Moves a personal file from one path to another. |
 | DELETE | /api/files/delete/batch | Delete multiple files | Deletes several personal files in one request. |
 | DELETE | /api/files/delete | Delete a file | Deletes a file from the authenticated user's personal storage. |
-| GET | /api/files/{checksum}/note | Get file note | Returns the note content for a file checksum. |
-| PUT | /api/files/{checksum}/note | Edit file note | Updates or creates the note for a file checksum. |
+| GET | /api/files/{checksum}/note | Get file note | Returns the note content for a file identified by checksum and file name. |
+| PUT | /api/files/{checksum}/note | Edit file note | Updates or creates the note for a file identified by checksum and file name. |
 
 ## Sharing
 

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -22,14 +23,16 @@ func (s *CoreHandlers) fileNotesHandler(w http.ResponseWriter, r *http.Request) 
 
 // editFileNotes updates the note attached to a file.
 // @Summary Edit file note
-// @Description Updates or creates the note for a file checksum.
+// @Description Updates or creates the note for a file identified by checksum and file name.
 // @Tags Files
 // @Accept json
 // @Produce json
 // @Param checksum path string true "File checksum"
+// @Param file_name query string true "File name"
 // @Param request body object true "Note content request"
 // @Success 200 {object} map[string]any
 // @Failure 400 {object} map[string]any
+// @Failure 404 {object} map[string]any
 // @Failure 401 {object} map[string]any
 // @Router /api/files/{checksum}/note [put]
 func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +49,15 @@ func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	checksum := chi.URLParam(r, "checksum")
+	if checksum == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "checksum_empty", "")
+		return
+	}
+	fileName := r.URL.Query().Get("file_name")
+	if fileName == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "file_name_empty", "")
+		return
+	}
 
 	type NoteContent struct {
 		Content string `json:"content"`
@@ -56,10 +68,14 @@ func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sanitized, err := s.files.UpsertNote(r.Context(), userUUID, checksum, req.Content)
+	sanitized, err := s.files.UpsertNote(r.Context(), userUUID, checksum, fileName, req.Content)
 	if err != nil {
 		if errors.Is(err, service.ErrNoteTooLong) {
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "too_many_characters", "")
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			pkg.WriteJSONResponse(w, http.StatusNotFound, "file_not_found", "")
 			return
 		}
 		log.Errorw("error upserting note", "error", err)
@@ -74,12 +90,14 @@ func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 
 // getFileNotes returns the note attached to a file.
 // @Summary Get file note
-// @Description Returns the note content for a file checksum.
+// @Description Returns the note content for a file identified by checksum and file name.
 // @Tags Files
 // @Param checksum path string true "File checksum"
+// @Param file_name query string true "File name"
 // @Produce json
 // @Success 200 {object} map[string]any
 // @Failure 400 {object} map[string]any
+// @Failure 404 {object} map[string]any
 // @Failure 401 {object} map[string]any
 // @Router /api/files/{checksum}/note [get]
 func (s *CoreHandlers) getFileNotes(w http.ResponseWriter, r *http.Request) {
@@ -100,9 +118,18 @@ func (s *CoreHandlers) getFileNotes(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "checksum_empty", "")
 		return
 	}
+	fileName := r.URL.Query().Get("file_name")
+	if fileName == "" {
+		pkg.WriteJSONResponse(w, http.StatusBadRequest, "file_name_empty", "")
+		return
+	}
 
-	content, err := s.files.GetNote(r.Context(), userUUID, checksum)
+	content, err := s.files.GetNote(r.Context(), userUUID, checksum, fileName)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			pkg.WriteJSONResponse(w, http.StatusNotFound, "file_not_found", "")
+			return
+		}
 		log.Errorw("error getting note", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "error_get_note", "")
 		return
