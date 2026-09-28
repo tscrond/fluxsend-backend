@@ -34,6 +34,7 @@ services:
       - 8091:8091/tcp
     command: ["./fluxsend", "--password-auth"]
     environment:
+      - DEBUG_CONFIG_LOADING=${DEBUG_CONFIG_LOADING:-}
       - FRONTEND_ENDPOINT=http://localhost:8000
       - BACKEND_ENDPOINT=http://localhost:3000
       # - STORAGE_PROVIDER=${STORAGE_PROVIDER:-gcs}

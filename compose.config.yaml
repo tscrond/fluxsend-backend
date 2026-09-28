@@ -32,14 +32,13 @@ services:
     ports:
       - 3000:3000/tcp
       - 8091:8091/tcp
+    environment:
+      - DEBUG_CONFIG_LOADING=${DEBUG_CONFIG_LOADING:-}
     command: ["./fluxsend", "--config", "/config/config.yaml"]
     volumes:
       - /home/tskr/wazne/bucket-auth.json:/config/bucket-auth.json:ro
       - /home/tskr/wazne/fluxsend_private_key.pem:/config/fluxsend_private_key.pem:ro
-    mounts:
-      - type: bind
-        source: ./config.example.full.yaml
-        target: /config/config.yaml
+      - ./config.example.full.yaml:/config/config.yaml:ro
 
   minio:
     image: minio/minio:latest

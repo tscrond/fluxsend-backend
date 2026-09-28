@@ -54,13 +54,15 @@ func BuildViper(cfgFile, envFile string) (*viper.Viper, error) {
 		return nil, err
 	}
 
-	for key := range GetEnvVarMap() {
-		fmt.Printf(
-			"[DEBUG] resolved: key=%s value=%#v isSet=%v\n",
-			key,
-			v.Get(key),
-			v.IsSet(key),
-		)
+	if configDebugLoggingEnabled(v, nil) {
+		for key := range GetEnvVarMap() {
+			fmt.Printf(
+				"[DEBUG] resolved: key=%s value=%#v isSet=%v\n",
+				key,
+				v.Get(key),
+				v.IsSet(key),
+			)
+		}
 	}
 
 	return v, nil
@@ -80,16 +82,21 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("admin.admin_username", "")
 	v.SetDefault("admin.admin_password", "")
 	v.SetDefault("api.email_whitelist", []string{})
+	v.SetDefault(configDebugLoggingKey, false)
 }
 
 func bindEnvVars(v *viper.Viper) error {
+	debugEnabled := configDebugLoggingEnabled(v, nil)
+
 	for key, envVar := range GetEnvVarMap() {
 		value, exists := os.LookupEnv(envVar)
 		if !exists {
 			continue
 		}
 
-		fmt.Printf("[DEBUG] environment: %s=%q -> %s\n", envVar, value, key)
+		if debugEnabled {
+			fmt.Printf("[DEBUG] environment: %s=%q -> %s\n", envVar, value, key)
+		}
 
 		if key == "api.email_whitelist" {
 			setConfigValue(v, key, value)
@@ -114,11 +121,14 @@ func loadEnvFile(v *viper.Viper, path string) error {
 		return err
 	}
 
+	debugEnabled := configDebugLoggingEnabled(v, values)
 	envMap := GetEnvVarMap()
 
 	for key, envVar := range envMap {
 		if value, ok := values[envVar]; ok {
-			fmt.Printf("[DEBUG] .env: %s=%q -> %s\n", envVar, value, key)
+			if debugEnabled {
+				fmt.Printf("[DEBUG] .env: %s=%q -> %s\n", envVar, value, key)
+			}
 			setConfigValue(v, key, value)
 		}
 	}
