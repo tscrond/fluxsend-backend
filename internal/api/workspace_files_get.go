@@ -102,6 +102,7 @@ func (s *CoreHandlers) downloadWorkspaceFile(w http.ResponseWriter, r *http.Requ
 
 	info, err := s.workspaceFiles.GetWorkspaceFileDownloadInfo(r.Context(), workspaceID, fileID)
 	if err != nil {
+		s.metrics.RecordDownload("workspace", workspaceDownloadMechanism(mode, s.cloudFrontSigner != nil), downloadOutcomeFromError(err))
 		if errors.Is(err, service.ErrWsFileNotFound) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "", "not_found")
 			return
@@ -118,9 +119,11 @@ func (s *CoreHandlers) downloadWorkspaceFile(w http.ResponseWriter, r *http.Requ
 
 	signedURL, err := s.bucketHandler.GenerateSignedURL(r.Context(), info.Bucket, info.ObjectKey, expiresAt, contentDisposition)
 	if err != nil {
+		s.metrics.RecordDownload("workspace", workspaceDownloadMechanism(mode, s.cloudFrontSigner != nil), "error")
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
 
-	s.handleDownloadResponse(w, r, signedURL, info.FileName, mode)
+	mechanism, responseErr := s.handleDownloadResponse(w, r, signedURL, info.FileName, mode)
+	s.metrics.RecordDownload("workspace", mechanism, downloadOutcomeFromError(responseErr))
 }

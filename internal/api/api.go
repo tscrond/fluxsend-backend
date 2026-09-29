@@ -11,6 +11,7 @@ import (
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	appmetrics "github.com/tscrond/fluxsend-backend/internal/metrics"
 	"github.com/tscrond/fluxsend-backend/internal/middleware"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
@@ -24,6 +25,7 @@ type CoreHandlers struct {
 	bucketHandler    storagetypes.ObjectStorage
 	cloudFrontSigner *cdn.CloudFrontURLSigner
 	emailSender      mailtypes.EmailSender
+	metrics          *appmetrics.Metrics
 	repository       repo.Repository
 
 	files          service.FileService
@@ -48,6 +50,7 @@ type CoreHandlersDependencies struct {
 	EmailSender      mailtypes.EmailSender
 	BucketHandler    storagetypes.ObjectStorage
 	CloudFrontSigner *cdn.CloudFrontURLSigner
+	Metrics          *appmetrics.Metrics
 	Repository       repo.Repository
 	Files            service.FileService
 	Shares           service.ShareService
@@ -65,12 +68,18 @@ type APIServerDependencies struct {
 }
 
 func NewCoreHandlers(backendConfig config.BackendConfig, deps CoreHandlersDependencies) *CoreHandlers {
+	metrics := deps.Metrics
+	if metrics == nil {
+		metrics = appmetrics.NewDisabled()
+	}
+
 	return &CoreHandlers{
 		log:              deps.Log,
 		backendConfig:    backendConfig,
 		bucketHandler:    deps.BucketHandler,
 		cloudFrontSigner: deps.CloudFrontSigner,
 		emailSender:      deps.EmailSender,
+		metrics:          metrics,
 		repository:       deps.Repository,
 		files:            deps.Files,
 		shares:           deps.Shares,
@@ -179,7 +188,7 @@ func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies
 func (s *APIServer) Handler() http.Handler {
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestLogger(s.log), chimiddleware.ClientIPFromRemoteAddr)
+	r.Use(middleware.RequestLogger(s.log), chimiddleware.ClientIPFromRemoteAddr, s.metrics.HTTPMiddleware())
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.backendConfig.FrontendEndpoint},

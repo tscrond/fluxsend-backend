@@ -56,6 +56,7 @@ nav:
       - Production Setup: deployment/01-production-setup.md
       - Standalone: deployment/02-standalone.md
       - Docker: deployment/03-docker.md
+      - Metrics: deployment/06-metrics.md
       - Self-hosted MinIO: deployment/05-self-hosted-minio.md
       - Kubernetes: deployment/04-kubernetes.md
   - API Reference:

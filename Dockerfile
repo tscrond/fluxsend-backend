@@ -21,6 +21,6 @@ WORKDIR /fluxsend
 COPY --from=builder /fluxsend/fluxsend .
 COPY --from=builder /fluxsend/internal/repo/migrations ./internal/repo/migrations
 
-EXPOSE 3000
+EXPOSE 3000 9464
 
 CMD ["./fluxsend"]

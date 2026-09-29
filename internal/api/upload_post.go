@@ -51,6 +51,7 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 
 	// Enforce per-file size limit
 	if authUserWithPlan.UserPlan.MaxFileSizeBytes > 0 && req.Size > authUserWithPlan.UserPlan.MaxFileSizeBytes {
+		s.metrics.RecordUploadSession("private", "failed")
 		log.Warnw("plan limit: file too large",
 			"user", authUserWithPlan.AuthorizedUserInfo.UserID,
 			"plan", authUserWithPlan.UserPlan.PlanName,
@@ -69,8 +70,10 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 	// enforce plan limits on uploads
 	if exceedInfo, err := s.validateClassicUploadPlan(r.Context(), userUUID, authUserWithPlan.UserPlan); err != nil {
 		if errors.Is(err, ErrFileLimitExceeded) || errors.Is(err, ErrStorageQuotaExceeded) || errors.Is(err, ErrDailyUploadLimitExceeded) {
+			s.metrics.RecordUploadSession("private", "failed")
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
+			s.metrics.RecordUploadSession("private", "failed")
 			log.Errorw("upload quota check failed", "user", userUUID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
@@ -87,9 +90,11 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 	}
 	uploadResponse, err := s.files.CreateUploadWithId(r.Context(), params)
 	if err != nil {
+		s.metrics.RecordUploadSession("private", "failed")
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "failed_creating_upload_id", "")
 		return
 	}
+	s.metrics.RecordUploadSession("private", "initiated")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "created_upload_id", map[string]any{
 		"upload_id":  uploadResponse.UploadId,
@@ -131,6 +136,7 @@ func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request)
 		r.ContentLength,
 	)
 	if err != nil {
+		s.metrics.RecordUploadPart("private", "failed")
 		pkg.WriteJSONResponse(
 			w,
 			http.StatusBadRequest,
@@ -139,6 +145,8 @@ func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request)
 		)
 		return
 	}
+	s.metrics.RecordUploadPart("private", "completed")
+	s.metrics.AddUploadBytes("private", r.ContentLength)
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "uploaded_chunk", result)
 }
@@ -158,6 +166,7 @@ func (s *CoreHandlers) completeUploadHandler(w http.ResponseWriter, r *http.Requ
 
 	result, err := s.files.CompleteUpload(r.Context(), uploadId)
 	if err != nil {
+		s.metrics.RecordUploadSession("private", "failed")
 		switch {
 		case errors.Is(err, service.ErrMultipartUploadIncomplete):
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "multipart_upload_incomplete", "")
@@ -175,6 +184,8 @@ func (s *CoreHandlers) completeUploadHandler(w http.ResponseWriter, r *http.Requ
 		}
 		return
 	}
+	s.metrics.RecordUploadSession("private", "completed")
+	s.metrics.RecordFileUploaded("private")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "upload_completed", result)
 }
@@ -194,6 +205,7 @@ func (s *CoreHandlers) abortUploadHandler(w http.ResponseWriter, r *http.Request
 
 	result, err := s.files.AbortUpload(r.Context(), uploadId)
 	if err != nil {
+		s.metrics.RecordUploadSession("private", "failed")
 		switch {
 		case errors.Is(err, service.ErrMultipartUploadUnsupported):
 			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "multipart_upload_not_supported", "")
@@ -205,6 +217,7 @@ func (s *CoreHandlers) abortUploadHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
+	s.metrics.RecordUploadSession("private", "aborted")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "upload_aborted", result)
 }
@@ -296,6 +309,8 @@ func (s *CoreHandlers) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	s.metrics.AddUploadBytes("private", header.Size)
+	s.metrics.RecordFileUploaded("private")
 
 	msg := fmt.Sprintf("Files uploaded successfully: %+v\n", fileData.RequestHeaders.Filename)
 

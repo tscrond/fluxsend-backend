@@ -18,6 +18,9 @@ The backend sets defaults for ports and auth toggles before merging in the confi
 - `api.enable_github_auth` defaults to `false`
 - `api.enable_password_auth` defaults to `false`
 - `cli.listen_port` defaults to `8091`
+- `metrics.enabled` defaults to `false`
+- `metrics.listen_port` defaults to `9464`
+- `metrics.path` defaults to `/metrics`
 
 ## Config file example
 
@@ -59,6 +62,12 @@ mail:
 cli:
   listen_port: "8091"
   route_prefix: "/api"
+
+metrics:
+  enabled: false
+  listen_port: "9464"
+  bind_address: "127.0.0.1"
+  path: "/metrics"
 ```
 
 Start the app with a custom file:
@@ -119,6 +128,10 @@ The app binds every supported config key to environment variables through Viper.
 | `cli.listen_port` | `FLUXSEND_API_LISTEN_PORT` |
 | `cli.backend_endpoint` | `BACKEND_ENDPOINT` |
 | `cli.route_prefix` | `FLUXSEND_API_ROUTE_PREFIX` |
+| `metrics.enabled` | `METRICS_ENABLED` |
+| `metrics.listen_port` | `METRICS_LISTEN_PORT` |
+| `metrics.bind_address` | `METRICS_BIND_ADDRESS` |
+| `metrics.path` | `METRICS_PATH` |
 
 This is the complete set of configuration keys currently bound by the runtime; not every key is required in every deployment, but every supported key is represented here.
 

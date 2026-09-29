@@ -7,6 +7,7 @@
 - Sharing files in the store via email or private/public links
 - Previewing supported file types (image, video, audio, pdf)
 - Adding notes attached to stored files
+- Optional Prometheus metrics on a dedicated listener
 
 ## Prerequisites
 
@@ -109,6 +110,10 @@ export DB_HOST="localhost"
 
 export FRONTEND_ENDPOINT="http://${CURRENT_IP}:5173"
 export BACKEND_ENDPOINT="http://${CURRENT_IP}:3000"
+export METRICS_ENABLED=false
+export METRICS_LISTEN_PORT="9464"
+export METRICS_BIND_ADDRESS="127.0.0.1"
+export METRICS_PATH="/metrics"
 ```
 
 ### Build and Run with Docker
@@ -152,6 +157,13 @@ This will build the Docker image and start the backend service.
 - This path currently supports `STORAGE_PROVIDER=s3` only.
 - Required when enabled: `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_PAIR_ID`, `CLOUDFRONT_PRIVATE_KEY_PATH`.
 - The CloudFront URL shape is `https://<CLOUDFRONT_DOMAIN>/<userId>/<object>`.
+
+## Prometheus Metrics
+
+- Metrics are exposed on a dedicated listener and are disabled by default.
+- Configure them with `METRICS_ENABLED`, `METRICS_LISTEN_PORT`, `METRICS_BIND_ADDRESS`, and `METRICS_PATH`.
+- Scrape locally with `curl -s http://127.0.0.1:9464/metrics` after enabling the listener.
+- Because the endpoint is unauthenticated, prefer binding it to `127.0.0.1` or a private network and let Prometheus scrape through network policy or a sidecar.
 
 ## 👤 User Info Endpoints
 

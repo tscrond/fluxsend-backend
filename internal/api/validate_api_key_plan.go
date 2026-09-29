@@ -20,6 +20,7 @@ func (s *CoreHandlers) validatePrivateAPIKeyLimit(ctx context.Context, userID uu
 		return nil, err
 	}
 	if exceeded {
+		s.recordQuotaRejection(ErrPrivateAPIKeysLimitExceeded)
 		log.Warnw("plan limit exceeded: private api keys", "user_id", userID, "limit", userPlan.MaxPrivateAPIKeys)
 		return map[string]any{
 			"msg":                  "You have reached the maximum number of API keys for private files on your plan",
@@ -42,6 +43,7 @@ func (s *CoreHandlers) validateWorkspaceAPIKeyLimit(ctx context.Context, workspa
 			log.Errorw("DB error loading workspace quota after api key limit breach", "workspace_id", workspaceID, "error", err)
 			return nil, err
 		}
+		s.recordQuotaRejection(ErrWorkspaceAPIKeysLimitExceeded)
 		log.Warnw("plan limit exceeded: workspace api keys", "workspace_id", workspaceID, "limit", quota.MaxWorkspaceApiKeys)
 		return map[string]any{
 			"msg":                    "This workspace has reached the maximum number of API keys for your plan",

@@ -12,6 +12,10 @@ The following table documents the environment variables supported by the backend
 | FLUXSEND_LISTEN_PORT | Main backend listen port | `3000` | No |
 | FLUXSEND_API_LISTEN_PORT | Developer CLI API listen port | `8091` | No |
 | FLUXSEND_API_ROUTE_PREFIX | CLI API route prefix | `/api` | No |
+| METRICS_ENABLED | Enables the dedicated Prometheus listener | `false` | No |
+| METRICS_LISTEN_PORT | Prometheus listener port | `9464` | No |
+| METRICS_BIND_ADDRESS | Address bound by the Prometheus listener; empty means all interfaces | `""` | No |
+| METRICS_PATH | HTTP path served by the Prometheus listener | `/metrics` | No |
 | ENABLE_GOOGLE_AUTH | Enables Google OAuth login | `false` | No |
 | ENABLE_GITHUB_AUTH | Enables GitHub OAuth login | `false` | No |
 | ENABLE_PASSWORD_AUTH | Enables email/password auth | `false` | No |
@@ -57,3 +61,9 @@ If `STORAGE_PROVIDER` is not set, the backend auto-detects it from the environme
 - otherwise → `gcs`
 
 This is useful for self-hosted deployments where MinIO values are present without explicitly setting the storage provider.
+
+## Metrics listener notes
+
+- `METRICS_ENABLED` controls the dedicated metrics server in both normal and `--dev-api` mode.
+- `METRICS_BIND_ADDRESS` defaults to an empty string, which means the listener binds on all interfaces.
+- Because the endpoint has no auth layer, prefer `127.0.0.1` or a private address unless Prometheus reaches it over a protected network.
