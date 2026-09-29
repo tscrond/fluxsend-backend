@@ -44,8 +44,10 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			log := logger.FromContext(r.Context())
+			domainLabel := cliRouteMetricDomain(r.Context())
 			apiKey := strings.TrimSpace(r.Header.Get("X-API-Key"))
 			if apiKey == "" {
+				s.metrics.RecordAPIKeyRequest(domainLabel, "invalid")
 				pkg.WriteJSONResponse(w, http.StatusForbidden, "missing_api_key", "Unauthorized")
 				log.Errorf("missing API key")
 				return
@@ -53,6 +55,7 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 
 			authorizedCLIUser, err := s.repository.Queries().GetAuthorizedCLIUserInfoByAPIKey(r.Context(), apiKey)
 			if err != nil {
+				s.metrics.RecordAPIKeyRequest(domainLabel, "invalid")
 				log.Errorw("cannot find valid API key", "error", err)
 				pkg.WriteJSONResponse(w, http.StatusForbidden, "invalid_api_key", "Unauthorized")
 				return
@@ -60,6 +63,7 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 
 			bindingType, principalUserID, keyWorkspaceID, ok := parseAPIKeyBinding(authorizedCLIUser)
 			if !ok {
+				s.metrics.RecordAPIKeyRequest(domainLabel, "invalid")
 				log.Errorw("invalid API key assignment", "api_key_id", authorizedCLIUser.ApiKeyID)
 				pkg.WriteJSONResponse(w, http.StatusForbidden, "invalid_api_key_binding", "Unauthorized")
 				return
@@ -85,6 +89,7 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 
 			for _, granted := range scopes {
 				if !scope.IsKnown(granted) {
+					s.metrics.RecordAPIKeyRequest(domainLabel, "invalid")
 					log.Warnw("api key has unknown scope", "scope", granted, "api_key_id", authorizedCLIUser.ApiKeyID)
 					pkg.WriteJSONResponse(w, http.StatusForbidden, "invalid_scope", "Unauthorized")
 					return
@@ -118,12 +123,14 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 			switch bindingType {
 			case apiKeyBindingPrivate:
 				if mappedUserPlan.MaxPrivateAPIKeys == 0 {
+					s.metrics.RecordAPIKeyRequest(domainLabel, "denied")
 					log.Errorw("user not allowed to use private api keys", "user_id", principalUserID)
 					pkg.WriteJSONResponse(w, http.StatusForbidden, "api_usage_not_allowed", "Your plan does not allow API key usage")
 					return
 				}
 			case apiKeyBindingWorkspace:
 				if mappedUserPlan.MaxWorkspaceAPIKeys == 0 {
+					s.metrics.RecordAPIKeyRequest(domainLabel, "denied")
 					log.Errorw("user not allowed to use workspace api keys", "user_id", planUserID)
 					pkg.WriteJSONResponse(w, http.StatusForbidden, "api_usage_not_allowed", "Your plan does not allow API key usage")
 					return
@@ -251,6 +258,7 @@ func (s *CLIServer) requireKeyBinding(domain routeDomain, requiresWorkspaceID bo
 			}
 
 			if !bindingAllowsDomain(binding.bindingType, domain) {
+				s.metrics.RecordAPIKeyRequest(string(domain), "denied")
 				log.Warnw("api key binding does not allow route domain", "binding_type", binding.bindingType, "domain", domain, "path", r.URL.Path)
 				pkg.WriteJSONResponse(w, http.StatusForbidden, "insufficient_scope", "You don't have permission to perform this action")
 				return
@@ -259,16 +267,20 @@ func (s *CLIServer) requireKeyBinding(domain routeDomain, requiresWorkspaceID bo
 			if binding.bindingType == apiKeyBindingWorkspace && requiresWorkspaceID {
 				requestedWorkspaceID, found := extractWorkspaceIDFromRequest(r)
 				if !found {
+					s.metrics.RecordAPIKeyRequest(string(domain), "denied")
 					log.Warnw("workspace-scoped api key requires explicit workspace id", "path", r.URL.Path, "method", r.Method)
 					pkg.WriteJSONResponse(w, http.StatusForbidden, "workspace_scope_violation", "You don't have permission to perform this action")
 					return
 				}
 				if requestedWorkspaceID != binding.workspaceID {
+					s.metrics.RecordAPIKeyRequest(string(domain), "denied")
 					log.Warnw("workspace-scoped api key attempted access outside assigned workspace", "assigned_workspace_id", binding.workspaceID, "requested_workspace_id", requestedWorkspaceID)
 					pkg.WriteJSONResponse(w, http.StatusForbidden, "workspace_scope_violation", "You don't have permission to perform this action")
 					return
 				}
 			}
+
+			s.metrics.RecordAPIKeyRequest(string(domain), "allowed")
 
 			next.ServeHTTP(w, r)
 		})
@@ -294,6 +306,7 @@ func (s *CLIServer) requireScope(requiredScope scope.Scope) func(http.Handler) h
 			}
 
 			log.Warnw("user does not have required scope", "required_scope", requiredScope)
+			s.metrics.RecordAPIKeyRequest(cliRouteMetricDomain(r.Context()), "denied")
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "insufficient_scope", "You don't have permission to perform this action")
 		})
 	}

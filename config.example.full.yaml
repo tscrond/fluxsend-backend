@@ -70,3 +70,11 @@ cli:
   listen_port: "8091"
   backend_endpoint: "http://localhost:3000"
   route_prefix: "/api"
+
+metrics:
+  enabled: false
+  listen_port: "9464"
+  # Leave blank to bind all interfaces. Prefer 127.0.0.1 or a private address
+  # unless your Prometheus server scrapes over an isolated network.
+  bind_address: "127.0.0.1"
+  path: "/metrics"

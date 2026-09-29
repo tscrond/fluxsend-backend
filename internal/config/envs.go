@@ -53,5 +53,9 @@ func GetEnvVarMap() map[string]string {
 		"admin.admin_username":                   "ADMIN_USERNAME",
 		"admin.admin_password":                   "ADMIN_PASSWORD",
 		"admin.listen_port":                      "ADMIN_LISTEN_PORT",
+		"metrics.enabled":                        "METRICS_ENABLED",
+		"metrics.listen_port":                    "METRICS_LISTEN_PORT",
+		"metrics.bind_address":                   "METRICS_BIND_ADDRESS",
+		"metrics.path":                           "METRICS_PATH",
 	}
 }
