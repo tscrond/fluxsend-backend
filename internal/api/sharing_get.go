@@ -53,6 +53,7 @@ func (s *CoreHandlers) downloadThroughProxyPersonal(w http.ResponseWriter, r *ht
 
 	result, err := s.shares.ResolvePersonalDownload(r.Context(), ownerID, token, mode)
 	if err != nil {
+		s.metrics.RecordDownload("private", servedDownloadMechanism(mode, mode == "download" && s.cloudFrontSigner != nil, s.cloudFrontSigner != nil), downloadOutcomeFromError(err))
 		if errors.Is(err, sql.ErrNoRows) {
 			pkg.WriteJSONResponse(w, http.StatusNotFound, "file_does_not_exist", "")
 			return
@@ -66,7 +67,8 @@ func (s *CoreHandlers) downloadThroughProxyPersonal(w http.ResponseWriter, r *ht
 		return
 	}
 
-	s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
+	mechanism, responseErr := s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
+	s.metrics.RecordDownload("private", mechanism, downloadOutcomeFromError(responseErr))
 }
 
 // publicShareInfo returns metadata for a public share token.
@@ -157,6 +159,7 @@ func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request
 
 	result, err := s.shares.ResolvePublicDownload(r.Context(), token, mode, body.Password)
 	if err != nil {
+		s.metrics.RecordDownload("public", resolvedURLMechanism(s.cloudFrontSigner != nil), downloadOutcomeFromError(err))
 		if errors.Is(err, service.ErrTokenExpired) {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "past_expiration_time_or_does_not_exist", "")
 			return
@@ -181,6 +184,7 @@ func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
+	s.metrics.RecordDownload("public", resolvedURLMechanism(s.cloudFrontSigner != nil), "success")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "", map[string]string{
 		"url":       result.URL,
@@ -225,6 +229,7 @@ func (s *CoreHandlers) downloadThroughProxy(w http.ResponseWriter, r *http.Reque
 
 	result, err := s.shares.ResolvePublicDownload(r.Context(), token, mode, passwordResult.Password)
 	if err != nil {
+		s.metrics.RecordDownload("public", servedDownloadMechanism(mode, mode == "download" && s.cloudFrontSigner != nil, s.cloudFrontSigner != nil), downloadOutcomeFromError(err))
 		if errors.Is(err, service.ErrTokenExpired) {
 			pkg.WriteJSONResponse(w, http.StatusForbidden, "past_expiration_time_or_does_not_exist", "")
 			return
@@ -250,31 +255,36 @@ func (s *CoreHandlers) downloadThroughProxy(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
+	mechanism, responseErr := s.handleDownloadResponse(w, r, result.URL, result.FileName, mode)
+	s.metrics.RecordDownload("public", mechanism, downloadOutcomeFromError(responseErr))
 }
 
-func (s *CoreHandlers) handleDownloadResponse(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) {
+func (s *CoreHandlers) handleDownloadResponse(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) (string, error) {
 	if mode == "download" && s.cloudFrontSigner != nil {
-		s.proxyDownload(w, r, signedUrl, filename)
-		return
+		return "proxy", s.proxyDownload(w, r, signedUrl, filename)
+	}
+	if s.cloudFrontSigner != nil {
+		http.Redirect(w, r, signedUrl, http.StatusFound)
+		return "cloudfront", nil
 	}
 	http.Redirect(w, r, signedUrl, http.StatusFound)
+	return "signed_url", nil
 }
 
-func (s *CoreHandlers) proxyDownload(w http.ResponseWriter, r *http.Request, signedUrl, filename string) {
+func (s *CoreHandlers) proxyDownload(w http.ResponseWriter, r *http.Request, signedUrl, filename string) error {
 	log := logger.FromContext(r.Context())
 	resp, err := http.Get(signedUrl)
 	if err != nil {
 		log.Errorw("download proxy: fetch error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		log.Warnw("download proxy: upstream non-200", "status", resp.StatusCode)
 		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
-		return
+		return errors.New("download_proxy_error")
 	}
 
 	w.Header().Set("Content-Disposition", buildAttachmentContentDisposition(filename))
@@ -286,6 +296,7 @@ func (s *CoreHandlers) proxyDownload(w http.ResponseWriter, r *http.Request, sig
 	}
 
 	io.Copy(w, resp.Body)
+	return nil
 }
 
 func buildAttachmentContentDisposition(filename string) string {

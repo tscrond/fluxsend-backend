@@ -33,6 +33,7 @@ func (s *CoreHandlers) validateWorkspacesPerUserLimit(ctx context.Context, owner
 		return nil, err
 	}
 	if exceeded {
+		s.recordQuotaRejection(ErrWorkspacesPerUserLimitExceeded)
 		log.Warnw("plan limit exceeded: workspaces per user", "owner", ownerID)
 		return map[string]any{
 			"msg": "You have reached the maximum number of workspaces for your plan",
@@ -54,21 +55,25 @@ func (s *CoreHandlers) validateWorkspaceResourceLimits(ctx context.Context, work
 
 	switch {
 	case checks.files && quota.FileCount >= quota.MaxFilesWorkspace:
+		s.recordQuotaRejection(ErrWorkspaceFilesLimitExceeded)
 		log.Warnw("plan limit exceeded: workspace files", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of files for your plan",
 		}, ErrWorkspaceFilesLimitExceeded
 	case checks.storage && quota.TotalBytes+pendingBytes > quota.MaxTotalStorageBytesWorkspace:
+		s.recordQuotaRejection(ErrWorkspaceStorageLimitExceeded)
 		log.Warnw("plan limit exceeded: workspace storage", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum storage quota for your plan",
 		}, ErrWorkspaceStorageLimitExceeded
 	case checks.folders && quota.FolderCount >= quota.MaxWorkspaceFolders:
+		s.recordQuotaRejection(ErrWorkspaceFoldersLimitExceeded)
 		log.Warnw("plan limit exceeded: workspace folders", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of folders for your plan",
 		}, ErrWorkspaceFoldersLimitExceeded
 	case checks.members && quota.MemberCount >= quota.MaxUsersWorkspace:
+		s.recordQuotaRejection(ErrWorkspaceUsersLimitExceeded)
 		log.Warnw("plan limit exceeded: workspace members", "workspace_id", workspaceID)
 		return map[string]any{
 			"msg": "This workspace has reached the maximum number of members for your plan",

@@ -90,6 +90,7 @@ func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordWorkspaceCreated()
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "workspace_created", map[string]any{
 		"workspace": map[string]string{
@@ -183,6 +184,7 @@ func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordWorkspaceInvite("created")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_created", invite)
 }
@@ -236,6 +238,8 @@ func (s *CoreHandlers) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 		}
 		return
 	}
+	s.metrics.RecordWorkspaceInvite("accepted")
+	s.metrics.RecordWorkspaceMember("added")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_accepted", nil)
 }

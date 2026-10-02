@@ -53,6 +53,7 @@ func (s *CoreHandlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordWorkspaceDeleted()
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "workspace_deleted", map[string]string{
 		"workspace_id": workspaceID.String(),
@@ -106,6 +107,7 @@ func (s *CoreHandlers) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordWorkspaceInvite("deleted")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_deleted", map[string]string{
 		"invite_id": inviteID.String(),
@@ -152,6 +154,7 @@ func (s *CoreHandlers) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 		}
 		return
 	}
+	s.metrics.RecordWorkspaceInvite("rejected")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "invite_rejected", nil)
 }
@@ -209,6 +212,7 @@ func (s *CoreHandlers) removeWorkspaceMember(w http.ResponseWriter, r *http.Requ
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordWorkspaceMember("removed")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "member_removed", nil)
 }

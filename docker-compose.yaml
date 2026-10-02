@@ -33,6 +33,7 @@ services:
       - 3000:3000/tcp
       - 8091:8091/tcp
       - 1414:1414/tcp
+      - 9464:9464/tcp
     command: ["./fluxsend", "--github-auth", "--password-auth", "--google-auth", "--admin-server"]
     environment:
       - DEBUG_CONFIG_LOADING=${DEBUG_CONFIG_LOADING:-}
@@ -79,10 +80,14 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - EMAIL_WHITELIST=${EMAIL_WHITELIST:-}
       - ADMIN_LISTEN_PORT=${ADMIN_LISTEN_PORT:-1414}
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
+      - METRICS_LISTEN_PORT=${METRICS_LISTEN_PORT:-9464}
+      - METRICS_BIND_ADDRESS=${METRICS_BIND_ADDRESS:-0.0.0.0}
+      - METRICS_PATH=${METRICS_PATH:-/metrics}
 
     volumes:
-      - /home/tskr/wazne/bucket-auth.json:/config/bucket-auth.json:ro
-      - /home/tskr/wazne/fluxsend_private_key.pem:/config/fluxsend_private_key.pem:ro
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/config/bucket-auth.json:ro
+      - ${FLUXSEND_PRIVATE_KEY_PATH}:/config/fluxsend_private_key.pem:ro
 
 
   docs:
