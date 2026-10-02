@@ -36,7 +36,6 @@ jobs:
           context: .
           push: ${{ github.event_name == 'pull_request' }}
           tags: bobaklabs/fluxsend-backend:${{ github.event.inputs.env }}-${{ github.event.inputs.tag }}
-          labels: ${{ steps.meta-dockerhub.outputs.labels }}
           platforms: linux/amd64
           cache-from: type=registry,ref=docker.io/bobaklabs/fluxsend-backend:cache
           cache-to: type=registry,ref=docker.io/bobaklabs/fluxsend-backend:cache,mode=max
