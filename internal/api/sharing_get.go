@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -186,10 +187,27 @@ func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request
 	}
 	s.metrics.RecordDownload("public", resolvedURLMechanism(s.cloudFrontSigner != nil), "success")
 
+	// When storage is internal-only, hand the client the backend's own download
+	// endpoint instead of a signed URL that only resolves inside the network.
+	downloadURL := result.URL
+	if s.proxyDownloads {
+		downloadURL = s.publicDownloadURL(token, mode)
+	}
+
 	pkg.WriteJSONResponse(w, http.StatusOK, "", map[string]string{
-		"url":       result.URL,
+		"url":       downloadURL,
 		"file_name": result.FileName,
 	})
+}
+
+// publicDownloadURL builds the app-origin URL that streams a shared object
+// through the backend.
+func (s *CoreHandlers) publicDownloadURL(token, mode string) string {
+	target := strings.TrimSuffix(s.backendConfig.BackendEndpoint, "/") + "/d/" + url.PathEscape(token)
+	if mode != "" {
+		target += "?mode=" + url.QueryEscape(mode)
+	}
+	return target
 }
 
 // downloadThroughProxy resolves a public share token and returns the file content.
@@ -260,8 +278,10 @@ func (s *CoreHandlers) downloadThroughProxy(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *CoreHandlers) handleDownloadResponse(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) (string, error) {
-	if mode == "download" && s.cloudFrontSigner != nil {
-		return "proxy", s.proxyDownload(w, r, signedUrl, filename)
+	// Stream through the backend when the storage endpoint is internal-only or
+	// when CloudFront attachment downloads are enabled.
+	if s.proxyDownloads || (mode == "download" && s.cloudFrontSigner != nil) {
+		return "proxy", s.proxyDownload(w, r, signedUrl, filename, mode)
 	}
 	if s.cloudFrontSigner != nil {
 		http.Redirect(w, r, signedUrl, http.StatusFound)
@@ -271,9 +291,24 @@ func (s *CoreHandlers) handleDownloadResponse(w http.ResponseWriter, r *http.Req
 	return "signed_url", nil
 }
 
-func (s *CoreHandlers) proxyDownload(w http.ResponseWriter, r *http.Request, signedUrl, filename string) error {
+func (s *CoreHandlers) proxyDownload(w http.ResponseWriter, r *http.Request, signedUrl, filename, mode string) error {
 	log := logger.FromContext(r.Context())
-	resp, err := http.Get(signedUrl)
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, signedUrl, nil)
+	if err != nil {
+		log.Errorw("download proxy: request error", "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "download_proxy_error", "")
+		return err
+	}
+	// Keep range requests working so inline media can seek.
+	if rng := r.Header.Get("Range"); rng != "" {
+		req.Header.Set("Range", rng)
+	}
+	if ifRange := r.Header.Get("If-Range"); ifRange != "" {
+		req.Header.Set("If-Range", ifRange)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Errorw("download proxy: fetch error", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
@@ -281,21 +316,31 @@ func (s *CoreHandlers) proxyDownload(w http.ResponseWriter, r *http.Request, sig
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		log.Warnw("download proxy: upstream non-200", "status", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusPartialContent {
+		log.Warnw("download proxy: upstream error", "status", resp.StatusCode)
 		pkg.WriteJSONResponse(w, http.StatusBadGateway, "download_proxy_error", "")
 		return errors.New("download_proxy_error")
 	}
 
-	w.Header().Set("Content-Disposition", buildAttachmentContentDisposition(filename))
-	if ct := resp.Header.Get("Content-Type"); ct != "" {
-		w.Header().Set("Content-Type", ct)
+	if mode == "download" {
+		w.Header().Set("Content-Disposition", buildAttachmentContentDisposition(filename))
 	}
-	if cl := resp.Header.Get("Content-Length"); cl != "" {
-		w.Header().Set("Content-Length", cl)
+	// The object is now served from the application origin, so sandbox the
+	// response and disable MIME sniffing to prevent stored XSS from uploaded
+	// HTML/SVG being viewed inline.
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Security-Policy", "sandbox")
+	for _, header := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Last-Modified"} {
+		if value := resp.Header.Get(header); value != "" {
+			w.Header().Set(header, value)
+		}
 	}
 
-	io.Copy(w, resp.Body)
+	w.WriteHeader(resp.StatusCode)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Warnw("download proxy: stream error", "error", err)
+		return err
+	}
 	return nil
 }
 

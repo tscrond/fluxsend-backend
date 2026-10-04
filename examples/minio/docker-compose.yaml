@@ -1,0 +1,188 @@
+# FluxSend — self-hosted MinIO stack behind the shared Traefik proxy.
+#
+# Start the proxy first (it creates the "proxy" network):
+#   docker compose -f examples/traefik/docker-compose.yaml up -d
+# Then this stack:
+#   docker compose -f examples/minio/docker-compose.yaml up -d
+#
+# Copy .env.example to .env and set APP_DOMAIN + secrets before going live.
+services:
+  frontend:
+    image: fluxsend-frontend:dev
+    container_name: frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    expose:
+      - "8000"
+    environment:
+      - NGINX_BACKEND_HOST=backend
+      - NGINX_BACKEND_PORT=3000
+      - NGINX_BACKEND_API_PORT=8091
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.fluxsend.rule=Host(`${APP_DOMAIN:-app.example.com}`)"
+      - "traefik.http.routers.fluxsend.entrypoints=websecure"
+      - "traefik.http.routers.fluxsend.tls=true"
+      - "traefik.http.routers.fluxsend.tls.certresolver=le"
+      - "traefik.http.services.fluxsend.loadbalancer.server.port=8000"
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-fluxsend}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
+      - POSTGRES_DB=${POSTGRES_DB:-fluxsend}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fluxsend} -d ${POSTGRES_DB:-fluxsend}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
+  backend:
+    image: fluxsend-backend:dev
+    container_name: backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    expose:
+      - "3000"
+      - "8091"
+    command: ["./fluxsend", "--password-auth"]
+    environment:
+      - APP_ENV=production
+      - FRONTEND_ENDPOINT=https://${APP_DOMAIN:-app.example.com}
+      - BACKEND_ENDPOINT=https://${APP_DOMAIN:-app.example.com}
+      - FLUXSEND_LISTEN_PORT=3000
+      - FLUXSEND_API_LISTEN_PORT=8091
+      - FLUXSEND_API_ROUTE_PREFIX=/api
+      # Auth
+      - ENABLE_PASSWORD_AUTH=true
+      - ENABLE_GOOGLE_AUTH=false
+      - ENABLE_GITHUB_AUTH=false
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-change-me-openssl-rand-hex-32}
+      # Database
+      - DB_HOST=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-fluxsend}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
+      - POSTGRES_DB=${POSTGRES_DB:-fluxsend}
+      # Storage (MinIO)
+      - STORAGE_PROVIDER=minio
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-fluxsend}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-fluxsend}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-change-me-minio}
+      - MINIO_USE_SSL=false
+      # Optional direct-download endpoint. Leave empty to stream downloads
+      # through the backend (MinIO stays private). Set it to an HTTPS host that
+      # routes to minio:9000 (see the minio labels below) to hand downloads to
+      # the object store directly.
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-}
+      - MINIO_REGION=${MINIO_REGION:-us-east-1}
+      # Mail (SMTP, port 587 STARTTLS only)
+      - MAIL_FROM=${MAIL_FROM:-noreply@example.com}
+      - MAIL_PROVIDER=standard
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+    networks:
+      - backend
+
+  minio:
+    # MinIO withdrew its official community image in Oct 2025 (Docker Hub
+    # `minio/minio` removed, dl.min.io returns 410). `pgsty/minio` is the
+    # maintained AGPLv3 continuation ("Silo"); `minio/Dockerfile` builds the
+    # last official upstream release if you prefer it.
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-fluxsend}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-change-me-minio}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 20s
+      retries: 5
+    # networks:
+    #   - backend
+    # Direct public downloads (optional). To let browsers fetch objects straight
+    # from MinIO instead of streaming them through the backend:
+    #   1. create an A/AAAA record for s3.${APP_DOMAIN} pointing at this host
+    #   2. set MINIO_PUBLIC_ENDPOINT=https://s3.${APP_DOMAIN} in .env
+    #   3. uncomment the network + labels below
+    # The router only accepts GET/HEAD/OPTIONS so the API stays read-only for
+    # presigned downloads; the console on :9001 is never published.
+    networks:
+      - backend
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.fluxsend-s3.rule=Host(`storage.${APP_DOMAIN:-app.example.com}`) && Method(`GET`, `HEAD`, `OPTIONS`)"
+      - "traefik.http.routers.fluxsend-s3.entrypoints=websecure"
+      - "traefik.http.routers.fluxsend-s3.tls=true"
+      - "traefik.http.routers.fluxsend-s3.tls.certresolver=le"
+      - "traefik.http.routers.fluxsend-s3.service=fluxsend-s3"
+      - "traefik.http.services.fluxsend-s3.loadbalancer.server.port=9000"
+    # The MinIO console stays private by default. To publish it, attach the
+    # service to the proxy network and enable these labels (exposes admin UI):
+    # networks:
+    #   - backend
+    #   - proxy
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.docker.network=proxy"
+    #   - "traefik.http.routers.fluxsend-minio.rule=Host(`minio.${APP_DOMAIN:-app.example.com}`)"
+    #   - "traefik.http.routers.fluxsend-minio.entrypoints=websecure"
+    #   - "traefik.http.routers.fluxsend-minio.tls=true"
+    #   - "traefik.http.routers.fluxsend-minio.tls.certresolver=le"
+    #   - "traefik.http.services.fluxsend-minio.loadbalancer.server.port=9001"
+
+  docs:
+    image: fluxsend-docs:dev
+    container_name: docs
+    restart: unless-stopped
+    build:
+      context: ../..
+      dockerfile: Dockerfile.docs
+    expose:
+      - "80"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.fluxsend-docs.rule=Host(`docs.${APP_DOMAIN:-app.example.com}`)"
+      - "traefik.http.routers.fluxsend-docs.entrypoints=websecure"
+      - "traefik.http.routers.fluxsend-docs.tls=true"
+      - "traefik.http.routers.fluxsend-docs.tls.certresolver=le"
+      - "traefik.http.services.fluxsend-docs.loadbalancer.server.port=80"
+
+networks:
+  proxy:
+    external: true
+  backend:
+    name: fluxsend-backend
+
+volumes:
+  pg_data:
+  minio_data:

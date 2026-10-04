@@ -21,6 +21,8 @@ type ProviderConfig struct {
 	AWSRegion                    string
 	MinioBucketName              string
 	MinioEndpoint                string
+	MinioPublicEndpoint          string
+	MinioRegion                  string
 	MinioAccessKey               string
 	MinioSecretKey               string
 	MinioUseSSL                  bool
@@ -89,7 +91,7 @@ func NewStorageProvider(log *zap.SugaredLogger, provider string, cfg ProviderCon
 			return nil, errors.New("missing MINIO_SECRET_KEY for STORAGE_PROVIDER=minio")
 		}
 
-		return minio.NewMinioBucketHandler(log, bucketName, cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, cfg.MinioUseSSL)
+		return minio.NewMinioBucketHandler(log, bucketName, cfg.MinioEndpoint, cfg.MinioPublicEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, cfg.MinioRegion, cfg.MinioUseSSL)
 	default:
 		return nil, fmt.Errorf("unknown storage type %q, expected one of: gcs, s3, minio", provider)
 	}

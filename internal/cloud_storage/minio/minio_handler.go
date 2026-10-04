@@ -19,43 +19,89 @@ import (
 )
 
 type MinioBucketHandler struct {
-	log            *zap.SugaredLogger
-	Client         *minio.Client
-	Core           *minio.Core
+	log    *zap.SugaredLogger
+	Client *minio.Client
+	Core   *minio.Core
+	// PresignClient signs download URLs against the public endpoint when one is
+	// configured; it is nil when downloads must stay on the internal endpoint.
+	PresignClient  *minio.Client
 	UseSSL         bool
 	BaseBucketName string
 }
 
-func NewMinioBucketHandler(log *zap.SugaredLogger, bucketName string, endpoint, accessKeyID, secretAccessKey string, useSSL bool) (types.ObjectStorage, error) {
+// splitEndpoint accepts both "host:port" and "http(s)://host:port" and returns
+// the bare host:port together with the scheme implied by the prefix. The
+// explicit ssl argument is used when the endpoint carries no scheme.
+func splitEndpoint(endpoint string, ssl bool) (host string, secure bool) {
+	host = strings.TrimSpace(endpoint)
+	secure = ssl
+	if strings.HasPrefix(host, "https://") {
+		secure = true
+		host = strings.TrimPrefix(host, "https://")
+	} else if strings.HasPrefix(host, "http://") {
+		secure = false
+		host = strings.TrimPrefix(host, "http://")
+	}
+	return strings.TrimSuffix(host, "/"), secure
+}
+
+// defaultMinioRegion matches MinIO's own default; presigning needs a region and
+// fixing it avoids a bucket-location round trip against the public endpoint.
+const defaultMinioRegion = "us-east-1"
+
+func NewMinioBucketHandler(log *zap.SugaredLogger, bucketName string, endpoint, publicEndpoint, accessKeyID, secretAccessKey, region string, useSSL bool) (types.ObjectStorage, error) {
 	// Accept both "host:port" and "http(s)://host:port" endpoints; minio-go
 	// expects a bare host:port and derives the scheme from the Secure flag.
-	if strings.HasPrefix(endpoint, "https://") {
-		useSSL = true
-		endpoint = strings.TrimPrefix(endpoint, "https://")
-	} else if strings.HasPrefix(endpoint, "http://") {
-		useSSL = false
-		endpoint = strings.TrimPrefix(endpoint, "http://")
-	}
-	endpoint = strings.TrimSuffix(strings.TrimSpace(endpoint), "/")
+	endpoint, useSSL = splitEndpoint(endpoint, useSSL)
 	if endpoint == "" {
 		return nil, errors.New("MINIO_ENDPOINT is empty for STORAGE_PROVIDER=minio")
 	}
 
+	creds := credentials.NewStaticV4(accessKeyID, secretAccessKey, "")
 	minioClient, err := minio.NewCore(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Creds:  creds,
 		Secure: useSSL,
 	})
 	if err != nil {
 		log.Errorf("Failed to initialize MinIO client: %v", err)
 		return nil, err
 	}
-	return &MinioBucketHandler{
+
+	handler := &MinioBucketHandler{
 		log:            log,
 		Client:         minioClient.Client,
 		Core:           minioClient,
 		UseSSL:         useSSL,
 		BaseBucketName: bucketName,
-	}, nil
+	}
+
+	if publicEndpoint = strings.TrimSpace(publicEndpoint); publicEndpoint != "" {
+		// Downloads are handed to end users, so the public endpoint must be TLS.
+		if !strings.HasPrefix(publicEndpoint, "https://") {
+			return nil, errors.New("MINIO_PUBLIC_ENDPOINT must use https:// (public download URLs are sent to end users)")
+		}
+		publicHost, _ := splitEndpoint(publicEndpoint, true)
+		if publicHost == "" {
+			return nil, errors.New("MINIO_PUBLIC_ENDPOINT is invalid")
+		}
+		if region = strings.TrimSpace(region); region == "" {
+			region = defaultMinioRegion
+		}
+		presignClient, err := minio.New(publicHost, &minio.Options{
+			Creds:        creds,
+			Secure:       true,
+			Region:       region,
+			BucketLookup: minio.BucketLookupPath,
+		})
+		if err != nil {
+			log.Errorf("Failed to initialize MinIO public (presign) client: %v", err)
+			return nil, err
+		}
+		handler.PresignClient = presignClient
+		log.Infof("minio public download endpoint: %s", publicEndpoint)
+	}
+
+	return handler, nil
 }
 
 // s3Key builds the S3 object key with the user prefix.
@@ -229,7 +275,14 @@ func (b *MinioBucketHandler) GenerateSignedURL(ctx context.Context, bucket, obje
 		reqParams.Set("response-content-disposition", contentDisposition)
 	}
 
-	signedURL, err := b.Client.PresignedGetObject(ctx, b.BaseBucketName, objectKey, time.Until(expiresAt), reqParams)
+	// Sign against the public endpoint when configured so the URL is reachable
+	// by end users; the internal client keeps talking to minio:9000.
+	presignClient := b.Client
+	if b.PresignClient != nil {
+		presignClient = b.PresignClient
+	}
+
+	signedURL, err := presignClient.PresignedGetObject(ctx, b.BaseBucketName, objectKey, time.Until(expiresAt), reqParams)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", errors.New("ErrGenerateSignedURLFailed"), err)
 	}

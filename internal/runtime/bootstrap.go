@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
@@ -18,6 +19,7 @@ type baseRuntime struct {
 	Repository             repo.Repository
 	BucketHandler          storagetypes.ObjectStorage
 	CloudFrontSigner       *cdn.CloudFrontURLSigner
+	ProxyDownloads         bool
 	EmailSender            mailtypes.EmailSender
 	HTMLSanitizationPolicy *bluemonday.Policy
 	FileService            service.FileService
@@ -99,6 +101,17 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 		log.Info("CloudFront download signing disabled; using storage signed URLs")
 	}
 
+	// Self-hosted MinIO is only reachable on the internal Docker network. Unless
+	// a public download endpoint (or CloudFront) is configured, presigned URLs
+	// would point at minio:9000 and be unusable for end users, so stream
+	// downloads through the backend instead of redirecting.
+	proxyDownloads := storageProvider == "minio" &&
+		strings.TrimSpace(baseConfig.Storage.MinioPublicEndpoint) == "" &&
+		!enableCloudFrontDownloads
+	if proxyDownloads {
+		log.Info("minio has no public endpoint; downloads will be proxied through the backend")
+	}
+
 	htmlSanitizationPolicy := bluemonday.UGCPolicy()
 
 	emailSender, err := InitMailSender(baseConfig.Mail.Provider, baseConfig.Mail)
@@ -123,6 +136,7 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 		Repository:             repository,
 		BucketHandler:          bucketHandler,
 		CloudFrontSigner:       cloudFrontSigner,
+		ProxyDownloads:         proxyDownloads,
 		EmailSender:            emailSender,
 		HTMLSanitizationPolicy: htmlSanitizationPolicy,
 		FileService:            fileSvc,

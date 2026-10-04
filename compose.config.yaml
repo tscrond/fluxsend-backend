@@ -41,7 +41,7 @@ services:
       - ./config.example.full.yaml:/config/config.yaml:ro
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}

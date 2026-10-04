@@ -33,6 +33,8 @@ func GetEnvVarMap() map[string]string {
 		"storage.aws_secret_access_key":          "AWS_SECRET_ACCESS_KEY",
 		"storage.minio_bucket_name":              "MINIO_BUCKET_NAME",
 		"storage.minio_endpoint":                 "MINIO_ENDPOINT",
+		"storage.minio_public_endpoint":          "MINIO_PUBLIC_ENDPOINT",
+		"storage.minio_region":                   "MINIO_REGION",
 		"storage.minio_access_key":               "MINIO_ACCESS_KEY",
 		"storage.minio_secret_key":               "MINIO_SECRET_KEY",
 		"storage.minio_use_ssl":                  "MINIO_USE_SSL",

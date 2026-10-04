@@ -24,9 +24,13 @@ type CoreHandlers struct {
 	backendConfig    config.BackendConfig
 	bucketHandler    storagetypes.ObjectStorage
 	cloudFrontSigner *cdn.CloudFrontURLSigner
-	emailSender      mailtypes.EmailSender
-	metrics          *appmetrics.Metrics
-	repository       repo.Repository
+	// proxyDownloads streams objects through the backend instead of redirecting
+	// to a presigned URL. Used when the storage endpoint is only reachable on
+	// the internal network (e.g. minio:9000 with no public endpoint configured).
+	proxyDownloads bool
+	emailSender    mailtypes.EmailSender
+	metrics        *appmetrics.Metrics
+	repository     repo.Repository
 
 	files          service.FileService
 	shares         service.ShareService
@@ -50,6 +54,7 @@ type CoreHandlersDependencies struct {
 	EmailSender      mailtypes.EmailSender
 	BucketHandler    storagetypes.ObjectStorage
 	CloudFrontSigner *cdn.CloudFrontURLSigner
+	ProxyDownloads   bool
 	Metrics          *appmetrics.Metrics
 	Repository       repo.Repository
 	Files            service.FileService
@@ -78,6 +83,7 @@ func NewCoreHandlers(backendConfig config.BackendConfig, deps CoreHandlersDepend
 		backendConfig:    backendConfig,
 		bucketHandler:    deps.BucketHandler,
 		cloudFrontSigner: deps.CloudFrontSigner,
+		proxyDownloads:   deps.ProxyDownloads,
 		emailSender:      deps.EmailSender,
 		metrics:          metrics,
 		repository:       deps.Repository,

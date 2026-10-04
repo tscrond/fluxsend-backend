@@ -41,6 +41,8 @@ The following table documents the environment variables supported by the backend
 | MINIO_ACCESS_KEY | MinIO access key / login | `""` | If `minio` |
 | MINIO_SECRET_KEY | MinIO secret key / password | `""` | If `minio` |
 | MINIO_USE_SSL | Use TLS when connecting to MinIO | `false` | No |
+| MINIO_PUBLIC_ENDPOINT | Public `https://` endpoint used for signed download URLs; when empty downloads are proxied through the backend | `""` | No |
+| MINIO_REGION | Region used when signing MinIO download URLs | `us-east-1` | No |
 | MAIL_FROM | Default sender email for password reset and mail notifications | `noreply@fluxsend.invalid` | Yes |
 | MAIL_PROVIDER | Mail provider (`standard` or `ses`) | `standard` | No |
 | SMTP_HOST | SMTP server hostname | `""` | If standard SMTP |

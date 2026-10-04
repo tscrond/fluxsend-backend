@@ -47,6 +47,8 @@ func InitObjectStorage(log *zap.SugaredLogger, backendEndpoint string, storageCo
 		AWSRegion:                    storageConfig.AWSRegion,
 		MinioBucketName:              storageConfig.MinioBucketName,
 		MinioEndpoint:                storageConfig.MinioEndpoint,
+		MinioPublicEndpoint:          storageConfig.MinioPublicEndpoint,
+		MinioRegion:                  storageConfig.MinioRegion,
 		MinioAccessKey:               storageConfig.MinioAccessKey,
 		MinioSecretKey:               storageConfig.MinioSecretKey,
 		MinioUseSSL:                  storageConfig.MinioUseSSL,
