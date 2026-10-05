@@ -53,9 +53,11 @@ nav:
   #     - API Keys: usage/04-api-keys.md
   #     - Plans & Quotas: usage/05-plans.md
   - Deployment:
+      - Production Checklist: deployment/00-production-checklist.md
       - Production Setup: deployment/01-production-setup.md
       - Standalone: deployment/02-standalone.md
       - Docker: deployment/03-docker.md
+      - Metrics: deployment/06-metrics.md
       - Self-hosted MinIO: deployment/05-self-hosted-minio.md
       - Kubernetes: deployment/04-kubernetes.md
   - API Reference:

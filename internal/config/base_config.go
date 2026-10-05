@@ -25,6 +25,8 @@ type StorageConfig struct {
 	AWSRegion                    string
 	MinioBucketName              string
 	MinioEndpoint                string
+	MinioPublicEndpoint          string
+	MinioRegion                  string
 	MinioAccessKey               string
 	MinioSecretKey               string
 	MinioUseSSL                  bool
@@ -109,6 +111,8 @@ func NewBaseRuntimeConfig(v *viper.Viper) (*BaseRuntimeConfig, error) {
 			AWSRegion:                    v.GetString("storage.aws_region"),
 			MinioBucketName:              v.GetString("storage.minio_bucket_name"),
 			MinioEndpoint:                v.GetString("storage.minio_endpoint"),
+			MinioPublicEndpoint:          v.GetString("storage.minio_public_endpoint"),
+			MinioRegion:                  v.GetString("storage.minio_region"),
 			MinioAccessKey:               v.GetString("storage.minio_access_key"),
 			MinioSecretKey:               v.GetString("storage.minio_secret_key"),
 			MinioUseSSL:                  v.GetBool("storage.minio_use_ssl"),

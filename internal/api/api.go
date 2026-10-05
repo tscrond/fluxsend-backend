@@ -11,6 +11,7 @@ import (
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	appmetrics "github.com/tscrond/fluxsend-backend/internal/metrics"
 	"github.com/tscrond/fluxsend-backend/internal/middleware"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
@@ -23,8 +24,13 @@ type CoreHandlers struct {
 	backendConfig    config.BackendConfig
 	bucketHandler    storagetypes.ObjectStorage
 	cloudFrontSigner *cdn.CloudFrontURLSigner
-	emailSender      mailtypes.EmailSender
-	repository       repo.Repository
+	// proxyDownloads streams objects through the backend instead of redirecting
+	// to a presigned URL. Used when the storage endpoint is only reachable on
+	// the internal network (e.g. minio:9000 with no public endpoint configured).
+	proxyDownloads bool
+	emailSender    mailtypes.EmailSender
+	metrics        *appmetrics.Metrics
+	repository     repo.Repository
 
 	files          service.FileService
 	shares         service.ShareService
@@ -48,6 +54,8 @@ type CoreHandlersDependencies struct {
 	EmailSender      mailtypes.EmailSender
 	BucketHandler    storagetypes.ObjectStorage
 	CloudFrontSigner *cdn.CloudFrontURLSigner
+	ProxyDownloads   bool
+	Metrics          *appmetrics.Metrics
 	Repository       repo.Repository
 	Files            service.FileService
 	Shares           service.ShareService
@@ -65,12 +73,19 @@ type APIServerDependencies struct {
 }
 
 func NewCoreHandlers(backendConfig config.BackendConfig, deps CoreHandlersDependencies) *CoreHandlers {
+	metrics := deps.Metrics
+	if metrics == nil {
+		metrics = appmetrics.NewDisabled()
+	}
+
 	return &CoreHandlers{
 		log:              deps.Log,
 		backendConfig:    backendConfig,
 		bucketHandler:    deps.BucketHandler,
 		cloudFrontSigner: deps.CloudFrontSigner,
+		proxyDownloads:   deps.ProxyDownloads,
 		emailSender:      deps.EmailSender,
+		metrics:          metrics,
 		repository:       deps.Repository,
 		files:            deps.Files,
 		shares:           deps.Shares,
@@ -179,7 +194,7 @@ func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies
 func (s *APIServer) Handler() http.Handler {
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestLogger(s.log), chimiddleware.ClientIPFromRemoteAddr)
+	r.Use(middleware.RequestLogger(s.log), chimiddleware.ClientIPFromRemoteAddr, s.metrics.HTTPMiddleware())
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.backendConfig.FrontendEndpoint},

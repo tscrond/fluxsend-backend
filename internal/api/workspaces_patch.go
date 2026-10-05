@@ -174,6 +174,7 @@ func (s *CoreHandlers) changeMemberRole(w http.ResponseWriter, r *http.Request) 
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordWorkspaceMember("role_changed")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "member_role_updated", map[string]string{
 		"user_id": body.UserID,

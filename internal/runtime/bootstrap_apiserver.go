@@ -94,6 +94,8 @@ func BuildAPIServer(log *zap.SugaredLogger, apiConfig *config.APIServerConfig, r
 			EmailSender:      runtime.EmailSender,
 			BucketHandler:    runtime.BucketHandler,
 			CloudFrontSigner: runtime.CloudFrontSigner,
+			ProxyDownloads:   runtime.ProxyDownloads,
+			Metrics:          runtime.Metrics,
 			Repository:       runtime.Repository,
 			Files:            runtime.FileService,
 			Shares:           runtime.ShareService,

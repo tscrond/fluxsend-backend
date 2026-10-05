@@ -134,6 +134,7 @@ func (s *CoreHandlers) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
+	s.metrics.RecordAPIKey("workspace", "created")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "api_key_created", map[string]any{
 		"api_key": createResult,
@@ -244,6 +245,7 @@ func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordAPIKey("workspace", "revoked")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "deleted", nil)
 }
@@ -328,6 +330,7 @@ func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Reques
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
+	s.metrics.RecordAPIKey("private", "created")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "api_key_created", map[string]any{
 		"api_key": createResult,
@@ -413,6 +416,7 @@ func (s *CoreHandlers) deletePrivateAPIKey(w http.ResponseWriter, r *http.Reques
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordAPIKey("private", "revoked")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "deleted", nil)
 }

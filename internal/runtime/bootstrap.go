@@ -2,12 +2,14 @@ package runtime
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	mailtypes "github.com/tscrond/fluxsend-backend/internal/mailservice/types"
+	appmetrics "github.com/tscrond/fluxsend-backend/internal/metrics"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/service"
 	"go.uber.org/zap"
@@ -17,6 +19,7 @@ type baseRuntime struct {
 	Repository             repo.Repository
 	BucketHandler          storagetypes.ObjectStorage
 	CloudFrontSigner       *cdn.CloudFrontURLSigner
+	ProxyDownloads         bool
 	EmailSender            mailtypes.EmailSender
 	HTMLSanitizationPolicy *bluemonday.Policy
 	FileService            service.FileService
@@ -27,11 +30,15 @@ type baseRuntime struct {
 	ApiKeyService          service.APIKeyService
 	PasswordAuthService    service.PasswordAuthService
 	AdminService           service.AdminService
+	Metrics                *appmetrics.Metrics
 }
 
 func (rt *baseRuntime) Close(log *zap.SugaredLogger) {
 	if rt == nil {
 		return
+	}
+	if rt.Metrics != nil {
+		rt.Metrics.Close()
 	}
 	if rt.BucketHandler != nil {
 		if err := rt.BucketHandler.Close(); err != nil {
@@ -45,11 +52,14 @@ func (rt *baseRuntime) Close(log *zap.SugaredLogger) {
 	}
 }
 
-func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConfig) (*baseRuntime, error) {
+func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConfig, metrics *appmetrics.Metrics) (*baseRuntime, error) {
+	if metrics == nil {
+		metrics = appmetrics.NewDisabled()
+	}
 
 	log.Infof("backend endpoint: %s\n frontend endpoint: %s", baseConfig.BackendEndpoint, baseConfig.FrontendEndpoint)
 
-	repository, err := InitRepository(baseConfig.DB.ConnString())
+	repository, err := InitRepository(baseConfig.DB.ConnString(), metrics)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init repository: %w", err)
 	}
@@ -64,6 +74,7 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 		repository.Close()
 		return nil, fmt.Errorf("failed to init object storage: %w", err)
 	}
+	bucketHandler = metrics.WrapObjectStorage(storageProvider, bucketHandler)
 
 	var cloudFrontSigner *cdn.CloudFrontURLSigner
 	if enableCloudFrontDownloads {
@@ -90,6 +101,17 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 		log.Info("CloudFront download signing disabled; using storage signed URLs")
 	}
 
+	// Self-hosted MinIO is only reachable on the internal Docker network. Unless
+	// a public download endpoint (or CloudFront) is configured, presigned URLs
+	// would point at minio:9000 and be unusable for end users, so stream
+	// downloads through the backend instead of redirecting.
+	proxyDownloads := storageProvider == "minio" &&
+		strings.TrimSpace(baseConfig.Storage.MinioPublicEndpoint) == "" &&
+		!enableCloudFrontDownloads
+	if proxyDownloads {
+		log.Info("minio has no public endpoint; downloads will be proxied through the backend")
+	}
+
 	htmlSanitizationPolicy := bluemonday.UGCPolicy()
 
 	emailSender, err := InitMailSender(baseConfig.Mail.Provider, baseConfig.Mail)
@@ -98,6 +120,7 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 		repository.Close()
 		return nil, fmt.Errorf("failed to init mail sender: %w", err)
 	}
+	emailSender = metrics.WrapEmailSender(baseConfig.Mail.Provider, emailSender)
 
 	fileSvc := service.NewFileService(log, repository.Queries(), bucketHandler, htmlSanitizationPolicy, repository)
 	shareSvc := service.NewShareService(log, repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, baseConfig.BackendEndpoint, baseConfig.FrontendEndpoint, baseConfig.MailFrom)
@@ -107,11 +130,13 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 	apiKeySvc := service.NewAPIKeyService(log, repository)
 	passwordAuthSvc := service.NewPasswordAuthService(log, emailSender, repository.Queries(), repository, baseConfig.MailFrom)
 	adminSvc := service.NewAdminService(log, repository)
+	metrics.AttachDatabase(repository.DB(), repository.Queries())
 
 	return &baseRuntime{
 		Repository:             repository,
 		BucketHandler:          bucketHandler,
 		CloudFrontSigner:       cloudFrontSigner,
+		ProxyDownloads:         proxyDownloads,
 		EmailSender:            emailSender,
 		HTMLSanitizationPolicy: htmlSanitizationPolicy,
 		FileService:            fileSvc,
@@ -122,5 +147,6 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 		ApiKeyService:          apiKeySvc,
 		PasswordAuthService:    passwordAuthSvc,
 		AdminService:           adminSvc,
+		Metrics:                metrics,
 	}, nil
 }
