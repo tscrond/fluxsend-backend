@@ -101,7 +101,7 @@ export SMTP_HOST=<redacted>
 export SMTP_PORT="587"
 export SMTP_USERNAME=<redacted>
 export SMTP_PASSWORD=<redacted>
-export MAIL_FROM="noreply@fluxsend.win"
+export MAIL_FROM="noreply@fluxsend.app"
 
 export POSTGRES_USER="devuser"
 export POSTGRES_PASSWORD="devpass" 

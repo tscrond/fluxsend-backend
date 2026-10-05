@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+<!--
+  FluxSend docs skin.
+
+  The site reuses the same design language as the FluxSend app and marketing
+  site: the Datatype typeface, an indigo accent, GitHub-style surfaces and a
+  dark-first palette. Everything visual lives in docs-site/styles/extra.css.
+-->
+
+{% block extrahead %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Datatype:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet"
+  />
+  <meta name="theme-color" content="#0d1117" />
+{% endblock %}
+
+{% block announce %}
+  <a class="fs-banner" href="{{ 'api/' | url }}">
+    <span class="fs-banner__dot" aria-hidden="true"></span>
+    <span class="fs-banner__text">
+      The API reference is generated straight from the Go backend.
+    </span>
+    <span class="fs-banner__cta">Explore the OpenAPI reference</span>
+  </a>
+{% endblock %}
+
+{#
+  The hero is appended to the tabs block so it lands directly under the
+  (sticky) header + tab bar instead of between the header and the tabs.
+#}
+{% block tabs %}
+  {{ super() }}
+  {% if page and page.is_homepage %}
+    <section class="fs-hero" data-fs-glow>
+      <div class="fs-hero__inner">
+        <span class="fs-kicker">
+          <span class="fs-dot" aria-hidden="true"></span>
+          FluxSend Documentation
+        </span>
+        <h1 class="fs-hero__title">
+          Files that move<br />
+          <span class="fs-grad">at the speed of your team.</span>
+        </h1>
+        <p class="fs-hero__lede">
+          Upload, share, preview and automate objects in cloud storage.
+          Self-host the full stack or run FluxSend as a service &mdash; these
+          docs cover setup, configuration, deployment and the live API.
+        </p>
+        <div class="fs-hero__cta">
+          <a class="fs-btn fs-btn--primary" href="{{ 'quickstart/01-prerequisites/' | url }}">
+            Get started
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </a>
+          <a class="fs-btn fs-btn--ghost" href="{{ 'api/' | url }}">
+            Explore the API
+          </a>
+        </div>
+        <dl class="fs-stats">
+          <div>
+            <dt>Stack</dt>
+            <dd>Go &middot; React &middot; PostgreSQL</dd>
+          </div>
+          <div>
+            <dt>Storage</dt>
+            <dd>S3 &middot; GCS &middot; MinIO</dd>
+          </div>
+          <div>
+            <dt>Ship it</dt>
+            <dd>Docker &middot; Kubernetes</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

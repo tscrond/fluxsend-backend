@@ -35,7 +35,7 @@ import (
 // @license.name  MIT
 // @license.url   https://mit-license.org/
 
-// @host      fluxsend.win
+// @host      fluxsend.app
 // @BasePath  /
 
 // @securityDefinitions.apikey ApiKeyAuth
