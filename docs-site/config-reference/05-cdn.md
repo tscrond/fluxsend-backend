@@ -16,7 +16,7 @@ FluxSend supports serving downloads through **AWS CloudFront** signed URLs inste
 | Variable | Description | Required |
 |---|---|---|
 | `ENABLE_CLOUDFRONT_DOWNLOADS` | Set to `true` to enable CDN-signed URLs | No (default `false`) |
-| `CLOUDFRONT_DOMAIN` | Distribution domain (e.g. `d123.cloudfront.net` or `cdn.fluxsend.win`) | Yes if enabled |
+| `CLOUDFRONT_DOMAIN` | Distribution domain (e.g. `d123.cloudfront.net` or `cdn.fluxsend.app`) | Yes if enabled |
 | `CLOUDFRONT_KEY_PAIR_ID` | CloudFront key pair ID for URL signing | Yes if enabled |
 | `CLOUDFRONT_PRIVATE_KEY_PATH` | Path to the RSA private key PEM file | Yes if enabled |
 
@@ -45,5 +45,5 @@ Generate a CloudFront key pair via the AWS Console (CloudFront > Key Management)
 ## Domain format
 
 `CLOUDFRONT_DOMAIN` accepts:
-- A bare hostname: `cdn.fluxsend.win`
-- A URL: `https://cdn.fluxsend.win` (path components are rejected)
+- A bare hostname: `cdn.fluxsend.app`
+- A URL: `https://cdn.fluxsend.app` (path components are rejected)
