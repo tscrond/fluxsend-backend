@@ -122,13 +122,11 @@ services:
       interval: 15s
       timeout: 20s
       retries: 5
-    # networks:
-    #   - backend
-    # Direct public downloads (optional). To let browsers fetch objects straight
-    # from MinIO instead of streaming them through the backend:
-    #   1. create an A/AAAA record for s3.${APP_DOMAIN} pointing at this host
-    #   2. set MINIO_PUBLIC_ENDPOINT=https://s3.${APP_DOMAIN} in .env
-    #   3. uncomment the network + labels below
+    # Direct public downloads: browsers fetch presigned URLs straight from MinIO.
+    # The router host must match the DNS record AND MINIO_PUBLIC_ENDPOINT exactly
+    # (for APP_DOMAIN=test.fluxsend.app this is storage-test.fluxsend.app).
+    # After changing router labels, re-create the service and restart Traefik;
+    # an invalid rule makes Traefik answer with its own "404 page not found".
     # The router only accepts GET/HEAD/OPTIONS so the API stays read-only for
     # presigned downloads; the console on :9001 is never published.
     networks:
@@ -137,7 +135,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.fluxsend-s3.rule=Host(`storage.${APP_DOMAIN:-app.example.com}`) && Method(`GET`, `HEAD`, `OPTIONS`)"
+      # Traefik's Method() matcher takes a single value, so combine with ||.
+      - "traefik.http.routers.fluxsend-s3.rule=Host(`storage-${APP_DOMAIN:-app.example.com}`) && (Method(`GET`) || Method(`HEAD`) || Method(`OPTIONS`))"
       - "traefik.http.routers.fluxsend-s3.entrypoints=websecure"
       - "traefik.http.routers.fluxsend-s3.tls=true"
       - "traefik.http.routers.fluxsend-s3.tls.certresolver=le"

@@ -11,6 +11,7 @@ services:
       - NGINX_BACKEND_HOST=backend
       - NGINX_BACKEND_PORT=3000
       - NGINX_BACKEND_API_PORT=8091
+      - VITE_LANDING_ENABLED=false
 
   postgres:
     image: postgres:16
@@ -98,6 +99,18 @@ services:
       dockerfile: Dockerfile.docs
     ports:
       - 8080:80/tcp
+
+  # Static landing site, built from the frontend repo and shipped as its own
+  # container (the app frontend image does not contain these files).
+  landing:
+    image: fluxsend-web:dev
+    container_name: landing
+    build:
+      context: ../fluxsend-frontend/static-site
+      dockerfile: Dockerfile
+    ports:
+      - ${LANDING_PORT:-8081}:80/tcp
+    restart: unless-stopped
 
 # networks:
 #   proxy:

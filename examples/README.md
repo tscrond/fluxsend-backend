@@ -41,7 +41,13 @@ docker compose -f examples/traefik/docker-compose.yaml logs -f traefik
 
 - Only Traefik publishes ports. PostgreSQL, MinIO, the API, and the CLI stay on the internal network.
 - Single origin (`https://app.example.com`): the frontend nginx proxies the API, so no CORS setup is needed.
-- Downloads are streamed through the backend by default, so object storage is never exposed and URLs stay on the app origin. To hand downloads to MinIO directly, create a DNS record for `s3.<APP_DOMAIN>`, set `MINIO_PUBLIC_ENDPOINT=https://s3.<APP_DOMAIN>` in `.env`, and uncomment the MinIO Traefik labels in `minio/docker-compose.yaml` (the route is limited to `GET`/`HEAD`/`OPTIONS`).
+- Downloads are streamed through the backend by default, so object storage is never exposed and URLs stay on the app origin. To hand downloads to MinIO directly, create a DNS record for `storage-<APP_DOMAIN>`, set `MINIO_PUBLIC_ENDPOINT=https://storage-<APP_DOMAIN>` in `.env`, and enable the MinIO Traefik labels in `minio/docker-compose.yaml` (the route is limited to `GET`/`HEAD`/`OPTIONS`).
+- Traefik's `Method()` matcher takes a single value, so the storage route uses
+  `(Method(\`GET\`) || Method(\`HEAD\`) || Method(\`OPTIONS\`))`. Traefik v3
+  rejects `Method(\`GET\`, \`HEAD\`)` with a rule-parsing error, which makes the
+  router disappear and surface as Traefik's own `404 page not found`. The host
+  in the router rule must match the DNS record and `MINIO_PUBLIC_ENDPOINT`, and
+  Traefik must be restarted after the labels change.
 - The MinIO console and the metrics listener are private by default; enable the commented labels to publish the console.
 - MinIO no longer ships an official community image: `minio/minio` was removed
   from Docker Hub, dl.min.io returns 410, and `quay.io/minio/aistor/minio`
