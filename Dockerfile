@@ -1,5 +1,5 @@
 # ---- Build stage ----
-FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine3.23 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine3.23 AS builder
 
 WORKDIR /fluxsend
 
