@@ -109,7 +109,7 @@ services:
       context: ../fluxsend-frontend/static-site
       dockerfile: Dockerfile
     ports:
-      - ${LANDING_PORT:-8081}:80/tcp
+      - ${LANDING_PORT:-8082}:80/tcp
     restart: unless-stopped
 
 # networks:
