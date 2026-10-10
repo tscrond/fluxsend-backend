@@ -13,7 +13,7 @@
         },
         "version": "1.7.0"
     },
-    "host": "fluxsend.win",
+    "host": "fluxsend.app",
     "basePath": "/",
     "paths": {
         "/api/api_keys/private/create": {

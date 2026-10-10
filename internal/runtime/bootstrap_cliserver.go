@@ -18,6 +18,7 @@ func BuildCLIServer(log *zap.SugaredLogger, cliConfig *config.CLIServerConfig, r
 			EmailSender:      runtime.EmailSender,
 			BucketHandler:    runtime.BucketHandler,
 			CloudFrontSigner: runtime.CloudFrontSigner,
+			Metrics:          runtime.Metrics,
 			Repository:       runtime.Repository,
 			Files:            runtime.FileService,
 			Shares:           runtime.ShareService,

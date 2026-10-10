@@ -138,6 +138,12 @@ func (s *APIServer) passwordLoginHandler(w http.ResponseWriter, r *http.Request)
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", nil)
 		return
 	}
+	loginSucceeded := false
+	defer func() {
+		if !loginSucceeded {
+			s.metrics.RecordAuthLogin("password", "failure")
+		}
+	}()
 
 	var req struct {
 		Email    string `json:"email"`
@@ -214,6 +220,8 @@ func (s *APIServer) passwordLoginHandler(w http.ResponseWriter, r *http.Request)
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	loginSucceeded = true
+	s.metrics.RecordAuthLogin("password", "success")
 	pkg.WriteJSONResponse(w, http.StatusOK, "login_success", map[string]any{"user_id": parsedUserID.String()})
 
 }
@@ -573,6 +581,7 @@ func (s *APIServer) verifyPasswordResetRequestHandler(w http.ResponseWriter, r *
 		return
 	}
 	if isRateLimitBlocked(rateLimitBucket, challenge.MaxAttempts) {
+		s.metrics.RecordAuthRateLimitBlocked(authRateLimitScopePasswordReset)
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "verification_failed", nil)
 		return
 	}
@@ -789,6 +798,7 @@ func (s *APIServer) createSelfPasswordResetRequestHandler(w http.ResponseWriter,
 		return
 	}
 	if userCooldownActive {
+		s.metrics.RecordAuthRateLimitBlocked(authRateLimitScopeResetSelfInit)
 		pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "password_reset_cooldown", map[string]any{
 			"msg": "Please wait before requesting another password reset link.",
 		})
@@ -802,6 +812,7 @@ func (s *APIServer) createSelfPasswordResetRequestHandler(w http.ResponseWriter,
 		return
 	}
 	if ipCooldownActive {
+		s.metrics.RecordAuthRateLimitBlocked(authRateLimitScopeResetSelfInit)
 		pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "password_reset_cooldown", map[string]any{
 			"msg": "Please wait before requesting another password reset link.",
 		})
@@ -944,6 +955,12 @@ func (s *APIServer) verifyRegistrationRequest(w http.ResponseWriter, r *http.Req
 		pkg.WriteJSONResponse(w, http.StatusMethodNotAllowed, "method_not_allowed", nil)
 		return
 	}
+	signupSucceeded := false
+	defer func() {
+		if !signupSucceeded {
+			s.metrics.RecordAuthSignup("password", "failure")
+		}
+	}()
 
 	challengeId := chi.URLParam(r, "id")
 
@@ -990,6 +1007,8 @@ func (s *APIServer) verifyRegistrationRequest(w http.ResponseWriter, r *http.Req
 			s.log.Warnw("failed to create bucket after password verification", "user_id", user.ID, "error", err)
 		}
 	}
+	signupSucceeded = true
+	s.metrics.RecordAuthSignup("password", "success")
 	pkg.WriteJSONResponse(w, http.StatusOK, "", nil)
 }
 
@@ -1033,6 +1052,12 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "unknown_provider", nil)
 		return
 	}
+	loginSucceeded := false
+	defer func() {
+		if !loginSucceeded {
+			s.metrics.RecordAuthLogin(providerName, "failure")
+		}
+	}()
 
 	// Validate OAuth state to prevent CSRF
 	stateCookie, err := r.Cookie(oauthStateCookieName)
@@ -1069,7 +1094,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	userID, err := s.findOrCreateUserFromResult(ctx, result.Email, result.Provider, result.ProviderUserID, result.EmailVerified, result.Name, result.AvatarURL)
+	userID, createdUser, err := s.findOrCreateUserFromResult(ctx, result.Email, result.Provider, result.ProviderUserID, result.EmailVerified, result.Name, result.AvatarURL)
 	if err != nil {
 		log.Errorw("error finding or creating user", "error", err)
 		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=user_error", http.StatusTemporaryRedirect)
@@ -1112,6 +1137,11 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	loginSucceeded = true
+	s.metrics.RecordAuthLogin(providerName, "success")
+	if createdUser {
+		s.metrics.RecordAuthSignup(providerName, "success")
+	}
 	http.Redirect(w, r, s.backendConfig.FrontendEndpoint, http.StatusTemporaryRedirect)
 }
 
@@ -1132,20 +1162,20 @@ func (s *APIServer) isWhitelistedEmail(email string) bool {
 }
 
 // findOrCreateUserFromResult looks up a user by their provider identity, creating one if they don't exist yet.
-func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provider, providerUserID string, emailVerified bool, name, avatarURL string) (uuid.UUID, error) {
-	// Look up by provider identity first
+func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provider, providerUserID string, emailVerified bool, name, avatarURL string) (uuid.UUID, bool, error) {
+	// Look up by provider identity first.
 	identity, err := s.repository.Queries().GetIdentityByProvider(ctx, sqlc.GetIdentityByProviderParams{
 		Provider:       provider,
 		ProviderUserID: providerUserID,
 	})
 	if err == nil {
-		return identity.UserID, nil
+		return identity.UserID, false, nil
 	}
 	if err != sql.ErrNoRows {
-		return uuid.UUID{}, fmt.Errorf("looking up identity: %w", err)
+		return uuid.UUID{}, false, fmt.Errorf("looking up identity: %w", err)
 	}
 
-	// No identity found — check if a user with this email already exists (cross-provider dedup)
+	// No identity found — check if a user with this email already exists (cross-provider dedup).
 	// Only link by email when the provider has verified the address.
 	if emailVerified && email != "" {
 		existingUser, err := s.repository.Queries().GetUserByEmail(ctx, email)
@@ -1153,7 +1183,7 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 			// User exists under a different provider — attach this identity to them.
 			tx, err := s.repository.BeginTx(ctx, nil)
 			if err != nil {
-				return uuid.UUID{}, fmt.Errorf("beginning transaction: %w", err)
+				return uuid.UUID{}, false, fmt.Errorf("beginning transaction: %w", err)
 			}
 			defer tx.Rollback() //nolint:errcheck
 
@@ -1173,25 +1203,25 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 						Provider: provider, ProviderUserID: providerUserID,
 					})
 					if rerr != nil {
-						return uuid.UUID{}, fmt.Errorf("re-reading identity after race: %w", rerr)
+						return uuid.UUID{}, false, fmt.Errorf("re-reading identity after race: %w", rerr)
 					}
-					return existing.UserID, nil
+					return existing.UserID, false, nil
 				}
-				return uuid.UUID{}, fmt.Errorf("linking identity to existing user: %w", err)
+				return uuid.UUID{}, false, fmt.Errorf("linking identity to existing user: %w", err)
 			}
 			if err := tx.Commit(); err != nil {
-				return uuid.UUID{}, fmt.Errorf("committing transaction: %w", err)
+				return uuid.UUID{}, false, fmt.Errorf("committing transaction: %w", err)
 			}
-			return existingUser.ID, nil
+			return existingUser.ID, false, nil
 		} else if err != sql.ErrNoRows {
-			return uuid.UUID{}, fmt.Errorf("looking up user by email: %w", err)
+			return uuid.UUID{}, false, fmt.Errorf("looking up user by email: %w", err)
 		}
 	}
 
-	// No existing user — create user + identity atomically to avoid orphan rows
+	// No existing user — create user + identity atomically to avoid orphan rows.
 	tx, err := s.repository.BeginTx(ctx, nil)
 	if err != nil {
-		return uuid.UUID{}, fmt.Errorf("beginning transaction: %w", err)
+		return uuid.UUID{}, false, fmt.Errorf("beginning transaction: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck
 
@@ -1199,10 +1229,10 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 
 	user, err := txq.CreateUser(ctx, email)
 	if err != nil {
-		return uuid.UUID{}, fmt.Errorf("creating user: %w", err)
+		return uuid.UUID{}, false, fmt.Errorf("creating user: %w", err)
 	}
 
-	// Set bucket name using the new UUID
+	// Set bucket name using the new UUID.
 	bucketName := fmt.Sprintf("%s-%s", s.bucketHandler.GetBucketBaseName(), user.ID.String())
 	if err := txq.UpdateUserBucketNameById(ctx, sqlc.UpdateUserBucketNameByIdParams{
 		UserBucket: sql.NullString{String: bucketName, Valid: true},
@@ -1211,7 +1241,7 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 		logger.FromContext(ctx).Warnw("failed to update bucket name for user", "user", user.ID, "error", err)
 	}
 
-	// Create identity
+	// Create identity.
 	if _, err := txq.CreateIdentity(ctx, sqlc.CreateIdentityParams{
 		UserID:         user.ID,
 		Provider:       provider,
@@ -1227,18 +1257,18 @@ func (s *APIServer) findOrCreateUserFromResult(ctx context.Context, email, provi
 				Provider: provider, ProviderUserID: providerUserID,
 			})
 			if rerr != nil {
-				return uuid.UUID{}, fmt.Errorf("re-reading identity after race: %w", rerr)
+				return uuid.UUID{}, false, fmt.Errorf("re-reading identity after race: %w", rerr)
 			}
-			return existing.UserID, nil
+			return existing.UserID, false, nil
 		}
-		return uuid.UUID{}, fmt.Errorf("creating identity: %w", err)
+		return uuid.UUID{}, false, fmt.Errorf("creating identity: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return uuid.UUID{}, fmt.Errorf("committing transaction: %w", err)
+		return uuid.UUID{}, false, fmt.Errorf("committing transaction: %w", err)
 	}
 
-	return user.ID, nil
+	return user.ID, true, nil
 }
 
 func (s *APIServer) authMiddleware(next http.Handler) http.Handler {

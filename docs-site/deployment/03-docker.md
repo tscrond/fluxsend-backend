@@ -32,6 +32,8 @@ The default stack in `compose.minio.yaml` sets:
 - `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` from MinIO root credentials
 
 This is the best option for a deployment with no cloud storage vendor involved.
+Downloads are streamed through the backend by default; set
+`MINIO_PUBLIC_ENDPOINT` to a public HTTPS host to serve them straight from MinIO.
 
 ---
 
@@ -89,4 +91,3 @@ The backend reads the same env vars and config file settings as a standalone Lin
 - `ghcr.io/tscrond/fluxsend-backend:latest`
 
 For self-hosted deployments, the MinIO Compose example is the most practical and least coupled to external infrastructure.
-

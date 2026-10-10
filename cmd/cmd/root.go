@@ -30,6 +30,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/api"
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
+	appmetrics "github.com/tscrond/fluxsend-backend/internal/metrics"
 	runtime "github.com/tscrond/fluxsend-backend/internal/runtime"
 )
 
@@ -102,8 +103,17 @@ func RunDeveloperAPI(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	metricsConfig, err := config.NewMetricsServerConfig(v)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	baseRuntime, err := runtime.BuildBaseRuntime(log, baseRuntimeConfig)
+	metrics := appmetrics.NewDisabled()
+	if metricsConfig.Enabled {
+		metrics = appmetrics.New()
+	}
+
+	baseRuntime, err := runtime.BuildBaseRuntime(log, baseRuntimeConfig, metrics)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -111,15 +121,18 @@ func RunDeveloperAPI(cmd *cobra.Command, args []string) {
 
 	cliServer := runtime.BuildCLIServer(log, cliConfig, baseRuntime)
 
-	if err := runtime.RunHTTPServers(log,
-		runtime.NamedHTTPServer{
-			Name: "cli",
-			Srv: &http.Server{
-				Addr:    ":" + cliConfig.ListenPort,
-				Handler: cliServer.Handler(),
-			},
+	servers := []runtime.NamedHTTPServer{{
+		Name: "cli",
+		Srv: &http.Server{
+			Addr:    ":" + cliConfig.ListenPort,
+			Handler: cliServer.Handler(),
 		},
-	); err != nil {
+	}}
+	if metricsConfig.Enabled {
+		servers = append(servers, runtime.BuildMetricsHTTPServer(metricsConfig, metrics))
+	}
+
+	if err := runtime.RunHTTPServers(log, servers...); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -152,19 +165,27 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	adminConfig, err := config.NewAdminServerConfig(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+	metricsConfig, err := config.NewMetricsServerConfig(v)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	baseRuntime, err := runtime.BuildBaseRuntime(log, baseRuntimeConfig)
+	metrics := appmetrics.NewDisabled()
+	if metricsConfig.Enabled {
+		metrics = appmetrics.New()
+	}
+
+	baseRuntime, err := runtime.BuildBaseRuntime(log, baseRuntimeConfig, metrics)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer baseRuntime.Close(log)
 
 	apiServerRuntime, err := runtime.BuildAPIServerRuntime(log, apiConfig, baseRuntime)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	adminConfig, err := config.NewAdminServerConfig(v)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -205,6 +226,7 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 				EmailSender:      baseRuntime.EmailSender,
 				BucketHandler:    baseRuntime.BucketHandler,
 				CloudFrontSigner: baseRuntime.CloudFrontSigner,
+				Metrics:          baseRuntime.Metrics,
 				Repository:       baseRuntime.Repository,
 				Files:            baseRuntime.FileService,
 				Shares:           baseRuntime.ShareService,
@@ -223,6 +245,10 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 				Handler: adminServer.Handler(),
 			},
 		})
+	}
+
+	if metricsConfig.Enabled {
+		servers = append(servers, runtime.BuildMetricsHTTPServer(metricsConfig, metrics))
 	}
 
 	if err := runtime.RunHTTPServers(log, servers...); err != nil {

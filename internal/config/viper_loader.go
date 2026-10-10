@@ -81,6 +81,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("admin.listen_port", "1414")
 	v.SetDefault("admin.admin_username", "")
 	v.SetDefault("admin.admin_password", "")
+	v.SetDefault("metrics.enabled", false)
+	v.SetDefault("metrics.listen_port", "9464")
+	v.SetDefault("metrics.bind_address", "")
+	v.SetDefault("metrics.path", "/metrics")
 	v.SetDefault("api.email_whitelist", []string{})
 	v.SetDefault(configDebugLoggingKey, false)
 }

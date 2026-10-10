@@ -13,6 +13,7 @@ import (
 
 	"github.com/tscrond/fluxsend-backend/internal/auth"
 	"github.com/tscrond/fluxsend-backend/internal/config"
+	appmetrics "github.com/tscrond/fluxsend-backend/internal/metrics"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"golang.org/x/sync/errgroup"
 
@@ -46,18 +47,28 @@ func InitObjectStorage(log *zap.SugaredLogger, backendEndpoint string, storageCo
 		AWSRegion:                    storageConfig.AWSRegion,
 		MinioBucketName:              storageConfig.MinioBucketName,
 		MinioEndpoint:                storageConfig.MinioEndpoint,
+		MinioPublicEndpoint:          storageConfig.MinioPublicEndpoint,
+		MinioRegion:                  storageConfig.MinioRegion,
 		MinioAccessKey:               storageConfig.MinioAccessKey,
 		MinioSecretKey:               storageConfig.MinioSecretKey,
 		MinioUseSSL:                  storageConfig.MinioUseSSL,
 	})
 }
 
-func InitRepository(connString string) (*repo.PostgresRepository, error) {
+func InitRepository(connString string, metrics *appmetrics.Metrics) (*repo.PostgresRepository, error) {
 	if connString == "" {
 		panic("no conn string provided")
 	}
 
-	db, err := sql.Open("postgres", connString)
+	var (
+		db  *sql.DB
+		err error
+	)
+	if metrics != nil && metrics.Enabled() {
+		db, err = appmetrics.OpenInstrumentedPostgres(connString, metrics)
+	} else {
+		db, err = sql.Open("postgres", connString)
+	}
 	if err != nil {
 		return nil, err
 	}

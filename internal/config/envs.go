@@ -33,6 +33,8 @@ func GetEnvVarMap() map[string]string {
 		"storage.aws_secret_access_key":          "AWS_SECRET_ACCESS_KEY",
 		"storage.minio_bucket_name":              "MINIO_BUCKET_NAME",
 		"storage.minio_endpoint":                 "MINIO_ENDPOINT",
+		"storage.minio_public_endpoint":          "MINIO_PUBLIC_ENDPOINT",
+		"storage.minio_region":                   "MINIO_REGION",
 		"storage.minio_access_key":               "MINIO_ACCESS_KEY",
 		"storage.minio_secret_key":               "MINIO_SECRET_KEY",
 		"storage.minio_use_ssl":                  "MINIO_USE_SSL",
@@ -53,5 +55,9 @@ func GetEnvVarMap() map[string]string {
 		"admin.admin_username":                   "ADMIN_USERNAME",
 		"admin.admin_password":                   "ADMIN_PASSWORD",
 		"admin.listen_port":                      "ADMIN_LISTEN_PORT",
+		"metrics.enabled":                        "METRICS_ENABLED",
+		"metrics.listen_port":                    "METRICS_LISTEN_PORT",
+		"metrics.bind_address":                   "METRICS_BIND_ADDRESS",
+		"metrics.path":                           "METRICS_PATH",
 	}
 }

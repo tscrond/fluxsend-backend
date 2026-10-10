@@ -45,6 +45,10 @@ storage:
   minio_access_key: "fluxsend"
   minio_secret_key: "change-me"
   minio_use_ssl: false
+  # Optional: public HTTPS endpoint for direct downloads (e.g. https://s3.example.com).
+  # Leave empty to stream downloads through the backend and keep MinIO private.
+  minio_public_endpoint: ""
+  minio_region: "us-east-1"
 
   # GCS settings (alternative)
   gcs_bucket_name: "fluxsend-dev"
@@ -70,3 +74,11 @@ cli:
   listen_port: "8091"
   backend_endpoint: "http://localhost:3000"
   route_prefix: "/api"
+
+metrics:
+  enabled: false
+  listen_port: "9464"
+  # Leave blank to bind all interfaces. Prefer 127.0.0.1 or a private address
+  # unless your Prometheus server scrapes over an isolated network.
+  bind_address: "127.0.0.1"
+  path: "/metrics"

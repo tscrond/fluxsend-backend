@@ -48,8 +48,10 @@ func (s *CoreHandlers) initWorkspaceUploadHandler(w http.ResponseWriter, r *http
 	folder := wsNormalizePathParam(req.Folder)
 	if exceedInfo, err := s.validateWorkspaceResourceLimits(r.Context(), workspaceID, req.Size, workspaceQuotaChecks{files: true, storage: true}); err != nil {
 		if errors.Is(err, ErrWorkspaceFilesLimitExceeded) || errors.Is(err, ErrWorkspaceStorageLimitExceeded) {
+			s.metrics.RecordUploadSession("workspace", "failed")
 			pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "exceeded_plan_limits", exceedInfo)
 		} else {
+			s.metrics.RecordUploadSession("workspace", "failed")
 			log.Errorw("workspace multipart quota check failed", "workspace_id", workspaceID, "error", err)
 			pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", "")
 		}
@@ -66,10 +68,12 @@ func (s *CoreHandlers) initWorkspaceUploadHandler(w http.ResponseWriter, r *http
 	}
 	uploadResponse, err := s.workspaceFiles.CreateWorkspaceUpload(r.Context(), params)
 	if err != nil {
+		s.metrics.RecordUploadSession("workspace", "failed")
 		log.Errorw("failed creating workspace upload id", "workspace_id", workspaceID, "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "failed_creating_upload_id", "")
 		return
 	}
+	s.metrics.RecordUploadSession("workspace", "initiated")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "created_upload_id", map[string]any{
 		"upload_id":  uploadResponse.UploadId,
@@ -114,9 +118,12 @@ func (s *CoreHandlers) uploadWorkspacePartHandler(w http.ResponseWriter, r *http
 
 	result, err := s.workspaceFiles.UploadWorkspacePart(r.Context(), workspaceID, uploadId, int32(partId), r.Body, r.ContentLength)
 	if err != nil {
+		s.metrics.RecordUploadPart("workspace", "failed")
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "error_uploading_part", "")
 		return
 	}
+	s.metrics.RecordUploadPart("workspace", "completed")
+	s.metrics.AddUploadBytes("workspace", r.ContentLength)
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "uploaded_chunk", result)
 }
@@ -148,6 +155,7 @@ func (s *CoreHandlers) completeWorkspaceUploadHandler(w http.ResponseWriter, r *
 
 	result, err := s.workspaceFiles.CompleteWorkspaceUpload(r.Context(), workspaceID, uploadId)
 	if err != nil {
+		s.metrics.RecordUploadSession("workspace", "failed")
 		switch {
 		case errors.Is(err, service.ErrMultipartUploadIncomplete):
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "multipart_upload_incomplete", "")
@@ -165,6 +173,8 @@ func (s *CoreHandlers) completeWorkspaceUploadHandler(w http.ResponseWriter, r *
 		}
 		return
 	}
+	s.metrics.RecordUploadSession("workspace", "completed")
+	s.metrics.RecordFileUploaded("workspace")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "upload_completed", result)
 }
@@ -196,6 +206,7 @@ func (s *CoreHandlers) abortWorkspaceUploadHandler(w http.ResponseWriter, r *htt
 
 	result, err := s.workspaceFiles.AbortWorkspaceUpload(r.Context(), workspaceID, uploadId)
 	if err != nil {
+		s.metrics.RecordUploadSession("workspace", "failed")
 		switch {
 		case errors.Is(err, service.ErrMultipartUploadUnsupported):
 			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "multipart_upload_not_supported", "")
@@ -207,6 +218,7 @@ func (s *CoreHandlers) abortWorkspaceUploadHandler(w http.ResponseWriter, r *htt
 		}
 		return
 	}
+	s.metrics.RecordUploadSession("workspace", "aborted")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "upload_aborted", result)
 }
@@ -274,6 +286,8 @@ func (s *CoreHandlers) uploadWorkspaceFile(w http.ResponseWriter, r *http.Reques
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "upload_failed")
 		return
 	}
+	s.metrics.AddUploadBytes("workspace", header.Size)
+	s.metrics.RecordFileUploaded("workspace")
 	pkg.WriteJSONResponse(w, http.StatusOK, "uploaded", results)
 }
 

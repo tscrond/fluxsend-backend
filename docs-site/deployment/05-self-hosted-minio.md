@@ -100,6 +100,24 @@ export MAIL_FROM=noreply@example.com
 4. Ensure the bucket `fluxsend` exists or let the app create it automatically on first use.
 5. Set `STORAGE_PROVIDER=minio` or rely on auto-detection when MinIO values are present.
 
+## How downloads reach the browser
+
+`MINIO_ENDPOINT` (`http://minio:9000`) is the internal address the backend uses
+and is not resolvable from the public internet. Downloads therefore need one of:
+
+- **Backend proxy (default).** With no `MINIO_PUBLIC_ENDPOINT` set, the backend
+  streams objects itself over the app's HTTPS origin. MinIO is never exposed and
+  no extra DNS, TLS, or firewall work is needed. Password-protected shares and
+  direct-to-object-store range requests are limited in this mode.
+- **Public download endpoint.** Set `MINIO_PUBLIC_ENDPOINT=https://s3.example.com`
+  (HTTPS only) and route that host to `minio:9000` through your reverse proxy.
+  The backend then returns short-lived presigned URLs so browsers download
+  directly from MinIO. Keep the console port private, forward the original
+  `Host` header, and restrict the route to `GET`/`HEAD`/`OPTIONS`.
+
+The presign region defaults to `us-east-1`; change `MINIO_REGION` if MinIO was
+started with a different region.
+
 ## Password auth checklist
 
 1. Set `ENABLE_PASSWORD_AUTH=true` or pass `--password-auth` at startup.

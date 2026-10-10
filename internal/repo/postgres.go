@@ -76,3 +76,7 @@ func (repo *PostgresRepository) BeginTx(ctx context.Context, options *sql.TxOpti
 func (repo *PostgresRepository) Queries() *sqlc.Queries {
 	return repo.queries
 }
+
+func (repo *PostgresRepository) DB() *sql.DB {
+	return repo.db
+}

@@ -62,6 +62,7 @@ func (s *CoreHandlers) deleteWorkspaceFile(w http.ResponseWriter, r *http.Reques
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.AddFilesDeleted("workspace", 1)
 	pkg.WriteJSONResponse(w, http.StatusOK, "deleted", nil)
 }
 
@@ -117,5 +118,6 @@ func (s *CoreHandlers) deleteWorkspaceFolder(w http.ResponseWriter, r *http.Requ
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.AddFilesDeleted("workspace_folder", 1)
 	pkg.WriteJSONResponse(w, http.StatusOK, "folder_deleted", nil)
 }

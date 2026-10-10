@@ -29,18 +29,21 @@ func (s *CoreHandlers) validateClassicUploadPlan(ctx context.Context, userUUID u
 
 	switch errType := s.checkForClassicPlanErrorType(quota); errType {
 	case ErrFileLimitExceeded:
+		s.recordQuotaRejection(errType)
 		log.Warnw("plan limit exceeded: max_files", "user", userUUID, "plan", userPlan.PlanName, "limit", userPlan.MaxFiles)
 		return map[string]any{
 			"msg":       "You have reached the maximum number of files for your plan",
 			"max_files": userPlan.MaxFiles,
 		}, errType
 	case ErrStorageQuotaExceeded:
+		s.recordQuotaRejection(errType)
 		log.Warnw("plan limit exceeded: max_total_storage_bytes", "user", userUUID, "plan", userPlan.PlanName, "limit", userPlan.MaxTotalStorageBytes)
 		return map[string]any{
 			"msg":                     "You have reached the maximum storage quota for your plan",
 			"max_total_storage_bytes": userPlan.MaxTotalStorageBytes,
 		}, errType
 	case ErrDailyUploadLimitExceeded:
+		s.recordQuotaRejection(errType)
 		log.Warnw("plan limit exceeded: max_files_sent_per_day", "user", userUUID, "plan", userPlan.PlanName, "limit", userPlan.MaxFilesSentPerDay)
 		return map[string]any{
 			"msg":               "You have reached the maximum number of daily uploads for your plan",
@@ -62,6 +65,7 @@ func (s *CoreHandlers) validateClassicSharePlan(ctx context.Context, sharedByEma
 	}
 
 	if sharesExceeded {
+		s.recordQuotaRejection(ErrDailyShareLimitExceeded)
 		log.Warnw("plan limit exceeded: max_shares_per_day", "user", sharedByEmail, "plan", userPlan.PlanName, "limit", userPlan.MaxSharesPerDay)
 		return map[string]any{
 			"msg":                "You have reached the maximum number of daily shares for your plan",

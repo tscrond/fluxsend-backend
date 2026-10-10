@@ -29,7 +29,7 @@ func NewCLIServer(backendConfig config.BackendConfig, routePrefix string, deps C
 
 func (s *CLIServer) Handler() http.Handler {
 	r := chi.NewRouter()
-	r.Use(chimiddleware.RequestLogger(s.log))
+	r.Use(chimiddleware.RequestLogger(s.log), s.metrics.HTTPMiddleware())
 
 	r.Route(s.routePrefix, func(r chi.Router) {
 		r.Get("/swagger/json", func(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +69,7 @@ func chainRouteMiddleware(middlewares ...routeMiddleware) routeMiddleware {
 
 func (s *CLIServer) cliProtected(requiredScope scope.Scope, domain routeDomain, requiresWorkspaceID bool) routeMiddleware {
 	return chainRouteMiddleware(
+		withCLIRouteDomain(domain),
 		s.authMiddleware,
 		s.requireScope(requiredScope),
 		s.requireKeyBinding(domain, requiresWorkspaceID),

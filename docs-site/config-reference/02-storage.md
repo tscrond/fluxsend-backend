@@ -34,6 +34,8 @@ This is the most self-host-friendly storage mode because it runs without any clo
 | `MINIO_ACCESS_KEY` | `fluxsend` | Access key |
 | `MINIO_SECRET_KEY` | `super-secret` | Secret key |
 | `MINIO_USE_SSL` | `false` | Whether to use TLS |
+| `MINIO_PUBLIC_ENDPOINT` | `https://s3.example.com` | Public endpoint for download URLs (optional) |
+| `MINIO_REGION` | `us-east-1` | Region used when signing URLs |
 
 ### Example config
 
@@ -44,12 +46,33 @@ api:
 storage:
   minio_bucket_name: "fluxsend"
   minio_endpoint: "http://minio:9000"
+  minio_public_endpoint: "https://s3.example.com"
+  minio_region: "us-east-1"
   minio_access_key: "fluxsend"
   minio_secret_key: "super-secret"
   minio_use_ssl: false
 ```
 
 This is the simplest option when you want a fully local or private deployment without AWS or GCS.
+
+### Serving downloads to end users
+
+`MINIO_ENDPOINT` is the internal address the backend uses (`http://minio:9000`),
+which end users cannot resolve. Downloads are handled in one of two ways:
+
+- **Default (no `MINIO_PUBLIC_ENDPOINT`)** — the backend streams the object to
+  the user over the app's own HTTPS origin. MinIO stays private and is never
+  exposed; the backend returns the bytes itself. Simplest and most secure.
+- **Direct downloads (`MINIO_PUBLIC_ENDPOINT` set)** — the backend returns a
+  short-lived presigned URL pointing at the public endpoint, so browsers fetch
+  objects straight from MinIO. This offloads bandwidth from the backend, but the
+  endpoint must be TLS-only and reachable from the internet. Terminate TLS at
+  your reverse proxy, keep the console port private, and restrict the route to
+  `GET`/`HEAD`/`OPTIONS`. The endpoint must be `https://`; the backend refuses
+  to start with a plain-HTTP public endpoint.
+
+The host in the presigned URL is part of the AWS signature, so the public
+endpoint must forward the original `Host` header to MinIO unchanged.
 
 ---
 

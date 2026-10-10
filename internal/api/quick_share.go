@@ -81,6 +81,7 @@ func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}
+	s.metrics.RecordShareCreated("quick")
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "", result)
 }

@@ -75,6 +75,7 @@ func (s *CoreHandlers) shareWith(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "sharing_error")
 		return
 	}
+	s.recordShareCreatedN("email", len(shares))
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "", map[string]any{
 		"sharing_info":        shares,

@@ -47,6 +47,7 @@ func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
+	s.metrics.AddFilesDeleted("private", 1)
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "success", map[string]any{
 		"file_deleted": object,
@@ -95,6 +96,7 @@ func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) 
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
+	s.metrics.AddFilesDeleted("batch", len(deleted))
 
 	pkg.WriteJSONResponse(w, http.StatusOK, "success", map[string]any{
 		"files_deleted": deleted,
