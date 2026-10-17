@@ -32,18 +32,19 @@ func (s *CLIServer) Handler() http.Handler {
 	r.Use(chimiddleware.RequestLogger(s.log), s.metrics.HTTPMiddleware())
 
 	r.Route(s.routePrefix, func(r chi.Router) {
-		r.Get("/swagger/json", func(w http.ResponseWriter, r *http.Request) {
+		metered := r.With(s.metrics.HTTPInFlightMiddleware())
+		metered.Get("/swagger/json", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(docs.SwaggerInfo.ReadDoc()))
 		})
-		r.Get("/swagger/*", httpSwagger.Handler(
+		metered.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("/api/swagger/json"),
 		))
-		s.registerCLIFileRoutes(r)
-		s.registerCLIWorkspaceRoutes(r)
-		s.registerCLISharingRoutes(r)
-		s.registerCLIUserRoutes(r)
-		s.registerCLIAPIKeyRoutes(r)
+		s.registerCLIFileRoutes(metered)
+		s.registerCLIWorkspaceRoutes(metered)
+		s.registerCLISharingRoutes(metered)
+		s.registerCLIUserRoutes(metered)
+		s.registerCLIAPIKeyRoutes(metered)
 	})
 
 	return r

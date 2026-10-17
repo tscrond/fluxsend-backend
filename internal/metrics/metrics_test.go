@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -144,7 +145,8 @@ func TestMetricsHTTPMiddlewareRecordsRouteLabelsAndHistograms(t *testing.T) {
 	m := New()
 	r := chi.NewRouter()
 	r.Use(m.HTTPMiddleware())
-	r.Get("/items/{id}", func(w http.ResponseWriter, r *http.Request) {
+	metered := r.With(m.HTTPInFlightMiddleware())
+	metered.Get("/items/{id}", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		_, _ = w.Write([]byte("ok"))
 	})
@@ -168,6 +170,47 @@ func TestMetricsHTTPMiddlewareRecordsRouteLabelsAndHistograms(t *testing.T) {
 		"route":  "/items/{id}",
 	})
 	require.Equal(t, uint64(1), responseSizeMetric.GetHistogram().GetSampleCount())
+}
+
+func TestMetricsHTTPInFlightMiddlewareTracksConcurrentRequests(t *testing.T) {
+	m := New()
+	r := chi.NewRouter()
+	r.Use(m.HTTPMiddleware())
+
+	entered := make(chan struct{}, 2)
+	release := make(chan struct{})
+	defer close(release)
+
+	metered := r.With(m.HTTPInFlightMiddleware())
+	metered.Get("/items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		entered <- struct{}{}
+		<-release
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	completed := make(chan struct{}, 2)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/items/abc123", nil))
+			completed <- struct{}{}
+		}()
+	}
+
+	<-entered
+	<-entered
+	require.Equal(t, 2.0, promtest.ToFloat64(m.httpRequestsInFlight.WithLabelValues("/items/{id}")))
+
+	release <- struct{}{}
+	<-completed
+	require.Equal(t, 1.0, promtest.ToFloat64(m.httpRequestsInFlight.WithLabelValues("/items/{id}")))
+
+	release <- struct{}{}
+	<-completed
+	wg.Wait()
+	require.Equal(t, 0.0, promtest.ToFloat64(m.httpRequestsInFlight.WithLabelValues("/items/{id}")))
 }
 
 func TestMetricsHandlerExposesBuildInfo(t *testing.T) {
@@ -195,6 +238,11 @@ func TestDisabledMetricsDoesNotPanic(t *testing.T) {
 			w.WriteHeader(http.StatusNoContent)
 		}))
 		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/anything", nil))
+
+		inFlightHandler := m.HTTPInFlightMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		inFlightHandler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/anything", nil))
 
 		storage := m.WrapObjectStorage("s3", &fakeObjectStorage{})
 		_, _ = storage.PutObject(context.Background(), "bucket", "object", bytes.NewBufferString("payload"), 7, "text/plain")
