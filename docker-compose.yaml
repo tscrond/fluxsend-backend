@@ -63,7 +63,7 @@ services:
       - ENABLE_CLOUDFRONT_DOWNLOADS=true
       - CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN:-}
       - CLOUDFRONT_KEY_PAIR_ID=${CLOUDFRONT_KEY_PAIR_ID:-}
-      - CLOUDFRONT_PRIVATE_KEY_PATH=/config/fluxsend_private_key.pem
+      - CLOUDFRONT_PRIVATE_KEY_PATH=${CLOUDFRONT_PRIVATE_KEY_PATH:-}
       # Mail config
       - MAIL_FROM=${MAIL_FROM:-noreply@fluxsend.app}
       - SMTP_HOST=${SMTP_HOST:-smtp.mailgun.org}
@@ -88,7 +88,7 @@ services:
 
     volumes:
       - ${GOOGLE_APPLICATION_CREDENTIALS}:/config/bucket-auth.json:ro
-      - ./bin/cloudfront-private-key.pem:/config/fluxsend_private_key.pem:ro
+      - ${LOCAL_CLOUDFRONT_PRIVATE_KEY_PATH:-./secret}:${CLOUDFRONT_PRIVATE_KEY_PATH}:ro
 
 
   docs:
