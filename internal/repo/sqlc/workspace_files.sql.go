@@ -122,7 +122,8 @@ func (q *Queries) DeleteWorkspaceFilesByPath(ctx context.Context, arg DeleteWork
 }
 
 const deleteWorkspaceFilesByPathPrefix = `-- name: DeleteWorkspaceFilesByPathPrefix :exec
-DELETE FROM workspace_files WHERE workspace_id = $1 AND path LIKE $2
+DELETE FROM workspace_files
+WHERE workspace_id = $1 AND left(path, length($2::text)) = $2::text
 `
 
 type DeleteWorkspaceFilesByPathPrefixParams struct {

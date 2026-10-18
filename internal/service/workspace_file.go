@@ -886,7 +886,7 @@ func (w *workspaceFileService) RemoveWorkspaceFolder(ctx context.Context, worksp
 		return err
 	}
 	if err := w.queries.DeleteWorkspaceFilesByPathPrefix(ctx, sqlc.DeleteWorkspaceFilesByPathPrefixParams{
-		WorkspaceID: workspaceId, Path: folderPath + "/%",
+		WorkspaceID: workspaceId, Path: folderPath + "/",
 	}); err != nil {
 		return err
 	}

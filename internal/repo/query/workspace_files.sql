@@ -42,7 +42,8 @@ DELETE FROM workspace_files WHERE id = $1 AND workspace_id = $2;
 DELETE FROM workspace_files WHERE workspace_id = $1 AND path = $2;
 
 -- name: DeleteWorkspaceFilesByPathPrefix :exec
-DELETE FROM workspace_files WHERE workspace_id = $1 AND path LIKE $2;
+DELETE FROM workspace_files
+WHERE workspace_id = $1 AND left(path, length(sqlc.arg(path)::text)) = sqlc.arg(path)::text;
 
 -- name: UpdateWorkspaceFileName :exec
 UPDATE workspace_files
