@@ -63,6 +63,29 @@ func passwordResetSelfIPCooldownKey(ip string) string {
 	return "password-reset-self:ip:" + ip
 }
 
+func (s *APIServer) frontendRedirectURL(path string, query url.Values) string {
+	frontendBase := strings.TrimSpace(s.backendConfig.FrontendEndpoint)
+	if frontendBase == "" {
+		frontendBase = "/"
+	}
+
+	baseURL, err := url.Parse(frontendBase)
+	if err != nil {
+		fallback := strings.TrimRight(frontendBase, "/") + path
+		if len(query) > 0 {
+			return fallback + "?" + query.Encode()
+		}
+		return fallback
+	}
+
+	target := baseURL.ResolveReference(&url.URL{Path: path})
+	if len(query) > 0 {
+		target.RawQuery = query.Encode()
+	}
+
+	return target.String()
+}
+
 func (s *APIServer) isAuthCooldownActive(ctx context.Context, key, scope string) (bool, error) {
 	bucket, err := s.getOrCreateAuthRateLimit(ctx, key, scope)
 	if err != nil {
@@ -1045,6 +1068,10 @@ func (s *APIServer) oauthLoginHandler(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	ctx := r.Context()
+	dashboardURL := s.frontendRedirectURL("/files", nil)
+	loginWithError := func(code string) string {
+		return s.frontendRedirectURL("/login", url.Values{"error": {code}})
+	}
 
 	providerName := chi.URLParam(r, "provider")
 	provider, ok := s.authProviders[providerName]
@@ -1062,7 +1089,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 	// Validate OAuth state to prevent CSRF
 	stateCookie, err := r.Cookie(oauthStateCookieName)
 	if err != nil || stateCookie.Value == "" {
-		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=invalid_state", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, loginWithError("invalid_state"), http.StatusTemporaryRedirect)
 		return
 	}
 	// Clear the state cookie immediately
@@ -1077,27 +1104,27 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 	})
 	returnedState := r.URL.Query().Get("state")
 	if returnedState == "" || returnedState != stateCookie.Value {
-		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=invalid_state", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, loginWithError("invalid_state"), http.StatusTemporaryRedirect)
 		return
 	}
 
 	result, err := provider.HandleCallback(ctx, r)
 	if err != nil {
 		log.Errorw("auth callback error", "provider", providerName, "error", err)
-		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=auth_failed", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, loginWithError("auth_failed"), http.StatusTemporaryRedirect)
 		return
 	}
 
 	result.Email = strings.TrimSpace(strings.ToLower(result.Email))
 	if result.Email == "" || !result.EmailVerified || !emailPattern.MatchString(result.Email) || !s.isWhitelistedEmail(result.Email) {
-		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=forbidden", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, loginWithError("forbidden"), http.StatusTemporaryRedirect)
 		return
 	}
 
 	userID, createdUser, err := s.findOrCreateUserFromResult(ctx, result.Email, result.Provider, result.ProviderUserID, result.EmailVerified, result.Name, result.AvatarURL)
 	if err != nil {
 		log.Errorw("error finding or creating user", "error", err)
-		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=user_error", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, loginWithError("user_error"), http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -1123,7 +1150,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		ExpiresAt:           time.Now().Add(sessionDuration),
 	}); err != nil {
 		log.Errorw("failed to create session", "error", err)
-		http.Redirect(w, r, s.backendConfig.FrontendEndpoint+"?error=session_error", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, loginWithError("session_error"), http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -1142,7 +1169,7 @@ func (s *APIServer) authCallbackHandler(w http.ResponseWriter, r *http.Request) 
 	if createdUser {
 		s.metrics.RecordAuthSignup(providerName, "success")
 	}
-	http.Redirect(w, r, s.backendConfig.FrontendEndpoint, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, dashboardURL, http.StatusTemporaryRedirect)
 }
 
 func (s *APIServer) isWhitelistedEmail(email string) bool {
