@@ -114,11 +114,11 @@ func (s *instrumentedObjectStorage) DeleteObjectFromBucket(ctx context.Context, 
 	return err
 }
 
-func (s *instrumentedObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
+func (s *instrumentedObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
 	started := time.Now()
-	err := s.next.DeleteObjectsFromBucket(ctx, objects, bucket)
+	failed, err := s.next.DeleteObjectsFromBucket(ctx, objects, bucket)
 	s.observe("delete_objects", 0, started, err)
-	return err
+	return failed, err
 }
 
 func (s *instrumentedObjectStorage) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {

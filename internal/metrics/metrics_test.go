@@ -72,8 +72,8 @@ func (f *fakeObjectStorage) DeleteObjectFromBucket(ctx context.Context, object, 
 	return nil
 }
 
-func (f *fakeObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
-	return nil
+func (f *fakeObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
+	return nil, nil
 }
 
 func (f *fakeObjectStorage) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {

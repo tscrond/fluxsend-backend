@@ -180,3 +180,49 @@ func TestDeleteBucketReturnsErrorWhenAbortFails(t *testing.T) {
 		t.Errorf("version list calls = %d, want 0 after cleanup failure", versionListCalls)
 	}
 }
+
+func TestDeleteObjectsFromBucketReportsFailedKeys(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		if r.URL.Path != "/fluxsend" {
+			t.Errorf("request path = %q, want /fluxsend", r.URL.Path)
+		}
+		io.WriteString(w, `<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Error><Key>user1/bad</Key><Code>AccessDenied</Code></Error></DeleteResult>`)
+	}))
+	t.Cleanup(srv.Close)
+
+	handler := newTestS3Handler(t, srv.URL)
+	failed, err := handler.DeleteObjectsFromBucket(context.Background(), []string{"ok", "bad"}, "fluxsend-user1")
+	if err == nil {
+		t.Fatal("DeleteObjectsFromBucket() error = nil, want error")
+	}
+	if got := strings.Join(failed, ","); got != "bad" {
+		t.Errorf("failed keys = %q, want bad", got)
+	}
+}
+
+func TestDeleteObjectsFromBucketBatchesInThousands(t *testing.T) {
+	deleteCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		deleteCalls++
+		w.Header().Set("Content-Type", "application/xml")
+		io.WriteString(w, `<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"></DeleteResult>`)
+	}))
+	t.Cleanup(srv.Close)
+
+	handler := newTestS3Handler(t, srv.URL)
+	keys := make([]string, 1001)
+	for i := range keys {
+		keys[i] = "key"
+	}
+	failed, err := handler.DeleteObjectsFromBucket(context.Background(), keys, "fluxsend-user1")
+	if err != nil {
+		t.Fatalf("DeleteObjectsFromBucket() error = %v", err)
+	}
+	if len(failed) != 0 {
+		t.Errorf("failed keys = %v, want none", failed)
+	}
+	if deleteCalls != 2 {
+		t.Errorf("delete calls = %d, want 2", deleteCalls)
+	}
+}

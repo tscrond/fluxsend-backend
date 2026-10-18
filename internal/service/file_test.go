@@ -340,7 +340,7 @@ func TestFileService_DeleteFile_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
-func TestFileService_DeleteFile_StorageErrorNonFatal(t *testing.T) {
+func TestFileService_DeleteFile_StorageErrorKeepsRow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	stor := mocks.NewMockObjectStorage(ctrl)
@@ -355,12 +355,12 @@ func TestFileService_DeleteFile_StorageErrorNonFatal(t *testing.T) {
 		Return(sql.NullString{Valid: true, String: bucket}, nil)
 	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), gomock.Any()).
 		Return(sqlc.GetFileByOwnerAndNameRow{StorageMapping: storageID}, nil)
-	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), storageID.String(), bucket).
-		Return(errors.New("storage error")) // non-fatal
-	q.EXPECT().DeleteFileByNameAndId(gomock.Any(), gomock.Any()).Return(nil)
+	storageErr := errors.New("storage error")
+	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), storageID.String(), bucket).Return(storageErr)
+	// No DeleteFileByNameAndId expectation: the row must survive a failed object delete.
 
 	err := svc.DeleteFile(context.Background(), ownerID, "doc.txt")
-	assert.NoError(t, err) // storage error is logged but not returned
+	assert.ErrorIs(t, err, storageErr)
 }
 
 // --- DeleteFiles ----------------------------------------------------------
@@ -386,7 +386,7 @@ func TestFileService_DeleteFiles_PartialSuccess(t *testing.T) {
 	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{OwnerID: ownerID, FileName: "missing.txt"}).
 		Return(sqlc.GetFileByOwnerAndNameRow{}, sql.ErrNoRows)
 
-	stor.EXPECT().DeleteObjectsFromBucket(gomock.Any(), []string{storageID.String()}, bucket).Return(nil)
+	stor.EXPECT().DeleteObjectsFromBucket(gomock.Any(), []string{storageID.String()}, bucket).Return(nil, nil)
 	q.EXPECT().DeleteFileByNameAndId(gomock.Any(), sqlc.DeleteFileByNameAndIdParams{OwnerID: ownerID, FileName: "ok.txt"}).
 		Return(nil)
 
@@ -394,6 +394,37 @@ func TestFileService_DeleteFiles_PartialSuccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"ok.txt"}, deleted)
 	assert.Equal(t, []string{"missing.txt"}, failed)
+}
+
+func TestFileService_DeleteFiles_KeepsRowsForFailedStorageDeletes(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := newFileTestSvc(q, stor)
+
+	ownerID := uuid.New()
+	okID := uuid.New()
+	failedID := uuid.New()
+	const bucket = "fluxsend-internal-789"
+	storageErr := errors.New("access denied")
+
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	q.EXPECT().GetUserBucketById(gomock.Any(), ownerID).
+		Return(sql.NullString{Valid: true, String: bucket}, nil)
+	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{OwnerID: ownerID, FileName: "ok.txt"}).
+		Return(sqlc.GetFileByOwnerAndNameRow{StorageMapping: okID}, nil)
+	q.EXPECT().GetFileByOwnerAndName(gomock.Any(), sqlc.GetFileByOwnerAndNameParams{OwnerID: ownerID, FileName: "failed.txt"}).
+		Return(sqlc.GetFileByOwnerAndNameRow{StorageMapping: failedID}, nil)
+	stor.EXPECT().DeleteObjectsFromBucket(gomock.Any(), []string{okID.String(), failedID.String()}, bucket).
+		Return([]string{failedID.String()}, storageErr)
+
+	q.EXPECT().DeleteFileByNameAndId(gomock.Any(), sqlc.DeleteFileByNameAndIdParams{OwnerID: ownerID, FileName: "ok.txt"}).
+		Return(nil)
+
+	deleted, failed, err := svc.DeleteFiles(context.Background(), ownerID, []string{"ok.txt", "failed.txt"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"ok.txt"}, deleted)
+	assert.Equal(t, []string{"failed.txt"}, failed)
 }
 
 // --- MoveFile -------------------------------------------------------------

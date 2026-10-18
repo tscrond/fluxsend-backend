@@ -272,6 +272,27 @@ func TestWorkspaceFileService_RemoveWorkspaceFile_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, ErrWsFileNotFound)
 }
 
+func TestWorkspaceFileService_RemoveWorkspaceFile_StorageErrorKeepsRow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
+
+	wsID := uuid.New()
+	fileID := uuid.New()
+	ownerID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+
+	q.EXPECT().GetWorkspaceFileById(gomock.Any(), gomock.Any()).
+		Return(sqlc.WorkspaceFile{ID: fileID, UploadedBy: ownerID}, nil)
+	stor.EXPECT().GetBucketBaseName().Return("ws-bucket")
+	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), gomock.Any(), "ws-bucket").Return(storageErr)
+	// No DeleteWorkspaceFileById expectation: the row must survive a failed object delete.
+
+	err := svc.RemoveWorkspaceFile(context.Background(), wsID, fileID, ownerID, "owner")
+	assert.ErrorIs(t, err, storageErr)
+}
+
 // --- RemoveWorkspaceFolder ------------------------------------------------
 
 func TestWorkspaceFileService_RemoveWorkspaceFolder_ScopesToExactPrefix(t *testing.T) {
@@ -311,6 +332,29 @@ func TestWorkspaceFileService_RemoveWorkspaceFolder_ScopesToExactPrefix(t *testi
 
 	err := svc.RemoveWorkspaceFolder(context.Background(), wsID, "/a_b", ownerID, "owner")
 	assert.NoError(t, err)
+}
+
+func TestWorkspaceFileService_RemoveWorkspaceFolder_StorageErrorKeepsRows(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
+
+	wsID := uuid.New()
+	ownerID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+
+	q.EXPECT().GetWorkspaceFolderByPathAndName(gomock.Any(), gomock.Any()).
+		Return(sqlc.WorkspaceFile{ID: uuid.New(), UploadedBy: ownerID}, nil)
+	q.EXPECT().GetWorkspaceFiles(gomock.Any(), wsID).Return([]sqlc.WorkspaceFile{
+		{ID: uuid.New(), Path: "/a_b", FileType: sql.NullString{Valid: true, String: "application/pdf"}},
+	}, nil)
+	stor.EXPECT().GetBucketBaseName().Return("ws-bucket")
+	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), gomock.Any(), "ws-bucket").Return(storageErr)
+	// No DeleteWorkspaceFiles* expectations: rows must survive failed cleanup.
+
+	err := svc.RemoveWorkspaceFolder(context.Background(), wsID, "/a_b", ownerID, "owner")
+	assert.ErrorIs(t, err, storageErr)
 }
 
 // --- MoveWorkspaceFile ----------------------------------------------------

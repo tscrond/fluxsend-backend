@@ -159,11 +159,12 @@ func (mr *MockObjectStorageMockRecorder) DeleteObjectFromBucket(ctx, object, buc
 }
 
 // DeleteObjectsFromBucket mocks base method.
-func (m *MockObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
+func (m *MockObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteObjectsFromBucket", ctx, objects, bucket)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // DeleteObjectsFromBucket indicates an expected call of DeleteObjectsFromBucket.

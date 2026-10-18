@@ -352,30 +352,43 @@ func (b *S3BucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bu
 	return nil
 }
 
-func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	for _, object := range objects {
-		// bucket is "<base>-<userId>"; extract userId to build the S3 key
-		userId := b.extractUserIdFromBucket(bucket)
-		objectKey := object
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := func(object string) string {
 		if userId != "" {
-			objectKey = s3Key(userId, object)
+			return s3Key(userId, object)
 		}
-
-		_, err := b.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-			Bucket: aws.String(b.BaseBucketName),
-			Key:    aws.String(objectKey),
-		})
-		if err != nil {
-			return fmt.Errorf("Object(%q).Delete: %w", objectKey, err)
-		}
-
-		logger.FromContext(ctx).Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
+		return object
 	}
 
-	return nil
+	var failed []string
+	for start := 0; start < len(objects); start += 1000 {
+		batch := objects[start:min(start+1000, len(objects))]
+		ids := make([]s3types.ObjectIdentifier, 0, len(batch))
+		for _, object := range batch {
+			ids = append(ids, s3types.ObjectIdentifier{Key: aws.String(objectKey(object))})
+		}
+
+		out, err := b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+			Bucket: aws.String(b.BaseBucketName),
+			Delete: &s3types.Delete{Objects: ids},
+		})
+		if err != nil {
+			return append(failed, batch...), fmt.Errorf("deleting objects: %w", err)
+		}
+		for _, objErr := range out.Errors {
+			key := strings.TrimPrefix(aws.ToString(objErr.Key), userId+"/")
+			failed = append(failed, key)
+		}
+	}
+
+	if len(failed) > 0 {
+		return failed, fmt.Errorf("failed deleting %d objects", len(failed))
+	}
+	return nil, nil
 }
 
 func (b *S3BucketHandler) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {

@@ -826,8 +826,8 @@ func (w *workspaceFileService) RemoveWorkspaceFile(ctx context.Context, workspac
 
 	bucket := w.storage.GetBucketBaseName()
 	objectKey := workspaceUploadObjectKey(workspaceId, fileId)
-	if delErr := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
-		logger.FromContext(ctx).Warnw("workspace delete: storage delete failed (non-fatal)", "object_key", objectKey, "error", delErr)
+	if err := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); err != nil {
+		return fmt.Errorf("deleting workspace object from storage: %w", err)
 	}
 
 	return w.queries.DeleteWorkspaceFileById(ctx, sqlc.DeleteWorkspaceFileByIdParams{
@@ -873,8 +873,8 @@ func (w *workspaceFileService) RemoveWorkspaceFolder(ctx context.Context, worksp
 				return ErrWsForbidden
 			}
 			objectKey := workspaceId.String() + "/" + f.ID.String()
-			if delErr := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); delErr != nil {
-				logger.FromContext(ctx).Warnw("workspace folder delete: storage delete failed (non-fatal)", "object_key", objectKey, "error", delErr)
+			if err := w.storage.DeleteObjectFromBucket(ctx, objectKey, bucket); err != nil {
+				return fmt.Errorf("deleting workspace object %q from storage: %w", objectKey, err)
 			}
 		}
 	}

@@ -305,27 +305,35 @@ func (b *GCSBucketHandler) GetBucketBaseName() string {
 	return b.BaseBucketName
 }
 
-func (b *GCSBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+func (b *GCSBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	var o *storage.ObjectHandle
+	var failed []string
 	for _, object := range objects {
-		o = b.Client.Bucket(bucket).Object(object)
+		o := b.Client.Bucket(bucket).Object(object)
 		attrs, err := o.Attrs(ctx)
+		if errors.Is(err, storage.ErrObjectNotExist) || errors.Is(err, storage.ErrBucketNotExist) {
+			continue
+		}
 		if err != nil {
-			return fmt.Errorf("object.Attrs: %w", err)
+			failed = append(failed, object)
+			continue
 		}
 		o = o.If(storage.Conditions{GenerationMatch: attrs.Generation})
 
-		if err := o.Delete(ctx); err != nil {
-			return fmt.Errorf("Object(%q).Delete: %w", object, err)
+		if err := o.Delete(ctx); err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
+			failed = append(failed, object)
+			continue
 		}
 
 		logger.FromContext(ctx).Infow("object deleted", "bucket", o.BucketName(), "key", o.ObjectName())
 	}
 
-	return nil
+	if len(failed) > 0 {
+		return failed, fmt.Errorf("failed deleting %d objects", len(failed))
+	}
+	return nil, nil
 }
 
 func (b *GCSBucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bucket string) error {
@@ -340,12 +348,15 @@ func (b *GCSBucketHandler) DeleteObjectFromBucket(ctx context.Context, object, b
 	// conditions and data corruptions. The request to delete the file is aborted
 	// if the object's generation number does not match your precondition.
 	attrs, err := o.Attrs(ctx)
+	if errors.Is(err, storage.ErrObjectNotExist) || errors.Is(err, storage.ErrBucketNotExist) {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("object.Attrs: %w", err)
 	}
 	o = o.If(storage.Conditions{GenerationMatch: attrs.Generation})
 
-	if err := o.Delete(ctx); err != nil {
+	if err := o.Delete(ctx); err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
 		return fmt.Errorf("Object(%q).Delete: %w", object, err)
 	}
 

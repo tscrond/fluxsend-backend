@@ -305,23 +305,28 @@ func (b *MinioBucketHandler) DeleteObjectFromBucket(ctx context.Context, object,
 	return nil
 }
 
-func (b *MinioBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+func (b *MinioBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
+	userId := b.extractUserIdFromBucket(bucket)
+	var failed []string
 	for _, object := range objects {
-		userId := b.extractUserIdFromBucket(bucket)
 		objectKey := object
 		if userId != "" {
 			objectKey = s3Key(userId, object)
 		}
 
 		if err := b.Client.RemoveObject(ctx, b.BaseBucketName, objectKey, minio.RemoveObjectOptions{}); err != nil {
-			return fmt.Errorf("remove %q failed: %w", objectKey, err)
+			failed = append(failed, object)
+			continue
 		}
 		b.log.Infow("deleted object from bucket", "bucket", b.BaseBucketName, "object", objectKey)
 	}
-	return nil
+	if len(failed) > 0 {
+		return failed, fmt.Errorf("failed deleting %d objects", len(failed))
+	}
+	return nil, nil
 }
 
 func (b *MinioBucketHandler) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {
