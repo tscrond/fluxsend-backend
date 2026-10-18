@@ -100,12 +100,18 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userN
 		UserName:      userName,
 	}
 
+	var storageDeleteError error
 	if deleteStorageData {
 		if err := s.storage.DeleteBucket(ctx, bucketName); err != nil {
 			logger.FromContext(ctx).Warnw("failed to delete user bucket", "bucket", bucketName, "error", err)
+			storageDeleteError = err
 		} else {
 			result.BucketDeleted = true
 		}
+	}
+
+	if storageDeleteError != nil {
+		return nil, fmt.Errorf("deleting storage data: %w", storageDeleteError)
 	}
 
 	deletedUser, err := s.queries.DeleteAccount(ctx, userID)

@@ -170,3 +170,20 @@ func TestUserService_DeleteAccount_DBError(t *testing.T) {
 	_, err := svc.DeleteAccount(context.Background(), userID, "user", false)
 	assert.Error(t, err)
 }
+
+func TestUserService_DeleteAccount_StorageErrorKeepsAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
+
+	userID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(storageErr)
+	// No DeleteAccount expectation: gomock fails if the row is deleted after failed cleanup.
+
+	result, err := svc.DeleteAccount(context.Background(), userID, "user", true)
+	assert.ErrorIs(t, err, storageErr)
+	assert.Nil(t, result)
+}

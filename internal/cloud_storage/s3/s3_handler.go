@@ -412,7 +412,7 @@ func (b *S3BucketHandler) MoveObjectInBucket(ctx context.Context, source, destin
 }
 
 func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	// bucket is "<base>-<userId>"; delete all objects under the user's prefix
@@ -422,31 +422,37 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 	}
 
 	prefix := userId + "/"
-	output, err := b.Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+	paginator := s3.NewListObjectsV2Paginator(b.Client, &s3.ListObjectsV2Input{
 		Bucket: aws.String(b.BaseBucketName),
 		Prefix: aws.String(prefix),
 	})
-	if err != nil {
-		logger.FromContext(ctx).Errorw("failed fetching bucket info", "error", err)
-		return err
-	}
 
-	if len(output.Contents) > 0 {
-		var objectIds []s3types.ObjectIdentifier
-		for _, obj := range output.Contents {
-			objectIds = append(objectIds, s3types.ObjectIdentifier{
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			logger.FromContext(ctx).Errorw("failed fetching next page of bucket objects", "error", err)
+			return err
+		}
+		var objectsToDelete []s3types.ObjectIdentifier
+		for _, obj := range page.Contents {
+			objectsToDelete = append(objectsToDelete, s3types.ObjectIdentifier{
 				Key: obj.Key,
 			})
-			logger.FromContext(ctx).Infow("deleting object", "key", aws.ToString(obj.Key))
 		}
-
-		_, err = b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-			Bucket: aws.String(b.BaseBucketName),
-			Delete: &s3types.Delete{Objects: objectIds},
-		})
-		if err != nil {
-			logger.FromContext(ctx).Errorw("error batch deleting objects", "error", err)
-			return fmt.Errorf("failed_deleting_user_objects")
+		if len(objectsToDelete) > 0 {
+			output, err := b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+				Bucket: aws.String(b.BaseBucketName),
+				Delete: &s3types.Delete{
+					Objects: objectsToDelete,
+				},
+			})
+			if err != nil {
+				logger.FromContext(ctx).Errorw("failed deleting objects from bucket", "error", err)
+				return err
+			} else if len(output.Errors) > 0 {
+				logger.FromContext(ctx).Errorw("failed deleting some objects from bucket", "errors", output.Errors)
+				return fmt.Errorf("failed deleting %d objects: %v", len(output.Errors), output.Errors)
+			}
 		}
 	}
 
