@@ -101,7 +101,7 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userN
 	}
 
 	if deleteStorageData {
-		if err := s.storage.DeleteBucket(ctx, bucketName); err != nil {
+		if err := deleteUserStorage(ctx, s.queries, s.storage, userID, bucketName); err != nil {
 			logger.FromContext(ctx).Warnw("failed to delete user bucket", "bucket", bucketName, "error", err)
 			return nil, fmt.Errorf("deleting storage data: %w", err)
 		} else {
@@ -117,4 +117,22 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userN
 	result.AccountID = deletedUser.ID.String()
 	result.Email = deletedUser.UserEmail
 	return result, nil
+}
+
+func deleteUserStorage(ctx context.Context, queries sqlc.Querier, storage storagetypes.ObjectStorage, userID uuid.UUID, bucketName string) error {
+	// Deleting the user cascades owned workspaces, so their prefixes need cleanup first.
+	workspaceIDs, err := queries.ListWorkspaceIDsByOwner(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("listing owned workspaces: %w", err)
+	}
+
+	if err := storage.DeleteBucket(ctx, bucketName); err != nil {
+		return err
+	}
+	for _, workspaceID := range workspaceIDs {
+		if err := storage.DeletePrefix(ctx, workspaceID.String()+"/"); err != nil {
+			return fmt.Errorf("deleting workspace %s storage: %w", workspaceID, err)
+		}
+	}
+	return nil
 }

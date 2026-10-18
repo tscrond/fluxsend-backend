@@ -121,6 +121,13 @@ func (s *instrumentedObjectStorage) DeleteObjectsFromBucket(ctx context.Context,
 	return failed, err
 }
 
+func (s *instrumentedObjectStorage) DeletePrefix(ctx context.Context, prefix string) error {
+	started := time.Now()
+	err := s.next.DeletePrefix(ctx, prefix)
+	s.observe("delete_prefix", 0, started, err)
+	return err
+}
+
 func (s *instrumentedObjectStorage) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {
 	started := time.Now()
 	err := s.next.MoveObjectInBucket(ctx, source, destination, bucket)

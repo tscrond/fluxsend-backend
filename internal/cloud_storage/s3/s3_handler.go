@@ -425,16 +425,19 @@ func (b *S3BucketHandler) MoveObjectInBucket(ctx context.Context, source, destin
 }
 
 func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
 	// bucket is "<base>-<userId>"; delete all objects under the user's prefix
 	userId := b.extractUserIdFromBucket(bucket)
 	if userId == "" {
 		return fmt.Errorf("cannot extract userId from bucket name: %s", bucket)
 	}
 
-	prefix := userId + "/"
+	return b.DeletePrefix(ctx, userId+"/")
+}
+
+func (b *S3BucketHandler) DeletePrefix(ctx context.Context, prefix string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
 	uploadPaginator := s3.NewListMultipartUploadsPaginator(b.Client, &s3.ListMultipartUploadsInput{
 		Bucket: aws.String(b.BaseBucketName),
 		Prefix: aws.String(prefix),

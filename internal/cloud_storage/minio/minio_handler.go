@@ -364,15 +364,18 @@ func (b *MinioBucketHandler) MoveObjectInBucket(ctx context.Context, source, des
 }
 
 func (b *MinioBucketHandler) DeleteBucket(ctx context.Context, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer cancel()
-
 	userId := b.extractUserIdFromBucket(bucket)
 	if userId == "" {
 		return fmt.Errorf("cannot extract userId from bucket name: %s", bucket)
 	}
 
-	prefix := userId + "/"
+	return b.DeletePrefix(ctx, userId+"/")
+}
+
+func (b *MinioBucketHandler) DeletePrefix(ctx context.Context, prefix string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
 	uploads := b.Client.ListIncompleteUploads(ctx, b.BaseBucketName, prefix, true)
 	for upload := range uploads {
 		if upload.Err != nil {

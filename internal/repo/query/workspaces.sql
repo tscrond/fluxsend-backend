@@ -41,6 +41,9 @@ FROM workspaces
 JOIN workspace_members ON workspaces.id = workspace_members.workspace_id
 WHERE workspace_members.user_id = $1;
 
+-- name: ListWorkspaceIDsByOwner :many
+SELECT id FROM workspaces WHERE owner_id = $1;
+
 -- name: GetWorkspaceMembers :many
 SELECT u.user_email, u.id, wm.role, wm.joined_at
 FROM workspace_members wm

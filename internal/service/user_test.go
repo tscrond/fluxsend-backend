@@ -126,10 +126,13 @@ func TestUserService_DeleteAccount_WithStorageDeletion(t *testing.T) {
 
 	userID := uuid.New()
 	const userName = "testuser"
+	ownedWorkspaceID := uuid.New()
 
 	gomock.InOrder(
 		stor.EXPECT().GetBucketBaseName().Return("fluxsend"),
+		q.EXPECT().ListWorkspaceIDsByOwner(gomock.Any(), userID).Return([]uuid.UUID{ownedWorkspaceID}, nil),
 		stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil),
+		stor.EXPECT().DeletePrefix(gomock.Any(), ownedWorkspaceID.String()+"/").Return(nil),
 		q.EXPECT().DeleteAccount(gomock.Any(), userID).
 			Return(sqlc.User{ID: userID, UserEmail: "user@example.com"}, nil),
 	)
@@ -182,8 +185,29 @@ func TestUserService_DeleteAccount_StorageErrorKeepsAccount(t *testing.T) {
 	userID := uuid.New()
 	storageErr := errors.New("storage unavailable")
 	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	q.EXPECT().ListWorkspaceIDsByOwner(gomock.Any(), userID).Return(nil, nil)
 	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(storageErr)
 	// No DeleteAccount expectation: gomock fails if the row is deleted after failed cleanup.
+
+	result, err := svc.DeleteAccount(context.Background(), userID, "user", true)
+	assert.ErrorIs(t, err, storageErr)
+	assert.Nil(t, result)
+}
+
+func TestUserService_DeleteAccount_WorkspaceCleanupErrorKeepsAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
+
+	userID := uuid.New()
+	workspaceID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil)
+	q.EXPECT().ListWorkspaceIDsByOwner(gomock.Any(), userID).Return([]uuid.UUID{workspaceID}, nil)
+	stor.EXPECT().DeletePrefix(gomock.Any(), workspaceID.String()+"/").Return(storageErr)
+	// No DeleteAccount expectation: the row must survive failed workspace cleanup.
 
 	result, err := svc.DeleteAccount(context.Background(), userID, "user", true)
 	assert.ErrorIs(t, err, storageErr)

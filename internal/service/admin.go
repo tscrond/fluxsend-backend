@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/pkg"
 	"go.uber.org/zap"
 )
 
@@ -41,10 +43,11 @@ type CreatePlanRequest struct {
 type adminService struct {
 	log        *zap.SugaredLogger
 	repository repo.Repository
+	storage    storagetypes.ObjectStorage
 }
 
-func NewAdminService(log *zap.SugaredLogger, repository repo.Repository) AdminService {
-	return &adminService{log: log, repository: repository}
+func NewAdminService(log *zap.SugaredLogger, repository repo.Repository, storage storagetypes.ObjectStorage) AdminService {
+	return &adminService{log: log, repository: repository, storage: storage}
 }
 
 func (s *adminService) ListUsers(ctx context.Context) ([]sqlc.ListUsersAdminRow, error) {
@@ -60,6 +63,10 @@ func (s *adminService) CreateUser(ctx context.Context, email string) (sqlc.User,
 }
 
 func (s *adminService) DeleteUser(ctx context.Context, userID uuid.UUID) (sqlc.User, error) {
+	bucketName := pkg.GetUserBucketName(s.storage.GetBucketBaseName(), userID.String())
+	if err := deleteUserStorage(ctx, s.repository.Queries(), s.storage, userID, bucketName); err != nil {
+		return sqlc.User{}, err
+	}
 	return s.repository.Queries().DeleteAccount(ctx, userID)
 }
 

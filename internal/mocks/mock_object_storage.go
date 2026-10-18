@@ -173,6 +173,20 @@ func (mr *MockObjectStorageMockRecorder) DeleteObjectsFromBucket(ctx, objects, b
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObjectsFromBucket", reflect.TypeOf((*MockObjectStorage)(nil).DeleteObjectsFromBucket), ctx, objects, bucket)
 }
 
+// DeletePrefix mocks base method.
+func (m *MockObjectStorage) DeletePrefix(ctx context.Context, prefix string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePrefix", ctx, prefix)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePrefix indicates an expected call of DeletePrefix.
+func (mr *MockObjectStorageMockRecorder) DeletePrefix(ctx, prefix any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePrefix", reflect.TypeOf((*MockObjectStorage)(nil).DeletePrefix), ctx, prefix)
+}
+
 // GenerateSignedURL mocks base method.
 func (m *MockObjectStorage) GenerateSignedURL(ctx context.Context, bucket, object string, expiresAt time.Time, contentDisposition string) (string, error) {
 	m.ctrl.T.Helper()

@@ -423,10 +423,36 @@ func (b *GCSBucketHandler) DeleteBucket(ctx context.Context, bucket string) erro
 	}
 
 	if err := gcsBucket.Delete(ctx); err != nil {
+		if errors.Is(err, storage.ErrBucketNotExist) {
+			return nil
+		}
 		logger.FromContext(ctx).Errorw("failed deleting bucket", "bucket", bucket, "error", err)
 		return fmt.Errorf("failed_deleting_bucket")
 	}
 
 	logger.FromContext(ctx).Infow("deleted bucket", "bucket", bucket)
 	return nil
+}
+
+func (b *GCSBucketHandler) DeletePrefix(ctx context.Context, prefix string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	bucket := b.Client.Bucket(b.BaseBucketName)
+	it := bucket.Objects(ctx, &storage.Query{Prefix: prefix})
+	for {
+		attrs, err := it.Next()
+		if err == iterator.Done {
+			return nil
+		}
+		if err != nil {
+			if errors.Is(err, storage.ErrBucketNotExist) {
+				return nil
+			}
+			return fmt.Errorf("listing prefix %q: %w", prefix, err)
+		}
+		if err := bucket.Object(attrs.Name).Delete(ctx); err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
+			return fmt.Errorf("deleting object %q: %w", attrs.Name, err)
+		}
+	}
 }

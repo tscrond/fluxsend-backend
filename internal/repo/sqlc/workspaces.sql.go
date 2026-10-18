@@ -598,6 +598,33 @@ func (q *Queries) GetWorkspaceQuotaDetails(ctx context.Context, id uuid.UUID) (G
 	return i, err
 }
 
+const listWorkspaceIDsByOwner = `-- name: ListWorkspaceIDsByOwner :many
+SELECT id FROM workspaces WHERE owner_id = $1
+`
+
+func (q *Queries) ListWorkspaceIDsByOwner(ctx context.Context, ownerID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, listWorkspaceIDsByOwner, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const renameWorkspace = `-- name: RenameWorkspace :one
 UPDATE workspaces
 SET name = $2
