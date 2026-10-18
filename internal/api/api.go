@@ -205,12 +205,15 @@ func (s *APIServer) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	s.registerAuthRoutes(r)
-	s.registerFileRoutes(r, s.authMiddleware)
-	s.registerWorkspaceRoutes(r, s.authMiddleware)
-	s.registerSharingRoutes(r, s.authMiddleware)
-	s.registerUserRoutes(r, s.authMiddleware)
-	s.registerAPIKeyRoutes(r, s.authMiddleware)
+	// The in-flight gauge needs the matched route pattern, so it is applied to
+	// the endpoint handler chain instead of as a root middleware.
+	metered := r.With(s.metrics.HTTPInFlightMiddleware())
+	s.registerAuthRoutes(metered)
+	s.registerFileRoutes(metered, s.authMiddleware)
+	s.registerWorkspaceRoutes(metered, s.authMiddleware)
+	s.registerSharingRoutes(metered, s.authMiddleware)
+	s.registerUserRoutes(metered, s.authMiddleware)
+	s.registerAPIKeyRoutes(metered, s.authMiddleware)
 
 	return r
 }

@@ -36,7 +36,7 @@ func (s *AdminServer) Handler() http.Handler {
 	r.Use(chimiddleware.RequestLogger(s.log), s.metrics.HTTPMiddleware())
 
 	r.Route(s.routePrefix, func(r chi.Router) {
-		s.registerAdminRoutes(r)
+		s.registerAdminRoutes(r.With(s.metrics.HTTPInFlightMiddleware()))
 	})
 	return r
 }
