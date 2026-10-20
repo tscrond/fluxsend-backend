@@ -422,21 +422,52 @@ func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error
 	}
 
 	prefix := userId + "/"
-	paginator := s3.NewListObjectsV2Paginator(b.Client, &s3.ListObjectsV2Input{
+	uploadPaginator := s3.NewListMultipartUploadsPaginator(b.Client, &s3.ListMultipartUploadsInput{
 		Bucket: aws.String(b.BaseBucketName),
 		Prefix: aws.String(prefix),
 	})
 
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
+	for uploadPaginator.HasMorePages() {
+		page, err := uploadPaginator.NextPage(ctx)
 		if err != nil {
-			logger.FromContext(ctx).Errorw("failed fetching next page of bucket objects", "error", err)
-			return err
+			logger.FromContext(ctx).Errorw("failed fetching next page of multipart uploads", "error", err)
+			return fmt.Errorf("listing multipart uploads for %q: %w", prefix, err)
+		}
+		for _, upload := range page.Uploads {
+			_, err := b.Client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+				Bucket:   aws.String(b.BaseBucketName),
+				Key:      upload.Key,
+				UploadId: upload.UploadId,
+			})
+			if err != nil {
+				logger.FromContext(ctx).Errorw("failed aborting multipart upload", "key", aws.ToString(upload.Key), "upload_id", aws.ToString(upload.UploadId), "error", err)
+				return fmt.Errorf("aborting multipart upload %q: %w", aws.ToString(upload.UploadId), err)
+			}
+		}
+	}
+
+	versionPaginator := s3.NewListObjectVersionsPaginator(b.Client, &s3.ListObjectVersionsInput{
+		Bucket: aws.String(b.BaseBucketName),
+		Prefix: aws.String(prefix),
+	})
+
+	for versionPaginator.HasMorePages() {
+		page, err := versionPaginator.NextPage(ctx)
+		if err != nil {
+			logger.FromContext(ctx).Errorw("failed fetching next page of object versions", "error", err)
+			return fmt.Errorf("listing object versions for %q: %w", prefix, err)
 		}
 		var objectsToDelete []s3types.ObjectIdentifier
-		for _, obj := range page.Contents {
+		for _, version := range page.Versions {
 			objectsToDelete = append(objectsToDelete, s3types.ObjectIdentifier{
-				Key: obj.Key,
+				Key:       version.Key,
+				VersionId: version.VersionId,
+			})
+		}
+		for _, marker := range page.DeleteMarkers {
+			objectsToDelete = append(objectsToDelete, s3types.ObjectIdentifier{
+				Key:       marker.Key,
+				VersionId: marker.VersionId,
 			})
 		}
 		if len(objectsToDelete) > 0 {

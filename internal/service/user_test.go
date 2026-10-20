@@ -127,10 +127,12 @@ func TestUserService_DeleteAccount_WithStorageDeletion(t *testing.T) {
 	userID := uuid.New()
 	const userName = "testuser"
 
-	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
-	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil)
-	q.EXPECT().DeleteAccount(gomock.Any(), userID).
-		Return(sqlc.User{ID: userID, UserEmail: "user@example.com"}, nil)
+	gomock.InOrder(
+		stor.EXPECT().GetBucketBaseName().Return("fluxsend"),
+		stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil),
+		q.EXPECT().DeleteAccount(gomock.Any(), userID).
+			Return(sqlc.User{ID: userID, UserEmail: "user@example.com"}, nil),
+	)
 
 	result, err := svc.DeleteAccount(context.Background(), userID, userName, true)
 	require.NoError(t, err)

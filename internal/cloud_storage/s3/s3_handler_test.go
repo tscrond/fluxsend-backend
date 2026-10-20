@@ -32,7 +32,7 @@ func newTestS3Handler(t *testing.T, endpoint string) *S3BucketHandler {
 	}
 }
 
-func TestDeleteBucketDeletesEveryPage(t *testing.T) {
+func TestDeleteBucketDeletesEveryVersionPage(t *testing.T) {
 	var mu sync.Mutex
 	var deleted []string
 	listCalls := 0
@@ -43,19 +43,24 @@ func TestDeleteBucketDeletesEveryPage(t *testing.T) {
 		if r.URL.Path != "/fluxsend" {
 			t.Errorf("request path = %q, want /fluxsend", r.URL.Path)
 		}
-		if r.Method == http.MethodGet {
+		if r.Method == http.MethodGet && r.URL.Query().Has("uploads") {
+			io.WriteString(w, `<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Bucket>fluxsend</Bucket><IsTruncated>false</IsTruncated></ListMultipartUploadsResult>`)
+			return
+		}
+		if r.Method == http.MethodGet && r.URL.Query().Has("versions") {
 			listCalls++
-			if r.URL.Query().Get("continuation-token") == "" {
-				io.WriteString(w, `<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>fluxsend</Name><Prefix>user1/</Prefix><IsTruncated>true</IsTruncated><NextContinuationToken>page-2</NextContinuationToken><Contents><Key>user1/a</Key></Contents></ListBucketResult>`)
+			if r.URL.Query().Get("version-id-marker") == "" {
+				io.WriteString(w, `<ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>fluxsend</Name><Prefix>user1/</Prefix><IsTruncated>true</IsTruncated><NextKeyMarker>user1/a</NextKeyMarker><NextVersionIdMarker>v1</NextVersionIdMarker><Version><Key>user1/a</Key><VersionId>v1</VersionId></Version></ListVersionsResult>`)
 				return
 			}
-			io.WriteString(w, `<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>fluxsend</Name><Prefix>user1/</Prefix><IsTruncated>false</IsTruncated><Contents><Key>user1/b</Key></Contents></ListBucketResult>`)
+			io.WriteString(w, `<ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>fluxsend</Name><Prefix>user1/</Prefix><IsTruncated>false</IsTruncated><Version><Key>user1/a</Key><VersionId>v2</VersionId></Version><DeleteMarker><Key>user1/a</Key><VersionId>v3</VersionId></DeleteMarker></ListVersionsResult>`)
 			return
 		}
 
 		var req struct {
 			Objects []struct {
-				Key string `xml:"Key"`
+				Key       string `xml:"Key"`
+				VersionId string `xml:"VersionId"`
 			} `xml:"Object"`
 		}
 		if err := xml.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -64,7 +69,7 @@ func TestDeleteBucketDeletesEveryPage(t *testing.T) {
 		mu.Lock()
 		deleteCalls++
 		for _, obj := range req.Objects {
-			deleted = append(deleted, obj.Key)
+			deleted = append(deleted, obj.Key+"@"+obj.VersionId)
 		}
 		mu.Unlock()
 		io.WriteString(w, `<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"></DeleteResult>`)
@@ -82,16 +87,63 @@ func TestDeleteBucketDeletesEveryPage(t *testing.T) {
 	if deleteCalls != 2 {
 		t.Errorf("delete calls = %d, want one batch per page", deleteCalls)
 	}
-	if got := strings.Join(deleted, ","); got != "user1/a,user1/b" {
-		t.Errorf("deleted objects = %q, want both pages", got)
+	if got := strings.Join(deleted, ","); got != "user1/a@v1,user1/a@v2,user1/a@v3" {
+		t.Errorf("deleted versions = %q, want every version and delete marker", got)
+	}
+}
+
+func TestDeleteBucketAbortsMultipartUploadsBeforeDeletingVersions(t *testing.T) {
+	var events []string
+	var abortedUploadID string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		if r.Method == http.MethodGet && r.URL.Query().Get("prefix") != "user1/" {
+			t.Errorf("prefix = %q, want user1/", r.URL.Query().Get("prefix"))
+		}
+
+		switch {
+		case r.Method == http.MethodGet && r.URL.Query().Has("uploads"):
+			events = append(events, "list-uploads")
+			io.WriteString(w, `<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Bucket>fluxsend</Bucket><IsTruncated>false</IsTruncated><Upload><Key>user1/large.bin</Key><UploadId>upload-1</UploadId></Upload></ListMultipartUploadsResult>`)
+		case r.Method == http.MethodDelete:
+			events = append(events, "abort")
+			abortedUploadID = r.URL.Query().Get("uploadId")
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodGet && r.URL.Query().Has("versions"):
+			events = append(events, "list-versions")
+			io.WriteString(w, `<ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>fluxsend</Name><Prefix>user1/</Prefix><IsTruncated>false</IsTruncated><Version><Key>user1/large.bin</Key><VersionId>v1</VersionId></Version></ListVersionsResult>`)
+		case r.Method == http.MethodPost && r.URL.Query().Has("delete"):
+			events = append(events, "delete-versions")
+			io.WriteString(w, `<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"></DeleteResult>`)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.String())
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	handler := newTestS3Handler(t, srv.URL)
+	if err := handler.DeleteBucket(context.Background(), "fluxsend-user1"); err != nil {
+		t.Fatalf("DeleteBucket() error = %v", err)
+	}
+
+	if got := strings.Join(events, ","); got != "list-uploads,abort,list-versions,delete-versions" {
+		t.Errorf("request order = %q", got)
+	}
+	if abortedUploadID != "upload-1" {
+		t.Errorf("aborted upload ID = %q, want upload-1", abortedUploadID)
 	}
 }
 
 func TestDeleteBucketReturnsErrorWhenDeleteFails(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml")
+		if r.Method == http.MethodGet && r.URL.Query().Has("uploads") {
+			io.WriteString(w, `<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Bucket>fluxsend</Bucket><IsTruncated>false</IsTruncated></ListMultipartUploadsResult>`)
+			return
+		}
 		if r.Method == http.MethodGet {
-			io.WriteString(w, `<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>fluxsend</Name><Prefix>user1/</Prefix><IsTruncated>false</IsTruncated><Contents><Key>user1/a</Key></Contents></ListBucketResult>`)
+			io.WriteString(w, `<ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>fluxsend</Name><Prefix>user1/</Prefix><IsTruncated>false</IsTruncated><Version><Key>user1/a</Key><VersionId>v1</VersionId></Version></ListVersionsResult>`)
 			return
 		}
 		io.WriteString(w, `<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Error><Key>user1/a</Key><Code>AccessDenied</Code></Error></DeleteResult>`)
@@ -101,5 +153,30 @@ func TestDeleteBucketReturnsErrorWhenDeleteFails(t *testing.T) {
 	handler := newTestS3Handler(t, srv.URL)
 	if err := handler.DeleteBucket(context.Background(), "fluxsend-user1"); err == nil {
 		t.Fatal("DeleteBucket() error = nil, want error from failed object deletion")
+	}
+}
+
+func TestDeleteBucketReturnsErrorWhenAbortFails(t *testing.T) {
+	versionListCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Query().Has("uploads"):
+			io.WriteString(w, `<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Bucket>fluxsend</Bucket><IsTruncated>false</IsTruncated><Upload><Key>user1/large.bin</Key><UploadId>upload-1</UploadId></Upload></ListMultipartUploadsResult>`)
+		case r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusForbidden)
+			io.WriteString(w, `<Error><Code>AccessDenied</Code><Message>denied</Message></Error>`)
+		case r.Method == http.MethodGet && r.URL.Query().Has("versions"):
+			versionListCalls++
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	handler := newTestS3Handler(t, srv.URL)
+	if err := handler.DeleteBucket(context.Background(), "fluxsend-user1"); err == nil {
+		t.Fatal("DeleteBucket() error = nil, want error from failed multipart abort")
+	}
+	if versionListCalls != 0 {
+		t.Errorf("version list calls = %d, want 0 after cleanup failure", versionListCalls)
 	}
 }
