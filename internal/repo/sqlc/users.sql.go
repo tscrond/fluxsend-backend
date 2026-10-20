@@ -93,6 +93,46 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
+const listWorkspaceObjectKeysByUploader = `-- name: ListWorkspaceObjectKeysByUploader :many
+SELECT workspace_id, id AS object_id
+FROM workspace_files
+WHERE uploaded_by = $1
+  AND file_type IS DISTINCT FROM 'inode/directory'
+UNION
+SELECT workspace_id, storage_mapping AS object_id
+FROM file_uploads
+WHERE owner_id = $1
+  AND workspace_id IS NOT NULL
+`
+
+type ListWorkspaceObjectKeysByUploaderRow struct {
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	ObjectID    uuid.UUID `json:"object_id"`
+}
+
+func (q *Queries) ListWorkspaceObjectKeysByUploader(ctx context.Context, uploadedBy uuid.UUID) ([]ListWorkspaceObjectKeysByUploaderRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWorkspaceObjectKeysByUploader, uploadedBy)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWorkspaceObjectKeysByUploaderRow
+	for rows.Next() {
+		var i ListWorkspaceObjectKeysByUploaderRow
+		if err := rows.Scan(&i.WorkspaceID, &i.ObjectID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateUserBucketNameById = `-- name: UpdateUserBucketNameById :exec
 UPDATE users SET user_bucket = $1 WHERE id = $2
 `

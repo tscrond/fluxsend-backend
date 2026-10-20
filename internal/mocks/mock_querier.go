@@ -1829,6 +1829,21 @@ func (mr *MockQuerierMockRecorder) ListWorkspaceIDsByOwner(ctx, ownerID any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWorkspaceIDsByOwner", reflect.TypeOf((*MockQuerier)(nil).ListWorkspaceIDsByOwner), ctx, ownerID)
 }
 
+// ListWorkspaceObjectKeysByUploader mocks base method.
+func (m *MockQuerier) ListWorkspaceObjectKeysByUploader(ctx context.Context, uploadedBy uuid.UUID) ([]sqlc.ListWorkspaceObjectKeysByUploaderRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWorkspaceObjectKeysByUploader", ctx, uploadedBy)
+	ret0, _ := ret[0].([]sqlc.ListWorkspaceObjectKeysByUploaderRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWorkspaceObjectKeysByUploader indicates an expected call of ListWorkspaceObjectKeysByUploader.
+func (mr *MockQuerierMockRecorder) ListWorkspaceObjectKeysByUploader(ctx, uploadedBy any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWorkspaceObjectKeysByUploader", reflect.TypeOf((*MockQuerier)(nil).ListWorkspaceObjectKeysByUploader), ctx, uploadedBy)
+}
+
 // MarkShareSeen mocks base method.
 func (m *MockQuerier) MarkShareSeen(ctx context.Context, arg sqlc.MarkShareSeenParams) (sqlc.Share, error) {
 	m.ctrl.T.Helper()

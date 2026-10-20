@@ -138,6 +138,7 @@ type Querier interface {
 	ListUsersAdmin(ctx context.Context) ([]ListUsersAdminRow, error)
 	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceAPIKeysRow, error)
 	ListWorkspaceIDsByOwner(ctx context.Context, ownerID uuid.UUID) ([]uuid.UUID, error)
+	ListWorkspaceObjectKeysByUploader(ctx context.Context, uploadedBy uuid.UUID) ([]ListWorkspaceObjectKeysByUploaderRow, error)
 	MarkShareSeen(ctx context.Context, arg MarkShareSeenParams) (Share, error)
 	MetricsActiveAPIKeysByDomain(ctx context.Context) ([]MetricsActiveAPIKeysByDomainRow, error)
 	MetricsActiveSharesTotal(ctx context.Context) (int64, error)

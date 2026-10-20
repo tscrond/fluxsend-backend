@@ -120,10 +120,25 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID, userN
 }
 
 func deleteUserStorage(ctx context.Context, queries sqlc.Querier, storage storagetypes.ObjectStorage, userID uuid.UUID, bucketName string) error {
-	// Deleting the user cascades owned workspaces, so their prefixes need cleanup first.
+	// Persisted workspace rows cascade with the account, so collect their exact objects first.
+	workspaceObjects, err := queries.ListWorkspaceObjectKeysByUploader(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("listing workspace objects: %w", err)
+	}
+
 	workspaceIDs, err := queries.ListWorkspaceIDsByOwner(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("listing owned workspaces: %w", err)
+	}
+
+	objectKeys := make([]string, 0, len(workspaceObjects))
+	for _, object := range workspaceObjects {
+		objectKeys = append(objectKeys, workspaceUploadObjectKey(object.WorkspaceID, object.ObjectID))
+	}
+	if len(objectKeys) > 0 {
+		if _, err := storage.DeleteObjectsFromBucket(ctx, objectKeys, storage.GetBucketBaseName()); err != nil {
+			return fmt.Errorf("deleting workspace objects: %w", err)
+		}
 	}
 
 	if err := storage.DeleteBucket(ctx, bucketName); err != nil {

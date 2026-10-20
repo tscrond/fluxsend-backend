@@ -29,8 +29,18 @@ func TestAdminService_DeleteUser_DeletesStorageFirst(t *testing.T) {
 	svc := NewAdminService(zap.NewNop().Sugar(), &apiKeyTestRepository{db: db, queries: sqlc.New(db)}, stor)
 
 	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
-	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil)
 	workspaceID := uuid.New()
+	objectID := uuid.New()
+	dbMock.ExpectQuery(regexp.QuoteMeta("SELECT workspace_id, id AS object_id\nFROM workspace_files\nWHERE uploaded_by = $1\n  AND file_type IS DISTINCT FROM 'inode/directory'\nUNION\nSELECT workspace_id, storage_mapping AS object_id\nFROM file_uploads\nWHERE owner_id = $1\n  AND workspace_id IS NOT NULL")).
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"workspace_id", "object_id"}).AddRow(workspaceID, objectID))
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	stor.EXPECT().DeleteObjectsFromBucket(
+		gomock.Any(),
+		[]string{workspaceID.String() + "/" + objectID.String()},
+		"fluxsend",
+	).Return(nil, nil)
+	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil)
 	dbMock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM workspaces WHERE owner_id = $1")).
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(workspaceID))
@@ -56,6 +66,9 @@ func TestAdminService_DeleteUser_StorageErrorKeepsUser(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 	svc := NewAdminService(zap.NewNop().Sugar(), &apiKeyTestRepository{db: db, queries: sqlc.New(db)}, stor)
 
+	dbMock.ExpectQuery(regexp.QuoteMeta("SELECT workspace_id, id AS object_id\nFROM workspace_files\nWHERE uploaded_by = $1\n  AND file_type IS DISTINCT FROM 'inode/directory'\nUNION\nSELECT workspace_id, storage_mapping AS object_id\nFROM file_uploads\nWHERE owner_id = $1\n  AND workspace_id IS NOT NULL")).
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"workspace_id", "object_id"}))
 	dbMock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM workspaces WHERE owner_id = $1")).
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
