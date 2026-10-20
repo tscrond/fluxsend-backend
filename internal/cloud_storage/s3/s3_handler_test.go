@@ -3,6 +3,7 @@ package s3
 import (
 	"context"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -198,6 +199,47 @@ func TestDeleteObjectsFromBucketReportsFailedKeys(t *testing.T) {
 	}
 	if got := strings.Join(failed, ","); got != "bad" {
 		t.Errorf("failed keys = %q, want bad", got)
+	}
+}
+
+func TestDeleteObjectsFromBucketReturnsUnprocessedBatchesOnRequestFailure(t *testing.T) {
+	deleteCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		deleteCalls++
+		w.Header().Set("Content-Type", "application/xml")
+
+		var req struct {
+			Objects []struct {
+				Key string `xml:"Key"`
+			} `xml:"Object"`
+		}
+		if err := xml.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("decoding delete body: %v", err)
+		}
+		if len(req.Objects) > 0 && req.Objects[0].Key == "user1/key1000" {
+			w.WriteHeader(http.StatusForbidden)
+			io.WriteString(w, `<Error><Code>AccessDenied</Code><Message>denied</Message></Error>`)
+			return
+		}
+		io.WriteString(w, `<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"></DeleteResult>`)
+	}))
+	t.Cleanup(srv.Close)
+
+	handler := newTestS3Handler(t, srv.URL)
+	keys := make([]string, 2003)
+	for i := range keys {
+		keys[i] = fmt.Sprintf("key%d", i)
+	}
+
+	failed, err := handler.DeleteObjectsFromBucket(context.Background(), keys, "fluxsend-user1")
+	if err == nil {
+		t.Fatal("DeleteObjectsFromBucket() error = nil, want error")
+	}
+	if deleteCalls != 2 {
+		t.Errorf("delete calls = %d, want 2", deleteCalls)
+	}
+	if got := strings.Join(failed, ","); got != strings.Join(keys[1000:], ",") {
+		t.Errorf("failed keys = %v, want failed and unattempted batches %v", failed, keys[1000:])
 	}
 }
 

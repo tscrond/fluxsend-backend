@@ -377,7 +377,7 @@ func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects [
 			Delete: &s3types.Delete{Objects: ids},
 		})
 		if err != nil {
-			return append(failed, batch...), fmt.Errorf("deleting objects: %w", err)
+			return append(failed, objects[start:]...), fmt.Errorf("deleting objects: %w", err)
 		}
 		for _, objErr := range out.Errors {
 			key := strings.TrimPrefix(aws.ToString(objErr.Key), userId+"/")
