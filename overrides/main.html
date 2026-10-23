@@ -22,9 +22,9 @@
   <a class="fs-banner" href="{{ 'api/' | url }}">
     <span class="fs-banner__dot" aria-hidden="true"></span>
     <span class="fs-banner__text">
-      The API reference is generated straight from the Go backend.
+      Go-generated API docs.
     </span>
-    <span class="fs-banner__cta">Explore the OpenAPI reference</span>
+    <span class="fs-banner__cta">Explore API</span>
   </a>
 {% endblock %}
 
@@ -35,14 +35,14 @@
 {% block tabs %}
   {{ super() }}
   {% if page and page.is_homepage %}
-    <section class="fs-hero" data-fs-glow>
+    <section class="fs-hero">
       <div class="fs-hero__inner">
         <span class="fs-kicker">
           <span class="fs-dot" aria-hidden="true"></span>
           FluxSend Documentation
         </span>
         <h1 class="fs-hero__title">
-          Files that move<br />
+          <span class="fs-hero__title-line">Files that move</span>
           <span class="fs-grad">at the speed of your team.</span>
         </h1>
         <p class="fs-hero__lede">
