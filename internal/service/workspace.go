@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/google/uuid"
+	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/logger"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
@@ -72,13 +73,15 @@ type workspaceService struct {
 	log     *zap.SugaredLogger
 	queries sqlc.Querier
 	repo    repo.Repository
+	storage storagetypes.ObjectStorage
 }
 
-func NewWorkspaceService(log *zap.SugaredLogger, queries sqlc.Querier, r repo.Repository) WorkspaceService {
+func NewWorkspaceService(log *zap.SugaredLogger, queries sqlc.Querier, r repo.Repository, storage storagetypes.ObjectStorage) WorkspaceService {
 	return &workspaceService{
 		log:     log,
 		queries: queries,
 		repo:    r,
+		storage: storage,
 	}
 }
 
@@ -149,6 +152,10 @@ func (w *workspaceService) CreateWorkspace(ctx context.Context, userID uuid.UUID
 }
 
 func (w *workspaceService) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
+	if err := w.storage.DeletePrefix(ctx, workspaceID.String()+"/"); err != nil {
+		logger.FromContext(ctx).Errorw("error deleting workspace storage", "workspace_id", workspaceID, "error", err)
+		return err
+	}
 	workspaceDeleted, err := w.queries.DeleteWorkspace(ctx, workspaceID)
 	if err != nil {
 		logger.FromContext(ctx).Errorw("error deleting workspace", "workspace_id", workspaceID, "error", err)

@@ -72,7 +72,11 @@ func (f *fakeObjectStorage) DeleteObjectFromBucket(ctx context.Context, object, 
 	return nil
 }
 
-func (f *fakeObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
+func (f *fakeObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
+	return nil, nil
+}
+
+func (f *fakeObjectStorage) DeletePrefix(ctx context.Context, prefix string) error {
 	return nil
 }
 

@@ -126,11 +126,29 @@ func TestUserService_DeleteAccount_WithStorageDeletion(t *testing.T) {
 
 	userID := uuid.New()
 	const userName = "testuser"
+	ownedWorkspaceID := uuid.New()
+	sharedWorkspaceID := uuid.New()
+	sharedObjectID := uuid.New()
 
-	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
-	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil)
-	q.EXPECT().DeleteAccount(gomock.Any(), userID).
-		Return(sqlc.User{ID: userID, UserEmail: "user@example.com"}, nil)
+	gomock.InOrder(
+		stor.EXPECT().GetBucketBaseName().Return("fluxsend"),
+		q.EXPECT().ListWorkspaceObjectKeysByUploader(gomock.Any(), userID).
+			Return([]sqlc.ListWorkspaceObjectKeysByUploaderRow{{
+				WorkspaceID: sharedWorkspaceID,
+				ObjectID:    sharedObjectID,
+			}}, nil),
+		q.EXPECT().ListWorkspaceIDsByOwner(gomock.Any(), userID).Return([]uuid.UUID{ownedWorkspaceID}, nil),
+		stor.EXPECT().GetBucketBaseName().Return("fluxsend"),
+		stor.EXPECT().DeleteObjectsFromBucket(
+			gomock.Any(),
+			[]string{sharedWorkspaceID.String() + "/" + sharedObjectID.String()},
+			"fluxsend",
+		).Return(nil, nil),
+		stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil),
+		stor.EXPECT().DeletePrefix(gomock.Any(), ownedWorkspaceID.String()+"/").Return(nil),
+		q.EXPECT().DeleteAccount(gomock.Any(), userID).
+			Return(sqlc.User{ID: userID, UserEmail: "user@example.com"}, nil),
+	)
 
 	result, err := svc.DeleteAccount(context.Background(), userID, userName, true)
 	require.NoError(t, err)
@@ -169,4 +187,74 @@ func TestUserService_DeleteAccount_DBError(t *testing.T) {
 
 	_, err := svc.DeleteAccount(context.Background(), userID, "user", false)
 	assert.Error(t, err)
+}
+
+func TestUserService_DeleteAccount_StorageErrorKeepsAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
+
+	userID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	q.EXPECT().ListWorkspaceObjectKeysByUploader(gomock.Any(), userID).Return(nil, nil)
+	q.EXPECT().ListWorkspaceIDsByOwner(gomock.Any(), userID).Return(nil, nil)
+	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(storageErr)
+	// No DeleteAccount expectation: gomock fails if the row is deleted after failed cleanup.
+
+	result, err := svc.DeleteAccount(context.Background(), userID, "user", true)
+	assert.ErrorIs(t, err, storageErr)
+	assert.Nil(t, result)
+}
+
+func TestUserService_DeleteAccount_WorkspaceCleanupErrorKeepsAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
+
+	userID := uuid.New()
+	workspaceID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	q.EXPECT().ListWorkspaceObjectKeysByUploader(gomock.Any(), userID).Return(nil, nil)
+	stor.EXPECT().DeleteBucket(gomock.Any(), "fluxsend-"+userID.String()).Return(nil)
+	q.EXPECT().ListWorkspaceIDsByOwner(gomock.Any(), userID).Return([]uuid.UUID{workspaceID}, nil)
+	stor.EXPECT().DeletePrefix(gomock.Any(), workspaceID.String()+"/").Return(storageErr)
+	// No DeleteAccount expectation: the row must survive failed workspace cleanup.
+
+	result, err := svc.DeleteAccount(context.Background(), userID, "user", true)
+	assert.ErrorIs(t, err, storageErr)
+	assert.Nil(t, result)
+}
+
+func TestUserService_DeleteAccount_WorkspaceObjectCleanupErrorKeepsAccount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewUserService(zap.NewNop().Sugar(), q, stor)
+
+	userID := uuid.New()
+	workspaceID := uuid.New()
+	objectID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	q.EXPECT().ListWorkspaceObjectKeysByUploader(gomock.Any(), userID).
+		Return([]sqlc.ListWorkspaceObjectKeysByUploaderRow{{
+			WorkspaceID: workspaceID,
+			ObjectID:    objectID,
+		}}, nil)
+	q.EXPECT().ListWorkspaceIDsByOwner(gomock.Any(), userID).Return(nil, nil)
+	stor.EXPECT().GetBucketBaseName().Return("fluxsend")
+	stor.EXPECT().DeleteObjectsFromBucket(
+		gomock.Any(),
+		[]string{workspaceID.String() + "/" + objectID.String()},
+		"fluxsend",
+	).Return(nil, storageErr)
+	// No DeleteAccount expectation: the row must survive failed object cleanup.
+
+	result, err := svc.DeleteAccount(context.Background(), userID, "user", true)
+	assert.ErrorIs(t, err, storageErr)
+	assert.Nil(t, result)
 }

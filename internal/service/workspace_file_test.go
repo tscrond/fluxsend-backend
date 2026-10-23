@@ -272,6 +272,91 @@ func TestWorkspaceFileService_RemoveWorkspaceFile_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, ErrWsFileNotFound)
 }
 
+func TestWorkspaceFileService_RemoveWorkspaceFile_StorageErrorKeepsRow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
+
+	wsID := uuid.New()
+	fileID := uuid.New()
+	ownerID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+
+	q.EXPECT().GetWorkspaceFileById(gomock.Any(), gomock.Any()).
+		Return(sqlc.WorkspaceFile{ID: fileID, UploadedBy: ownerID}, nil)
+	stor.EXPECT().GetBucketBaseName().Return("ws-bucket")
+	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), gomock.Any(), "ws-bucket").Return(storageErr)
+	// No DeleteWorkspaceFileById expectation: the row must survive a failed object delete.
+
+	err := svc.RemoveWorkspaceFile(context.Background(), wsID, fileID, ownerID, "owner")
+	assert.ErrorIs(t, err, storageErr)
+}
+
+// --- RemoveWorkspaceFolder ------------------------------------------------
+
+func TestWorkspaceFileService_RemoveWorkspaceFolder_ScopesToExactPrefix(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
+
+	wsID := uuid.New()
+	folderID := uuid.New()
+	ownerID := uuid.New()
+	insideID := uuid.New()
+	nestedID := uuid.New()
+	siblingID := uuid.New()
+	const bucket = "ws-bucket"
+
+	q.EXPECT().GetWorkspaceFolderByPathAndName(gomock.Any(), sqlc.GetWorkspaceFolderByPathAndNameParams{
+		WorkspaceID: wsID, Path: "/", FileName: "a_b",
+	}).Return(sqlc.WorkspaceFile{ID: folderID, UploadedBy: ownerID}, nil)
+	q.EXPECT().GetWorkspaceFiles(gomock.Any(), wsID).Return([]sqlc.WorkspaceFile{
+		{ID: insideID, Path: "/a_b", FileType: sql.NullString{Valid: true, String: "application/pdf"}, UploadedBy: ownerID},
+		{ID: nestedID, Path: "/a_b/sub", FileType: sql.NullString{Valid: true, String: "application/pdf"}, UploadedBy: ownerID},
+		{ID: siblingID, Path: "/axb", FileType: sql.NullString{Valid: true, String: "application/pdf"}, UploadedBy: ownerID},
+	}, nil)
+	stor.EXPECT().GetBucketBaseName().Return(bucket)
+	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), wsID.String()+"/"+insideID.String(), bucket).Return(nil)
+	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), wsID.String()+"/"+nestedID.String(), bucket).Return(nil)
+	q.EXPECT().DeleteWorkspaceFilesByPath(gomock.Any(), sqlc.DeleteWorkspaceFilesByPathParams{
+		WorkspaceID: wsID, Path: "/a_b",
+	}).Return(nil)
+	q.EXPECT().DeleteWorkspaceFilesByPathPrefix(gomock.Any(), sqlc.DeleteWorkspaceFilesByPathPrefixParams{
+		WorkspaceID: wsID, Path: "/a_b/",
+	}).Return(nil)
+	q.EXPECT().DeleteWorkspaceFileById(gomock.Any(), sqlc.DeleteWorkspaceFileByIdParams{
+		ID: folderID, WorkspaceID: wsID,
+	}).Return(nil)
+
+	err := svc.RemoveWorkspaceFolder(context.Background(), wsID, "/a_b", ownerID, "owner")
+	assert.NoError(t, err)
+}
+
+func TestWorkspaceFileService_RemoveWorkspaceFolder_StorageErrorKeepsRows(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := NewWorkspaceFileService(zap.NewNop().Sugar(), q, stor)
+
+	wsID := uuid.New()
+	ownerID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+
+	q.EXPECT().GetWorkspaceFolderByPathAndName(gomock.Any(), gomock.Any()).
+		Return(sqlc.WorkspaceFile{ID: uuid.New(), UploadedBy: ownerID}, nil)
+	q.EXPECT().GetWorkspaceFiles(gomock.Any(), wsID).Return([]sqlc.WorkspaceFile{
+		{ID: uuid.New(), Path: "/a_b", FileType: sql.NullString{Valid: true, String: "application/pdf"}},
+	}, nil)
+	stor.EXPECT().GetBucketBaseName().Return("ws-bucket")
+	stor.EXPECT().DeleteObjectFromBucket(gomock.Any(), gomock.Any(), "ws-bucket").Return(storageErr)
+	// No DeleteWorkspaceFiles* expectations: rows must survive failed cleanup.
+
+	err := svc.RemoveWorkspaceFolder(context.Background(), wsID, "/a_b", ownerID, "owner")
+	assert.ErrorIs(t, err, storageErr)
+}
+
 // --- MoveWorkspaceFile ----------------------------------------------------
 
 func TestWorkspaceFileService_MoveWorkspaceFile_HappyPath(t *testing.T) {

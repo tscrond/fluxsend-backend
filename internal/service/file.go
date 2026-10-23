@@ -670,7 +670,7 @@ func (s *fileService) DeleteFile(ctx context.Context, userID uuid.UUID, fileName
 	}
 
 	if err := s.storage.DeleteObjectFromBucket(ctx, fileRow.StorageMapping.String(), bucket); err != nil {
-		logger.FromContext(ctx).Warnw("issues deleting object from storage (non-fatal)", "error", err)
+		return fmt.Errorf("deleting object from storage: %w", err)
 	}
 
 	return s.queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
@@ -710,11 +710,23 @@ func (s *fileService) DeleteFiles(ctx context.Context, userID uuid.UUID, fileNam
 		storageKeys = append(storageKeys, fileRow.StorageMapping.String())
 	}
 
-	if deleteErr := s.storage.DeleteObjectsFromBucket(ctx, storageKeys, bucket); deleteErr != nil {
+	failedKeys, deleteErr := s.storage.DeleteObjectsFromBucket(ctx, storageKeys, bucket)
+	if deleteErr != nil {
 		logger.FromContext(ctx).Warnw("issues bulk-deleting objects from storage (non-fatal)", "error", deleteErr)
+	}
+	if deleteErr != nil && len(failedKeys) == 0 {
+		failedKeys = storageKeys
+	}
+	failedStorage := make(map[string]struct{}, len(failedKeys))
+	for _, key := range failedKeys {
+		failedStorage[key] = struct{}{}
 	}
 
 	for _, entry := range resolved {
+		if _, ok := failedStorage[entry.objectKey]; ok {
+			failed = append(failed, entry.logicalName)
+			continue
+		}
 		if dbErr := s.queries.DeleteFileByNameAndId(ctx, sqlc.DeleteFileByNameAndIdParams{
 			OwnerID:  userID,
 			FileName: entry.logicalName,

@@ -125,11 +125,11 @@ func BuildBaseRuntime(log *zap.SugaredLogger, baseConfig *config.BaseRuntimeConf
 	fileSvc := service.NewFileService(log, repository.Queries(), bucketHandler, htmlSanitizationPolicy, repository)
 	shareSvc := service.NewShareService(log, repository.Queries(), bucketHandler, cloudFrontSigner, emailSender, baseConfig.BackendEndpoint, baseConfig.FrontendEndpoint, baseConfig.MailFrom)
 	userSvc := service.NewUserService(log, repository.Queries(), bucketHandler)
-	workspaceSvc := service.NewWorkspaceService(log, repository.Queries(), repository)
+	workspaceSvc := service.NewWorkspaceService(log, repository.Queries(), repository, bucketHandler)
 	workspaceFileSvc := service.NewWorkspaceFileServiceWithRepository(log, repository.Queries(), bucketHandler, repository)
 	apiKeySvc := service.NewAPIKeyService(log, repository)
 	passwordAuthSvc := service.NewPasswordAuthService(log, emailSender, repository.Queries(), repository, baseConfig.MailFrom)
-	adminSvc := service.NewAdminService(log, repository)
+	adminSvc := service.NewAdminService(log, repository, bucketHandler)
 	metrics.AttachDatabase(repository.DB(), repository.Queries())
 
 	return &baseRuntime{

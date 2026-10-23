@@ -114,10 +114,17 @@ func (s *instrumentedObjectStorage) DeleteObjectFromBucket(ctx context.Context, 
 	return err
 }
 
-func (s *instrumentedObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
+func (s *instrumentedObjectStorage) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
 	started := time.Now()
-	err := s.next.DeleteObjectsFromBucket(ctx, objects, bucket)
+	failed, err := s.next.DeleteObjectsFromBucket(ctx, objects, bucket)
 	s.observe("delete_objects", 0, started, err)
+	return failed, err
+}
+
+func (s *instrumentedObjectStorage) DeletePrefix(ctx context.Context, prefix string) error {
+	started := time.Now()
+	err := s.next.DeletePrefix(ctx, prefix)
+	s.observe("delete_prefix", 0, started, err)
 	return err
 }
 

@@ -44,7 +44,9 @@ type ObjectStorage interface {
 	GetBucketBaseName() string
 	GenerateSignedURL(ctx context.Context, bucket, object string, expiresAt time.Time, contentDisposition string) (string, error)
 	DeleteObjectFromBucket(ctx context.Context, object, bucket string) error
-	DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error
+	// DeleteObjectsFromBucket returns the keys that were not deleted.
+	DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) (failed []string, err error)
+	DeletePrefix(ctx context.Context, prefix string) error
 	MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error
 	DeleteBucket(ctx context.Context, bucket string) error
 	Close() error

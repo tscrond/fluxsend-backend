@@ -17,8 +17,8 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 )
 
-func newWsSvc(q *mocks.MockQuerier, repo *mocks.MockRepository) WorkspaceService {
-	return NewWorkspaceService(zap.NewNop().Sugar(), q, repo)
+func newWsSvc(q *mocks.MockQuerier, repo *mocks.MockRepository, stor *mocks.MockObjectStorage) WorkspaceService {
+	return NewWorkspaceService(zap.NewNop().Sugar(), q, repo, stor)
 }
 
 // --- GetUserWorkspaces ---------------------------------------------------
@@ -27,7 +27,7 @@ func TestWorkspaceService_GetUserWorkspaces_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	userID := uuid.New()
 	wsID := uuid.New()
@@ -52,7 +52,7 @@ func TestWorkspaceService_GetUserWorkspaces_DBError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	dbErr := errors.New("db unavailable")
 	q.EXPECT().GetUserWorkspaces(gomock.Any(), gomock.Any()).Return(nil, dbErr)
@@ -67,9 +67,11 @@ func TestWorkspaceService_DeleteWorkspace_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := newWsSvc(q, repo, stor)
 
 	wsID := uuid.New()
+	stor.EXPECT().DeletePrefix(gomock.Any(), wsID.String()+"/").Return(nil)
 	q.EXPECT().DeleteWorkspace(gomock.Any(), wsID).
 		Return(sqlc.Workspace{ID: wsID, Slug: "ws-slug"}, nil)
 
@@ -81,13 +83,32 @@ func TestWorkspaceService_DeleteWorkspace_DBError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := newWsSvc(q, repo, stor)
 
+	wsID := uuid.New()
 	dbErr := errors.New("workspace not found")
-	q.EXPECT().DeleteWorkspace(gomock.Any(), gomock.Any()).Return(sqlc.Workspace{}, dbErr)
+	stor.EXPECT().DeletePrefix(gomock.Any(), wsID.String()+"/").Return(nil)
+	q.EXPECT().DeleteWorkspace(gomock.Any(), wsID).Return(sqlc.Workspace{}, dbErr)
 
-	err := svc.DeleteWorkspace(context.Background(), uuid.New())
+	err := svc.DeleteWorkspace(context.Background(), wsID)
 	assert.ErrorIs(t, err, dbErr)
+}
+
+func TestWorkspaceService_DeleteWorkspace_StorageErrorKeepsWorkspace(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	q := mocks.NewMockQuerier(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
+	stor := mocks.NewMockObjectStorage(ctrl)
+	svc := newWsSvc(q, repo, stor)
+
+	wsID := uuid.New()
+	storageErr := errors.New("storage unavailable")
+	stor.EXPECT().DeletePrefix(gomock.Any(), wsID.String()+"/").Return(storageErr)
+	// No DeleteWorkspace expectation: gomock fails if the row is deleted after failed cleanup.
+
+	err := svc.DeleteWorkspace(context.Background(), wsID)
+	assert.ErrorIs(t, err, storageErr)
 }
 
 // --- RenameWorkspace -----------------------------------------------------
@@ -96,7 +117,7 @@ func TestWorkspaceService_RenameWorkspace_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	updated := sqlc.Workspace{
@@ -121,7 +142,7 @@ func TestWorkspaceService_RenameWorkspace_NameTooLong(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	// 65 chars > 64 limit
 	longName := string(make([]byte, 65))
@@ -134,7 +155,7 @@ func TestWorkspaceService_RenameWorkspace_SlugTooLong(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	longSlug := string(make([]byte, 65))
 
@@ -146,7 +167,7 @@ func TestWorkspaceService_RenameWorkspace_EmptyName(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	_, err := svc.RenameWorkspace(context.Background(), uuid.New(), "", "slug")
 	assert.Error(t, err)
@@ -158,7 +179,7 @@ func TestWorkspaceService_GetWorkspaceMembers_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	memberID := uuid.New()
@@ -183,7 +204,7 @@ func TestWorkspaceService_GetWorkspaceInvites_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	invID := uuid.New()
@@ -209,7 +230,7 @@ func TestWorkspaceService_CreateWorkspaceInvite_NewUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	invID := uuid.New()
@@ -236,7 +257,7 @@ func TestWorkspaceService_CreateWorkspaceInvite_AlreadyMember(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	memberID := uuid.New()
@@ -258,7 +279,7 @@ func TestWorkspaceService_RemoveWorkspaceMember_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	userID := uuid.New()
@@ -277,7 +298,7 @@ func TestWorkspaceService_AcceptWorkspaceInvite_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	invID := uuid.New()
@@ -309,7 +330,7 @@ func TestWorkspaceService_AcceptWorkspaceInvite_Expired(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	tok := "expired-tok"
 	q.EXPECT().GetWorkspaceInviteByToken(gomock.Any(), tok).Return(sqlc.WorkspaceInvite{
@@ -326,7 +347,7 @@ func TestWorkspaceService_AcceptWorkspaceInvite_WrongEmail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	tok := "some-tok"
 	q.EXPECT().GetWorkspaceInviteByToken(gomock.Any(), tok).Return(sqlc.WorkspaceInvite{
@@ -343,7 +364,7 @@ func TestWorkspaceService_AcceptWorkspaceInvite_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	tok := "ghost-tok"
 	q.EXPECT().GetWorkspaceInviteByToken(gomock.Any(), tok).Return(sqlc.WorkspaceInvite{}, sql.ErrNoRows)
@@ -359,7 +380,7 @@ func TestWorkspaceService_RejectWorkspaceInvite_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	tok := "rej-tok"
 	const email = "user@example.com"
@@ -378,7 +399,7 @@ func TestWorkspaceService_RejectWorkspaceInvite_WrongEmail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	tok := "rej-tok"
 	q.EXPECT().GetWorkspaceInviteByToken(gomock.Any(), tok).Return(sqlc.WorkspaceInvite{
@@ -397,7 +418,7 @@ func TestWorkspaceService_GetUserInvites_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	invID := uuid.New()
@@ -426,7 +447,7 @@ func TestWorkspaceService_GetUserWorkspaceRole_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	userID := uuid.New()
@@ -446,7 +467,7 @@ func TestWorkspaceService_UpdateMemberRole_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	wsID := uuid.New()
 	userID := uuid.New()
@@ -465,7 +486,7 @@ func TestWorkspaceService_DeleteWorkspaceInvite_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := mocks.NewMockQuerier(ctrl)
 	repo := mocks.NewMockRepository(ctrl)
-	svc := newWsSvc(q, repo)
+	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
 	invID := uuid.New()
 	q.EXPECT().DeleteWorkspaceInvite(gomock.Any(), invID).Return(nil)

@@ -352,30 +352,43 @@ func (b *S3BucketHandler) DeleteObjectFromBucket(ctx context.Context, object, bu
 	return nil
 }
 
-func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+func (b *S3BucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	for _, object := range objects {
-		// bucket is "<base>-<userId>"; extract userId to build the S3 key
-		userId := b.extractUserIdFromBucket(bucket)
-		objectKey := object
+	userId := b.extractUserIdFromBucket(bucket)
+	objectKey := func(object string) string {
 		if userId != "" {
-			objectKey = s3Key(userId, object)
+			return s3Key(userId, object)
 		}
-
-		_, err := b.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-			Bucket: aws.String(b.BaseBucketName),
-			Key:    aws.String(objectKey),
-		})
-		if err != nil {
-			return fmt.Errorf("Object(%q).Delete: %w", objectKey, err)
-		}
-
-		logger.FromContext(ctx).Infow("object deleted", "bucket", b.BaseBucketName, "key", objectKey)
+		return object
 	}
 
-	return nil
+	var failed []string
+	for start := 0; start < len(objects); start += 1000 {
+		batch := objects[start:min(start+1000, len(objects))]
+		ids := make([]s3types.ObjectIdentifier, 0, len(batch))
+		for _, object := range batch {
+			ids = append(ids, s3types.ObjectIdentifier{Key: aws.String(objectKey(object))})
+		}
+
+		out, err := b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+			Bucket: aws.String(b.BaseBucketName),
+			Delete: &s3types.Delete{Objects: ids},
+		})
+		if err != nil {
+			return append(failed, objects[start:]...), fmt.Errorf("deleting objects: %w", err)
+		}
+		for _, objErr := range out.Errors {
+			key := strings.TrimPrefix(aws.ToString(objErr.Key), userId+"/")
+			failed = append(failed, key)
+		}
+	}
+
+	if len(failed) > 0 {
+		return failed, fmt.Errorf("failed deleting %d objects", len(failed))
+	}
+	return nil, nil
 }
 
 func (b *S3BucketHandler) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {
@@ -412,41 +425,81 @@ func (b *S3BucketHandler) MoveObjectInBucket(ctx context.Context, source, destin
 }
 
 func (b *S3BucketHandler) DeleteBucket(ctx context.Context, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer cancel()
-
 	// bucket is "<base>-<userId>"; delete all objects under the user's prefix
 	userId := b.extractUserIdFromBucket(bucket)
 	if userId == "" {
 		return fmt.Errorf("cannot extract userId from bucket name: %s", bucket)
 	}
 
-	prefix := userId + "/"
-	output, err := b.Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+	return b.DeletePrefix(ctx, userId+"/")
+}
+
+func (b *S3BucketHandler) DeletePrefix(ctx context.Context, prefix string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	uploadPaginator := s3.NewListMultipartUploadsPaginator(b.Client, &s3.ListMultipartUploadsInput{
 		Bucket: aws.String(b.BaseBucketName),
 		Prefix: aws.String(prefix),
 	})
-	if err != nil {
-		logger.FromContext(ctx).Errorw("failed fetching bucket info", "error", err)
-		return err
+
+	for uploadPaginator.HasMorePages() {
+		page, err := uploadPaginator.NextPage(ctx)
+		if err != nil {
+			logger.FromContext(ctx).Errorw("failed fetching next page of multipart uploads", "error", err)
+			return fmt.Errorf("listing multipart uploads for %q: %w", prefix, err)
+		}
+		for _, upload := range page.Uploads {
+			_, err := b.Client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+				Bucket:   aws.String(b.BaseBucketName),
+				Key:      upload.Key,
+				UploadId: upload.UploadId,
+			})
+			if err != nil {
+				logger.FromContext(ctx).Errorw("failed aborting multipart upload", "key", aws.ToString(upload.Key), "upload_id", aws.ToString(upload.UploadId), "error", err)
+				return fmt.Errorf("aborting multipart upload %q: %w", aws.ToString(upload.UploadId), err)
+			}
+		}
 	}
 
-	if len(output.Contents) > 0 {
-		var objectIds []s3types.ObjectIdentifier
-		for _, obj := range output.Contents {
-			objectIds = append(objectIds, s3types.ObjectIdentifier{
-				Key: obj.Key,
-			})
-			logger.FromContext(ctx).Infow("deleting object", "key", aws.ToString(obj.Key))
-		}
+	versionPaginator := s3.NewListObjectVersionsPaginator(b.Client, &s3.ListObjectVersionsInput{
+		Bucket: aws.String(b.BaseBucketName),
+		Prefix: aws.String(prefix),
+	})
 
-		_, err = b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-			Bucket: aws.String(b.BaseBucketName),
-			Delete: &s3types.Delete{Objects: objectIds},
-		})
+	for versionPaginator.HasMorePages() {
+		page, err := versionPaginator.NextPage(ctx)
 		if err != nil {
-			logger.FromContext(ctx).Errorw("error batch deleting objects", "error", err)
-			return fmt.Errorf("failed_deleting_user_objects")
+			logger.FromContext(ctx).Errorw("failed fetching next page of object versions", "error", err)
+			return fmt.Errorf("listing object versions for %q: %w", prefix, err)
+		}
+		var objectsToDelete []s3types.ObjectIdentifier
+		for _, version := range page.Versions {
+			objectsToDelete = append(objectsToDelete, s3types.ObjectIdentifier{
+				Key:       version.Key,
+				VersionId: version.VersionId,
+			})
+		}
+		for _, marker := range page.DeleteMarkers {
+			objectsToDelete = append(objectsToDelete, s3types.ObjectIdentifier{
+				Key:       marker.Key,
+				VersionId: marker.VersionId,
+			})
+		}
+		if len(objectsToDelete) > 0 {
+			output, err := b.Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+				Bucket: aws.String(b.BaseBucketName),
+				Delete: &s3types.Delete{
+					Objects: objectsToDelete,
+				},
+			})
+			if err != nil {
+				logger.FromContext(ctx).Errorw("failed deleting objects from bucket", "error", err)
+				return err
+			} else if len(output.Errors) > 0 {
+				logger.FromContext(ctx).Errorw("failed deleting some objects from bucket", "errors", output.Errors)
+				return fmt.Errorf("failed deleting %d objects: %v", len(output.Errors), output.Errors)
+			}
 		}
 	}
 

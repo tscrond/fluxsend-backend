@@ -305,23 +305,28 @@ func (b *MinioBucketHandler) DeleteObjectFromBucket(ctx context.Context, object,
 	return nil
 }
 
-func (b *MinioBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+func (b *MinioBucketHandler) DeleteObjectsFromBucket(ctx context.Context, objects []string, bucket string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
+	userId := b.extractUserIdFromBucket(bucket)
+	var failed []string
 	for _, object := range objects {
-		userId := b.extractUserIdFromBucket(bucket)
 		objectKey := object
 		if userId != "" {
 			objectKey = s3Key(userId, object)
 		}
 
 		if err := b.Client.RemoveObject(ctx, b.BaseBucketName, objectKey, minio.RemoveObjectOptions{}); err != nil {
-			return fmt.Errorf("remove %q failed: %w", objectKey, err)
+			failed = append(failed, object)
+			continue
 		}
 		b.log.Infow("deleted object from bucket", "bucket", b.BaseBucketName, "object", objectKey)
 	}
-	return nil
+	if len(failed) > 0 {
+		return failed, fmt.Errorf("failed deleting %d objects", len(failed))
+	}
+	return nil, nil
 }
 
 func (b *MinioBucketHandler) MoveObjectInBucket(ctx context.Context, source, destination, bucket string) error {
@@ -359,34 +364,50 @@ func (b *MinioBucketHandler) MoveObjectInBucket(ctx context.Context, source, des
 }
 
 func (b *MinioBucketHandler) DeleteBucket(ctx context.Context, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer cancel()
-
 	userId := b.extractUserIdFromBucket(bucket)
 	if userId == "" {
 		return fmt.Errorf("cannot extract userId from bucket name: %s", bucket)
 	}
 
-	prefix := userId + "/"
-	output := b.Client.ListObjects(ctx, b.BaseBucketName, minio.ListObjectsOptions{
-		Prefix:    prefix,
-		Recursive: true,
-	})
+	return b.DeletePrefix(ctx, userId+"/")
+}
 
-	var objectKeys []string
-	for obj := range output {
-		if obj.Err != nil {
-			b.log.Errorw("error listing objects in bucket", "bucket", b.BaseBucketName, "error", obj.Err)
-			return fmt.Errorf("%s: %v", "ErrListObjectsFailed", obj.Err)
+func (b *MinioBucketHandler) DeletePrefix(ctx context.Context, prefix string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	uploads := b.Client.ListIncompleteUploads(ctx, b.BaseBucketName, prefix, true)
+	for upload := range uploads {
+		if upload.Err != nil {
+			b.log.Errorw("error listing incomplete multipart uploads", "bucket", b.BaseBucketName, "error", upload.Err)
+			return fmt.Errorf("listing incomplete multipart uploads for %q: %w", prefix, upload.Err)
 		}
-		objectKeys = append(objectKeys, obj.Key)
+		if err := b.Core.AbortMultipartUpload(ctx, b.BaseBucketName, upload.Key, upload.UploadID); err != nil {
+			b.log.Errorw("error aborting multipart upload", "object", upload.Key, "upload_id", upload.UploadID, "error", err)
+			return fmt.Errorf("aborting multipart upload %q: %w", upload.UploadID, err)
+		}
 	}
 
-	for _, objectID := range objectKeys {
-		err := b.Client.RemoveObject(ctx, b.BaseBucketName, objectID, minio.RemoveObjectOptions{})
+	output := b.Client.ListObjects(ctx, b.BaseBucketName, minio.ListObjectsOptions{
+		Prefix:       prefix,
+		Recursive:    true,
+		WithVersions: true,
+	})
+
+	var objects []minio.ObjectInfo
+	for obj := range output {
+		if obj.Err != nil {
+			b.log.Errorw("error listing object versions in bucket", "bucket", b.BaseBucketName, "error", obj.Err)
+			return fmt.Errorf("listing object versions for %q: %w", prefix, obj.Err)
+		}
+		objects = append(objects, obj)
+	}
+
+	for _, object := range objects {
+		err := b.Client.RemoveObject(ctx, b.BaseBucketName, object.Key, minio.RemoveObjectOptions{VersionID: object.VersionID})
 		if err != nil {
-			b.log.Errorw("error removing object from bucket", "bucket", b.BaseBucketName, "object", objectID, "error", err)
-			return fmt.Errorf("failed_deleting_user_objects")
+			b.log.Errorw("error removing object version from bucket", "bucket", b.BaseBucketName, "object", object.Key, "version_id", object.VersionID, "error", err)
+			return fmt.Errorf("removing object version %q: %w", object.VersionID, err)
 		}
 	}
 
