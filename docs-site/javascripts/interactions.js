@@ -3,7 +3,7 @@
    --------------------------------------------------------------------------
    Small, dependency-free enhancements that make the docs feel like the app:
      · keeps the browser theme colour in sync with the Material palette
-     · a pointer-tracked glow on the home hero
+     · keeps embedded API docs in sync with the selected palette
      · staggered reveal-on-scroll for content blocks
    Everything degrades gracefully and respects prefers-reduced-motion.
    ========================================================================== */
@@ -24,27 +24,26 @@
     meta.setAttribute('content', dark ? '#0d1117' : '#f6f8fa');
   }
 
-  /* --- hero glow ----------------------------------------------------------- */
+  /* --- embedded API reference --------------------------------------------- */
 
-  function bindHeroGlow(root) {
-    var hero = root.querySelector('[data-fs-glow]');
-    if (!hero || reduceMotion) return;
+  function syncSwaggerTheme() {
+    var scheme =
+      (document.body && document.body.getAttribute('data-md-color-scheme')) ||
+      document.documentElement.getAttribute('data-md-color-scheme');
+    var theme = scheme === 'default' ? 'light' : 'dark';
 
-    hero.addEventListener('pointermove', function (event) {
-      var rect = hero.getBoundingClientRect();
-      hero.style.setProperty(
-        '--fs-mx',
-        (((event.clientX - rect.left) / rect.width) * 100).toFixed(1) + '%'
-      );
-      hero.style.setProperty(
-        '--fs-my',
-        (((event.clientY - rect.top) / rect.height) * 100).toFixed(1) + '%'
-      );
-    });
+    document.querySelectorAll('.swagger-frame iframe').forEach(function (iframe) {
+      var applyTheme = function () {
+        try {
+          iframe.contentDocument.documentElement.setAttribute('data-theme', theme);
+        } catch (error) {}
+      };
 
-    hero.addEventListener('pointerleave', function () {
-      hero.style.removeProperty('--fs-mx');
-      hero.style.removeProperty('--fs-my');
+      if (iframe.dataset.fsThemeBound !== 'true') {
+        iframe.addEventListener('load', applyTheme);
+        iframe.dataset.fsThemeBound = 'true';
+      }
+      applyTheme();
     });
   }
 
@@ -100,7 +99,7 @@
 
   function init() {
     syncThemeColor();
-    bindHeroGlow(document);
+    syncSwaggerTheme();
     bindReveal(document);
   }
 
@@ -119,7 +118,10 @@
 
   // Keep the browser chrome in sync when the palette is toggled (or when the
   // system preference flips while using the auto palette).
-  var themeObserver = new MutationObserver(syncThemeColor);
+  var themeObserver = new MutationObserver(function () {
+    syncThemeColor();
+    syncSwaggerTheme();
+  });
   themeObserver.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-md-color-scheme'],

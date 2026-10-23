@@ -1,7 +1,9 @@
 site_name: FluxSend Docs
+site_url: https://docs.fluxsend.app/
 site_description: Public product and API documentation for FluxSend
 site_dir: site
 docs_dir: docs-site
+exclude_docs: usage/
 copyright: FluxSend — self-hostable file transfer
 
 theme:

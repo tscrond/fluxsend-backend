@@ -1,21 +1,184 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FluxSend API</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
     <style>
+      :root {
+        color-scheme: light;
+        --accent: #4f46e5;
+        --bg: #f6f8fa;
+        --surface: #ffffff;
+        --surface-2: #f6f8fa;
+        --line: #d0d7de;
+        --line-2: #e6eaf0;
+        --ink: #1f2328;
+        --muted: #57606a;
+      }
+
+      html[data-theme='dark'] {
+        color-scheme: dark;
+        --accent: #818cf8;
+        --bg: #0d1117;
+        --surface: #10161e;
+        --surface-2: #0b1017;
+        --line: #30363d;
+        --line-2: #1c2129;
+        --ink: #e6edf3;
+        --muted: #8b949e;
+      }
+
       html,
       body {
         margin: 0;
         padding: 0;
         height: 100%;
-        background: #ffffff;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: 'Datatype', system-ui, -apple-system, sans-serif;
       }
 
       #swagger-ui {
         min-height: 100vh;
+      }
+
+      .swagger-ui {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: inherit;
+      }
+
+      .swagger-ui .wrapper {
+        max-width: 1240px;
+        padding: 0 24px;
+      }
+
+      .swagger-ui .info {
+        margin: 40px 0;
+      }
+
+      .swagger-ui .info .title {
+        color: var(--ink);
+        font-family: inherit;
+        font-size: clamp(2.5rem, 7vw, 4rem);
+        font-weight: 700;
+        letter-spacing: -0.05em;
+        line-height: 1;
+      }
+
+      .swagger-ui .info .title small,
+      .swagger-ui .info p,
+      .swagger-ui .info li {
+        color: var(--muted);
+        font-family: inherit;
+      }
+
+      .swagger-ui .scheme-container {
+        margin: 0;
+        padding: 0 0 24px;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .swagger-ui .opblock-tag {
+        color: var(--ink);
+        font-family: inherit;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .swagger-ui .opblock-tag small,
+      .swagger-ui .opblock-description-wrapper p,
+      .swagger-ui .opblock-external-docs-wrapper p,
+      .swagger-ui .opblock-title_normal p {
+        color: var(--muted);
+      }
+
+      .swagger-ui .opblock {
+        background: var(--surface);
+        border-color: var(--line);
+        border-radius: 12px;
+        box-shadow: none;
+      }
+
+      .swagger-ui .opblock .opblock-summary {
+        border-radius: inherit;
+        color: var(--ink);
+      }
+
+      .swagger-ui .opblock .opblock-summary-description,
+      .swagger-ui .opblock .opblock-summary-path,
+      .swagger-ui .opblock .opblock-summary-path__deprecated {
+        color: var(--ink);
+      }
+
+      .swagger-ui .opblock-body,
+      .swagger-ui .opblock-section-header,
+      .swagger-ui .responses-inner,
+      .swagger-ui .parameters-container {
+        background: var(--surface);
+        color: var(--ink);
+      }
+
+      .swagger-ui .opblock-body pre.microlight,
+      .swagger-ui .highlight-code {
+        background: var(--surface-2) !important;
+        color: var(--ink) !important;
+      }
+
+      .swagger-ui .btn {
+        border-color: var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        border-radius: 8px;
+        box-shadow: none;
+        font-family: inherit;
+        font-weight: 650;
+      }
+
+      .swagger-ui .btn.authorize {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .swagger-ui input[type='text'],
+      .swagger-ui input[type='email'],
+      .swagger-ui input[type='password'],
+      .swagger-ui textarea,
+      .swagger-ui select {
+        border-color: var(--line);
+        border-radius: 8px;
+        background: var(--surface-2);
+        color: var(--ink);
+        box-shadow: none;
+      }
+
+      .swagger-ui .model-box,
+      .swagger-ui section.models,
+      .swagger-ui section.models.is-open h4 {
+        background: var(--surface);
+        border-color: var(--line);
+        border-radius: 12px;
+        color: var(--ink);
+      }
+
+      .swagger-ui .model,
+      .swagger-ui .property-row,
+      .swagger-ui table thead tr th,
+      .swagger-ui table thead tr td,
+      .swagger-ui table tbody tr td,
+      .swagger-ui .response-col_status,
+      .swagger-ui .response-col_description {
+        border-color: var(--line-2);
+        color: var(--ink);
+      }
+
+      .swagger-ui code,
+      .swagger-ui pre {
+        background: var(--surface-2);
+        color: var(--ink);
       }
     </style>
   </head>
