@@ -47,33 +47,33 @@ func (m *MockFileService) EXPECT() *MockFileServiceMockRecorder {
 }
 
 // AbortUpload mocks base method.
-func (m *MockFileService) AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error) {
+func (m *MockFileService) AbortUpload(ctx context.Context, uploadId string, userID uuid.UUID) (*filedata.AbortUploadResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AbortUpload", ctx, uploadId)
+	ret := m.ctrl.Call(m, "AbortUpload", ctx, uploadId, userID)
 	ret0, _ := ret[0].(*filedata.AbortUploadResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AbortUpload indicates an expected call of AbortUpload.
-func (mr *MockFileServiceMockRecorder) AbortUpload(ctx, uploadId any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) AbortUpload(ctx, uploadId, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortUpload", reflect.TypeOf((*MockFileService)(nil).AbortUpload), ctx, uploadId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortUpload", reflect.TypeOf((*MockFileService)(nil).AbortUpload), ctx, uploadId, userID)
 }
 
 // CompleteUpload mocks base method.
-func (m *MockFileService) CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error) {
+func (m *MockFileService) CompleteUpload(ctx context.Context, uploadId string, userID uuid.UUID) (*filedata.CompleteUploadResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CompleteUpload", ctx, uploadId)
+	ret := m.ctrl.Call(m, "CompleteUpload", ctx, uploadId, userID)
 	ret0, _ := ret[0].(*filedata.CompleteUploadResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CompleteUpload indicates an expected call of CompleteUpload.
-func (mr *MockFileServiceMockRecorder) CompleteUpload(ctx, uploadId any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) CompleteUpload(ctx, uploadId, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteUpload", reflect.TypeOf((*MockFileService)(nil).CompleteUpload), ctx, uploadId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteUpload", reflect.TypeOf((*MockFileService)(nil).CompleteUpload), ctx, uploadId, userID)
 }
 
 // CreateUploadWithId mocks base method.
@@ -225,18 +225,18 @@ func (mr *MockFileServiceMockRecorder) Upload(ctx, fd any) *gomock.Call {
 }
 
 // UploadPart mocks base method.
-func (m *MockFileService) UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
+func (m *MockFileService) UploadPart(ctx context.Context, uploadId string, userID uuid.UUID, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadPart", ctx, uploadId, partNumber, body, size)
+	ret := m.ctrl.Call(m, "UploadPart", ctx, uploadId, userID, partNumber, body, size)
 	ret0, _ := ret[0].(*filedata.UploadPartResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UploadPart indicates an expected call of UploadPart.
-func (mr *MockFileServiceMockRecorder) UploadPart(ctx, uploadId, partNumber, body, size any) *gomock.Call {
+func (mr *MockFileServiceMockRecorder) UploadPart(ctx, uploadId, userID, partNumber, body, size any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadPart", reflect.TypeOf((*MockFileService)(nil).UploadPart), ctx, uploadId, partNumber, body, size)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadPart", reflect.TypeOf((*MockFileService)(nil).UploadPart), ctx, uploadId, userID, partNumber, body, size)
 }
 
 // UpsertNote mocks base method.

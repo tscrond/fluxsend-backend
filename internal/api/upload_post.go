@@ -109,6 +109,12 @@ func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	_, userID, ok := parseAuthorizedUserUUID(r)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", "")
+		return
+	}
+
 	uploadId := strings.TrimSpace(chi.URLParam(r, "upload_id"))
 	if uploadId == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
@@ -131,12 +137,17 @@ func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request)
 	result, err := s.files.UploadPart(
 		r.Context(),
 		uploadId,
+		userID,
 		int32(partId),
 		r.Body,
 		r.ContentLength,
 	)
 	if err != nil {
 		s.metrics.RecordUploadPart("private", "failed")
+		if errors.Is(err, service.ErrAccessDenied) {
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", "")
+			return
+		}
 		pkg.WriteJSONResponse(
 			w,
 			http.StatusBadRequest,
@@ -158,16 +169,24 @@ func (s *CoreHandlers) completeUploadHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	_, userID, ok := parseAuthorizedUserUUID(r)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", "")
+		return
+	}
+
 	uploadId := chi.URLParam(r, "upload_id")
 	if strings.TrimSpace(uploadId) == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
 		return
 	}
 
-	result, err := s.files.CompleteUpload(r.Context(), uploadId)
+	result, err := s.files.CompleteUpload(r.Context(), uploadId, userID)
 	if err != nil {
 		s.metrics.RecordUploadSession("private", "failed")
 		switch {
+		case errors.Is(err, service.ErrAccessDenied):
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", "")
 		case errors.Is(err, service.ErrMultipartUploadIncomplete):
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "multipart_upload_incomplete", "")
 		case errors.Is(err, service.ErrMultipartUploadClosed):
@@ -197,16 +216,24 @@ func (s *CoreHandlers) abortUploadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	_, userID, ok := parseAuthorizedUserUUID(r)
+	if !ok {
+		pkg.WriteJSONResponse(w, http.StatusForbidden, "authorization_failed", "")
+		return
+	}
+
 	uploadId := strings.TrimSpace(chi.URLParam(r, "upload_id"))
 	if uploadId == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_upload_id", "")
 		return
 	}
 
-	result, err := s.files.AbortUpload(r.Context(), uploadId)
+	result, err := s.files.AbortUpload(r.Context(), uploadId, userID)
 	if err != nil {
 		s.metrics.RecordUploadSession("private", "failed")
 		switch {
+		case errors.Is(err, service.ErrAccessDenied):
+			pkg.WriteJSONResponse(w, http.StatusForbidden, "access_denied", "")
 		case errors.Is(err, service.ErrMultipartUploadUnsupported):
 			pkg.WriteJSONResponse(w, http.StatusNotImplemented, "multipart_upload_not_supported", "")
 		case strings.Contains(err.Error(), "invalid_upload_id"):
