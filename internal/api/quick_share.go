@@ -19,9 +19,9 @@ import (
 // @Accept json
 // @Produce json
 // @Param request body object true "Quick share request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[service.QuickShareResult]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/quick_share [post]
 func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -91,8 +91,8 @@ func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 // @Description Returns how many received shares have not yet been marked as seen.
 // @Tags Sharing
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[UnseenSharesResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/received/unseen_count [get]
 func (s *CoreHandlers) getUnseenReceivedCount(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -126,9 +126,9 @@ func (s *CoreHandlers) getUnseenReceivedCount(w http.ResponseWriter, r *http.Req
 // @Accept json
 // @Produce json
 // @Param request body object true "Mark seen request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[string]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/received/mark_seen [post]
 func (s *CoreHandlers) markReceivedSeen(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

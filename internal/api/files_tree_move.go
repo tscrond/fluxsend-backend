@@ -71,9 +71,9 @@ func parseAuthorizedUserUUID(r *http.Request) (*userdata.AuthorizedUserInfo, uui
 // @Tags Files
 // @Param path query string false "Path prefix"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[service.FilesTree]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/tree [get]
 func (s *CoreHandlers) getFilesTree(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -114,8 +114,8 @@ func (s *CoreHandlers) foldersHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags Files
 // @Param path query string false "Path prefix"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[FoldersResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/folders [get]
 func (s *CoreHandlers) getFolders(w http.ResponseWriter, r *http.Request) {
 	_, userUUID, ok := parseAuthorizedUserUUID(r)
@@ -143,9 +143,9 @@ func (s *CoreHandlers) getFolders(w http.ResponseWriter, r *http.Request) {
 // @Tags Files
 // @Param path query string true "Folder path"
 // @Param recursive query boolean false "Delete recursively"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[FolderDeleteResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/folders [delete]
 func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -187,9 +187,9 @@ func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body object true "Move request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[FileMoveResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/move [post]
 func (s *CoreHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -240,9 +240,9 @@ func (s *CoreHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body object true "Move request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[FolderMoveResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/folders/move [post]
 func (s *CoreHandlers) moveFolder(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

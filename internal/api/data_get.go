@@ -13,8 +13,8 @@ import (
 // @Description Returns the authenticated user's profile and plan details.
 // @Tags User
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[UserDataResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/user/data [get]
 func (s *CoreHandlers) getUserData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -40,8 +40,8 @@ func (s *CoreHandlers) getUserData(w http.ResponseWriter, r *http.Request) {
 // @Description Returns the current user's bucket metadata and usage details.
 // @Tags User
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[UserBucketResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/user/bucket [get]
 func (s *CoreHandlers) getUserBucketData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -75,8 +75,8 @@ func (s *CoreHandlers) getUserBucketData(w http.ResponseWriter, r *http.Request)
 // @Description Returns all identities attached to the current account.
 // @Tags User
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[UserIdentitiesResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/user/identities [get]
 func (s *CoreHandlers) getUserIdentities(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -97,19 +97,7 @@ func (s *CoreHandlers) getUserIdentities(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	type identityResponse struct {
-		ID             string    `json:"id"`
-		UserID         string    `json:"user_id"`
-		Provider       string    `json:"provider"`
-		ProviderUserID string    `json:"provider_user_id"`
-		Email          string    `json:"email"`
-		EmailVerified  bool      `json:"email_verified"`
-		Name           string    `json:"name"`
-		AvatarURL      string    `json:"avatar_url"`
-		CreatedAt      time.Time `json:"created_at"`
-	}
-
-	response := make([]identityResponse, 0, len(identities))
+	response := make([]IdentityResponse, 0, len(identities))
 	hasPasswordIdentity := false
 	for _, identity := range identities {
 		createdAt := time.Time{}
@@ -119,7 +107,7 @@ func (s *CoreHandlers) getUserIdentities(w http.ResponseWriter, r *http.Request)
 		if identity.Provider == "password" {
 			hasPasswordIdentity = true
 		}
-		response = append(response, identityResponse{
+		response = append(response, IdentityResponse{
 			ID:             identity.ID.String(),
 			UserID:         identity.UserID.String(),
 			Provider:       identity.Provider,
@@ -144,9 +132,9 @@ func (s *CoreHandlers) getUserIdentities(w http.ResponseWriter, r *http.Request)
 // @Tags User
 // @Param file query string true "File name"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[PrivateDownloadTokenResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/user/private/download_token [post]
 func (s *CoreHandlers) getUserPrivateFileByName(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -179,8 +167,8 @@ func (s *CoreHandlers) getUserPrivateFileByName(w http.ResponseWriter, r *http.R
 // @Description Returns aggregate file, share, and workspace statistics for the current user.
 // @Tags User
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[UserStatsResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/user/stats [get]
 func (s *CoreHandlers) getUserStats(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

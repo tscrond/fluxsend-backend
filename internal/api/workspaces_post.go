@@ -20,10 +20,10 @@ import (
 // @Accept json
 // @Produce json
 // @Param request body object true "Workspace create request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 429 {object} map[string]any
+// @Success 200 {object} APIResponse[WorkspaceCreatedResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
 // @Router /api/workspaces/create [post]
 func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -107,11 +107,11 @@ func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body object true "Workspace invite request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 429 {object} map[string]any
+// @Success 200 {object} WorkspaceInviteCreatedResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
 // @Router /api/workspaces/invites/create [post]
 func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -196,11 +196,11 @@ func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 // @Accept json
 // @Produce json
 // @Param request body object true "Invite acceptance request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/invites/accept [post]
 func (s *CoreHandlers) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

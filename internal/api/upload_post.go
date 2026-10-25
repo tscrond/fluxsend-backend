@@ -257,10 +257,10 @@ func (s *CoreHandlers) abortUploadHandler(w http.ResponseWriter, r *http.Request
 // @Produce json
 // @Param file formData file true "File to upload"
 // @Param folder formData string false "Destination folder"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 409 {object} map[string]any
+// @Success 200 {object} APIResponse[string]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 409 {object} ErrorResponse
 // @Router /api/files/upload [post]
 func (s *CoreHandlers) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

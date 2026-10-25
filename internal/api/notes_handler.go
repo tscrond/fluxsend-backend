@@ -30,10 +30,10 @@ func (s *CoreHandlers) fileNotesHandler(w http.ResponseWriter, r *http.Request) 
 // @Param checksum path string true "File checksum"
 // @Param file_name query string true "File name"
 // @Param request body object true "Note content request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 404 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[NoteResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/{checksum}/note [put]
 func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -95,10 +95,10 @@ func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 // @Param checksum path string true "File checksum"
 // @Param file_name query string true "File name"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 404 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[NoteContentResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/{checksum}/note [get]
 func (s *CoreHandlers) getFileNotes(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

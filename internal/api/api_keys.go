@@ -60,11 +60,11 @@ func getDeleteAPIKeyParameters(r *http.Request) (*deleteApiKeyRequest, error) {
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
 // @Param request body object true "API key create request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 429 {object} map[string]any
+// @Success 200 {object} APIResponse[APIKeyCreatedResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
 // @Router /api/api_keys/{workspace_id}/create [post]
 func (s *CoreHandlers) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -147,9 +147,9 @@ func (s *CoreHandlers) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 // @Tags API Keys
 // @Param workspace_id path string true "Workspace ID"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[APIKeyListResponseData]
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/api_keys/{workspace_id}/list [get]
 func (s *CoreHandlers) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -194,11 +194,11 @@ func (s *CoreHandlers) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Reque
 // @Accept json
 // @Param workspace_id path string true "Workspace ID"
 // @Param request body object true "Delete API key request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/api_keys/{workspace_id}/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -257,10 +257,10 @@ func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 // @Accept json
 // @Produce json
 // @Param request body object true "API key create request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 429 {object} map[string]any
+// @Success 200 {object} APIResponse[APIKeyCreatedResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
 // @Router /api/api_keys/private/create [post]
 func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -342,8 +342,8 @@ func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Reques
 // @Description Returns all private API keys created by the authenticated user.
 // @Tags API Keys
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[APIKeyListResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/api_keys/private/list [get]
 func (s *CoreHandlers) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -376,10 +376,10 @@ func (s *CoreHandlers) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request
 // @Tags API Keys
 // @Accept json
 // @Param request body object true "Delete API key request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/api_keys/private/delete [delete]
 func (s *CoreHandlers) deletePrivateAPIKey(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

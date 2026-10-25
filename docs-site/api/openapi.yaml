@@ -1,4 +1,1063 @@
 components:
+    schemas:
+        api.APIKeyCreatedResponseData:
+            properties:
+                api_key:
+                    $ref: '#/components/schemas/service.CreateAPIKeyResult'
+            type: object
+        api.APIKeyListResponseData:
+            properties:
+                api_keys:
+                    items:
+                        $ref: '#/components/schemas/service.APIKeyResult'
+                    type: array
+            type: object
+        api.APIResponse-any:
+            properties:
+                msg:
+                    type: string
+                response: {}
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_APIKeyCreatedResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.APIKeyCreatedResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_APIKeyListResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.APIKeyListResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_AccountDeletedResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.AccountDeletedResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_FileDeleteResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.FileDeleteResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_FileMoveResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.FileMoveResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_FilesDeleteResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.FilesDeleteResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_FolderDeleteResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.FolderDeleteResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_FolderMoveResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.FolderMoveResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_FoldersResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.FoldersResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_NoteContentResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.NoteContentResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_NoteResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.NoteResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_PrivateDownloadTokenResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.PrivateDownloadTokenResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_ShareResolveResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.ShareResolveResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_ShareResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.ShareResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_ShareRevokeResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.ShareRevokeResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_SharedFilesResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.SharedFilesResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_UnseenSharesResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.UnseenSharesResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_UserBucketResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.UserBucketResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_UserDataResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.UserDataResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_UserIdentitiesResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.UserIdentitiesResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_UserStatsResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.UserStatsResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_WorkspaceCreatedResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.WorkspaceCreatedResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_WorkspaceDeletedResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.WorkspaceDeletedResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_WorkspaceFilesMoveResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.WorkspaceFilesMoveResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_WorkspaceInviteDeletedResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.WorkspaceInviteDeletedResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_WorkspaceMemberRoleResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.WorkspaceMemberRoleResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-api_WorkspaceQuotaResponseData:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/api.WorkspaceQuotaResponseData'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-array_service_UserInviteResult:
+            properties:
+                msg:
+                    type: string
+                response:
+                    items:
+                        $ref: '#/components/schemas/service.UserInviteResult'
+                    type: array
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-array_service_WorkspaceFileResult:
+            properties:
+                msg:
+                    type: string
+                response:
+                    items:
+                        $ref: '#/components/schemas/service.WorkspaceFileResult'
+                    type: array
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-array_service_WorkspaceInviteResult:
+            properties:
+                msg:
+                    type: string
+                response:
+                    items:
+                        $ref: '#/components/schemas/service.WorkspaceInviteResult'
+                    type: array
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-array_service_WorkspaceMemberResult:
+            properties:
+                msg:
+                    type: string
+                response:
+                    items:
+                        $ref: '#/components/schemas/service.WorkspaceMemberResult'
+                    type: array
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-array_service_WorkspaceResult:
+            properties:
+                msg:
+                    type: string
+                response:
+                    items:
+                        $ref: '#/components/schemas/service.WorkspaceResult'
+                    type: array
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-service_FilesTree:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/service.FilesTree'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-service_QuickShareResult:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/service.QuickShareResult'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-service_ShareInfo:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/service.ShareInfo'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-service_WorkspaceFilesTree:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/service.WorkspaceFilesTree'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-service_WorkspaceFolderResult:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/service.WorkspaceFolderResult'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.APIResponse-string:
+            properties:
+                msg:
+                    type: string
+                response:
+                    type: string
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.AccountDeletedResponseData:
+            properties:
+                account_deleted:
+                    $ref: '#/components/schemas/api.DeletedAccountOwner'
+                bucket:
+                    $ref: '#/components/schemas/api.DeletedBucket'
+            type: object
+        api.DailyActivity:
+            properties:
+                day:
+                    type: string
+                shares:
+                    type: integer
+                uploads:
+                    type: integer
+            type: object
+        api.DeletedAccountOwner:
+            properties:
+                email:
+                    type: string
+                id:
+                    type: string
+                user_name:
+                    type: string
+            type: object
+        api.DeletedBucket:
+            properties:
+                deleted:
+                    type: boolean
+                name:
+                    type: string
+            type: object
+        api.ErrorResponse:
+            properties:
+                msg:
+                    type: string
+                response: {}
+                status:
+                    example: 400
+                    type: integer
+            type: object
+        api.FileDeleteResponseData:
+            properties:
+                file_deleted:
+                    type: string
+            type: object
+        api.FileMoveResponseData:
+            properties:
+                destination:
+                    type: string
+                source:
+                    type: string
+            type: object
+        api.FilesDeleteResponseData:
+            properties:
+                files_deleted:
+                    items:
+                        type: string
+                    type: array
+                files_failed:
+                    items:
+                        type: string
+                    type: array
+            type: object
+        api.FolderDeleteResponseData:
+            properties:
+                files_deleted:
+                    type: integer
+                folder_deleted:
+                    type: string
+            type: object
+        api.FolderMoveResponseData:
+            properties:
+                destination:
+                    type: string
+                files_moved:
+                    type: integer
+                source:
+                    type: string
+            type: object
+        api.FoldersResponseData:
+            properties:
+                folders:
+                    items:
+                        type: string
+                    type: array
+                path:
+                    type: string
+            type: object
+        api.IdentityResponse:
+            properties:
+                avatar_url:
+                    type: string
+                created_at:
+                    type: string
+                email:
+                    type: string
+                email_verified:
+                    type: boolean
+                id:
+                    type: string
+                name:
+                    type: string
+                provider:
+                    type: string
+                provider_user_id:
+                    type: string
+                user_id:
+                    type: string
+            type: object
+        api.NoteContentResponseData:
+            properties:
+                content:
+                    type: string
+            type: object
+        api.NoteResponseData:
+            properties:
+                note:
+                    type: string
+            type: object
+        api.PrivateDownloadTokenResponseData:
+            properties:
+                private_download_token:
+                    type: string
+            type: object
+        api.ShareResolveResponseData:
+            properties:
+                file_name:
+                    type: string
+                url:
+                    type: string
+            type: object
+        api.ShareResponseData:
+            properties:
+                notification_status:
+                    type: string
+                sharing_info:
+                    items:
+                        $ref: '#/components/schemas/service.ShareResult'
+                    type: array
+            type: object
+        api.ShareRevokeResponseData:
+            properties:
+                token_revoked:
+                    type: string
+            type: object
+        api.SharedFilesResponseData:
+            properties:
+                files:
+                    items:
+                        $ref: '#/components/schemas/service.SharedFileInfo'
+                    type: array
+            type: object
+        api.UnseenSharesResponseData:
+            properties:
+                count:
+                    type: integer
+            type: object
+        api.UserBucketResponseData:
+            properties:
+                bucket_data:
+                    $ref: '#/components/schemas/mappings.BucketData'
+            type: object
+        api.UserDataResponseData:
+            properties:
+                user_data:
+                    $ref: '#/components/schemas/userdata.AuthorizedUserWithPlan'
+            type: object
+        api.UserIdentitiesResponseData:
+            properties:
+                has_password_identity:
+                    type: boolean
+                identities:
+                    items:
+                        $ref: '#/components/schemas/api.IdentityResponse'
+                    type: array
+            type: object
+        api.UserStatsResponseData:
+            properties:
+                active_shares:
+                    type: integer
+                daily_shares:
+                    items:
+                        $ref: '#/components/schemas/api.DailyActivity'
+                    type: array
+                daily_uploads:
+                    items:
+                        $ref: '#/components/schemas/api.DailyActivity'
+                    type: array
+                files_last_7d:
+                    type: integer
+                files_last_30d:
+                    type: integer
+                files_today:
+                    type: integer
+                owned_workspaces:
+                    type: integer
+                public_shares:
+                    type: integer
+                shares_today:
+                    type: integer
+                targeted_shares:
+                    type: integer
+                total_bytes:
+                    type: integer
+                total_files:
+                    type: integer
+                total_received:
+                    type: integer
+                total_shares_sent:
+                    type: integer
+                workspace_api_keys:
+                    type: integer
+            type: object
+        api.WorkspaceCreatedResponseData:
+            properties:
+                workspace:
+                    $ref: '#/components/schemas/api.WorkspaceIdentity'
+            type: object
+        api.WorkspaceDeletedResponseData:
+            properties:
+                workspace_id:
+                    type: string
+            type: object
+        api.WorkspaceFilesMoveResponseData:
+            properties:
+                updated:
+                    type: integer
+            type: object
+        api.WorkspaceIdentity:
+            properties:
+                name:
+                    type: string
+                slug:
+                    type: string
+            type: object
+        api.WorkspaceInviteCreatedResponse:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/service.WorkspaceInviteResult'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        api.WorkspaceInviteDeletedResponseData:
+            properties:
+                invite_id:
+                    type: string
+            type: object
+        api.WorkspaceMemberRoleResponseData:
+            properties:
+                role:
+                    type: string
+                user_id:
+                    type: string
+            type: object
+        api.WorkspaceQuotaResponseData:
+            properties:
+                api_key_count:
+                    type: integer
+                file_count:
+                    type: integer
+                folder_count:
+                    type: integer
+                max_files_workspace:
+                    type: integer
+                max_total_storage_bytes_workspace:
+                    type: integer
+                max_users_workspace:
+                    type: integer
+                max_workspace_api_keys:
+                    type: integer
+                max_workspace_folders:
+                    type: integer
+                member_count:
+                    type: integer
+                total_bytes:
+                    type: integer
+            type: object
+        api.WorkspaceRenameResponse:
+            properties:
+                msg:
+                    type: string
+                response:
+                    $ref: '#/components/schemas/service.WorkspaceResult'
+                status:
+                    example: 200
+                    type: integer
+            type: object
+        mappings.BucketData:
+            properties:
+                bucket_name:
+                    type: string
+                labels:
+                    additionalProperties:
+                        type: string
+                    type: object
+                objects:
+                    items:
+                        $ref: '#/components/schemas/mappings.ObjectMedatata'
+                    type: array
+                storage_class:
+                    type: string
+                time_created:
+                    type: string
+            type: object
+        mappings.ObjectMedatata:
+            properties:
+                bucket:
+                    type: string
+                content_type:
+                    type: string
+                date_created:
+                    type: string
+                date_deleted:
+                    type: string
+                date_updated:
+                    type: string
+                md5:
+                    type: string
+                media_link:
+                    type: string
+                name:
+                    type: string
+                size:
+                    type: integer
+            type: object
+        service.APIKeyResult:
+            properties:
+                created_at:
+                    type: string
+                created_by:
+                    type: string
+                description:
+                    type: string
+                id:
+                    type: string
+                last_used_at:
+                    type: string
+                name:
+                    type: string
+                scopes:
+                    items:
+                        type: string
+                    type: array
+                status:
+                    type: string
+            type: object
+        service.CreateAPIKeyResult:
+            properties:
+                created_at:
+                    type: string
+                created_by:
+                    type: string
+                description:
+                    type: string
+                id:
+                    type: string
+                key:
+                    type: string
+                name:
+                    type: string
+                scopes:
+                    items:
+                        type: string
+                    type: array
+                user_id:
+                    type: string
+                workspace_id:
+                    type: string
+            type: object
+        service.FileTreeEntry:
+            properties:
+                file_type:
+                    type: string
+                md5_checksum:
+                    type: string
+                name:
+                    type: string
+                size:
+                    type: integer
+            type: object
+        service.FilesTree:
+            properties:
+                files:
+                    items:
+                        $ref: '#/components/schemas/service.FileTreeEntry'
+                    type: array
+                folders:
+                    items:
+                        type: string
+                    type: array
+                path:
+                    type: string
+            type: object
+        service.QuickShareResult:
+            properties:
+                expires_at:
+                    type: string
+                sharing_link:
+                    type: string
+                sharing_token:
+                    type: string
+            type: object
+        service.ShareInfo:
+            properties:
+                expires_at:
+                    type: string
+                file_name:
+                    type: string
+                password_protected:
+                    type: boolean
+            type: object
+        service.ShareResult:
+            properties:
+                checksum:
+                    type: string
+                expires_at:
+                    type: string
+                file:
+                    type: string
+                shared_by:
+                    type: string
+                shared_for:
+                    type: string
+                sharing_link:
+                    type: string
+                sharing_token:
+                    type: string
+            type: object
+        service.SharedFileInfo:
+            properties:
+                expires_at:
+                    type: string
+                file_id:
+                    type: integer
+                file_name:
+                    type: string
+                file_type:
+                    type: string
+                md5_checksum:
+                    type: string
+                owner_id:
+                    type: string
+                password_protected:
+                    type: boolean
+                seen:
+                    type: boolean
+                shared_by:
+                    type: string
+                shared_for:
+                    type: string
+                sharing_token:
+                    type: string
+                size:
+                    type: integer
+            type: object
+        service.UserInviteResult:
+            properties:
+                email:
+                    type: string
+                expires_at:
+                    type: string
+                id:
+                    type: string
+                role:
+                    type: string
+                token:
+                    type: string
+                workspace_id:
+                    type: string
+                workspace_name:
+                    type: string
+                workspace_slug:
+                    type: string
+            type: object
+        service.WorkspaceFileResult:
+            properties:
+                created_at:
+                    type: string
+                file_name:
+                    type: string
+                file_type:
+                    type: string
+                id:
+                    type: string
+                md5_checksum:
+                    type: string
+                path:
+                    type: string
+                size:
+                    type: integer
+                uploaded_by:
+                    type: string
+                workspace_id:
+                    type: string
+            type: object
+        service.WorkspaceFileTreeEntry:
+            properties:
+                created_at:
+                    type: string
+                file_type:
+                    type: string
+                id:
+                    type: string
+                md5_checksum:
+                    type: string
+                name:
+                    type: string
+                size:
+                    type: integer
+                uploaded_by:
+                    type: string
+                uploaded_by_email:
+                    type: string
+            type: object
+        service.WorkspaceFilesTree:
+            properties:
+                files:
+                    items:
+                        $ref: '#/components/schemas/service.WorkspaceFileTreeEntry'
+                    type: array
+                folders:
+                    items:
+                        $ref: '#/components/schemas/service.WorkspaceFolderTreeEntry'
+                    type: array
+                path:
+                    type: string
+            type: object
+        service.WorkspaceFolderResult:
+            properties:
+                created_at:
+                    type: string
+                created_by:
+                    type: string
+                id:
+                    type: string
+                name:
+                    type: string
+                path:
+                    type: string
+                workspace_id:
+                    type: string
+            type: object
+        service.WorkspaceFolderTreeEntry:
+            properties:
+                created_at:
+                    type: string
+                created_by_email:
+                    type: string
+                name:
+                    type: string
+                size:
+                    type: integer
+            type: object
+        service.WorkspaceInviteResult:
+            properties:
+                email:
+                    type: string
+                expires_at:
+                    type: string
+                id:
+                    type: string
+                role:
+                    type: string
+                workspace_id:
+                    type: string
+            type: object
+        service.WorkspaceMemberResult:
+            properties:
+                email:
+                    type: string
+                joined_at:
+                    type: string
+                role:
+                    type: string
+                user_id:
+                    type: string
+            type: object
+        service.WorkspaceResult:
+            properties:
+                created_at:
+                    type: string
+                name:
+                    type: string
+                owner_id:
+                    type: string
+                role:
+                    type: string
+                slug:
+                    type: string
+                workspace_id:
+                    type: string
+            type: object
+        userdata.AuthorizedUserWithPlan:
+            properties:
+                email:
+                    type: string
+                family_name:
+                    type: string
+                given_name:
+                    type: string
+                locale:
+                    type: string
+                max_file_size_bytes:
+                    type: integer
+                max_files:
+                    type: integer
+                max_files_sent_per_day:
+                    type: integer
+                max_files_workspace:
+                    type: integer
+                max_private_api_keys:
+                    type: integer
+                max_shares_per_day:
+                    type: integer
+                max_total_storage_bytes:
+                    type: integer
+                max_total_storage_bytes_workspace:
+                    type: integer
+                max_user_workspaces:
+                    type: integer
+                max_users_workspace:
+                    type: integer
+                max_workspace_api_keys:
+                    type: integer
+                max_workspace_folders:
+                    type: integer
+                name:
+                    type: string
+                picture:
+                    type: string
+                plan_id:
+                    type: string
+                plan_name:
+                    type: string
+                provider:
+                    type: string
+                provider_user_id:
+                    description: OAuth subject ID
+                    type: string
+                user_id:
+                    description: users.id UUID from our database
+                    type: string
+            type: object
     securitySchemes:
         ApiKeyAuth:
             in: header
@@ -42,36 +1101,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_APIKeyCreatedResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "429":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Too Many Requests
             summary: Create workspace API key
             tags:
@@ -99,36 +1153,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Delete workspace API key
             tags:
@@ -148,22 +1197,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_APIKeyListResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
             summary: List workspace API keys
             tags:
@@ -184,29 +1230,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_APIKeyCreatedResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "429":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Too Many Requests
             summary: Create private API key
             tags:
@@ -227,29 +1269,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Delete private API key
             tags:
@@ -262,15 +1300,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_APIKeyListResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: List private API keys
             tags:
@@ -297,29 +1333,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Download public share
             tags:
@@ -346,22 +1378,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Download private file
             tags:
@@ -387,29 +1416,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_NoteContentResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Get file note
             tags:
@@ -442,29 +1467,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_NoteResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Edit file note
             tags:
@@ -484,29 +1505,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_FileDeleteResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Delete a file
             tags:
@@ -527,22 +1544,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_FilesDeleteResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Delete multiple files
             tags:
@@ -563,22 +1577,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_FileMoveResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Move file
             tags:
@@ -599,22 +1610,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-service_QuickShareResult'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Create quick share
             tags:
@@ -627,15 +1635,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_SharedFilesResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: List received shares
             tags:
@@ -656,22 +1662,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-string'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Mark received share as seen
             tags:
@@ -684,15 +1687,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_UnseenSharesResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Count unseen received files
             tags:
@@ -713,29 +1714,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_ShareResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "429":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Too Many Requests
             summary: Share files
             tags:
@@ -748,15 +1745,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_SharedFilesResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: List outgoing shares
             tags:
@@ -775,22 +1770,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-service_FilesTree'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Get file tree
             tags:
@@ -820,29 +1812,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-string'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "409":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Conflict
             summary: Upload a file
             tags:
@@ -867,22 +1855,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_FolderDeleteResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Delete folder
             tags:
@@ -900,15 +1885,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_FoldersResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: List folders
             tags:
@@ -929,22 +1912,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_FolderMoveResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Move folder
             tags:
@@ -964,22 +1944,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-service_ShareInfo'
                     description: OK
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Get public share info
             tags:
@@ -1011,36 +1988,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_ShareResolveResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Resolve public share
             tags:
@@ -1060,29 +2032,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_ShareRevokeResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Revoke share
             tags:
@@ -1103,22 +2071,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_AccountDeletedResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Delete account
             tags:
@@ -1131,15 +2096,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_UserBucketResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Get user bucket data
             tags:
@@ -1152,15 +2115,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_UserDataResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Get current user data
             tags:
@@ -1173,15 +2134,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_UserIdentitiesResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Get linked identities
             tags:
@@ -1201,22 +2160,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_PrivateDownloadTokenResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Create private download token
             tags:
@@ -1229,15 +2185,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_UserStatsResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: Get user statistics
             tags:
@@ -1263,36 +2217,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Delete workspace file
             tags:
@@ -1325,29 +2274,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Download workspace file
             tags:
@@ -1373,36 +2318,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Delete workspace folder
             tags:
@@ -1430,36 +2370,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_WorkspaceFilesMoveResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Move workspace folder
             tags:
@@ -1487,36 +2422,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-service_WorkspaceFolderResult'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "429":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Too Many Requests
             summary: Create workspace folder
             tags:
@@ -1544,36 +2474,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Move workspace file
             tags:
@@ -1598,29 +2523,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-service_WorkspaceFilesTree'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
             summary: Get workspace file tree
             tags:
@@ -1657,36 +2578,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-array_service_WorkspaceFileResult'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "429":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Too Many Requests
             summary: Upload workspace file
             tags:
@@ -1706,22 +2622,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_WorkspaceQuotaResponseData'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
             summary: Get workspace quota
             tags:
@@ -1742,29 +2655,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_WorkspaceCreatedResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "429":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Too Many Requests
             summary: Create workspace
             tags:
@@ -1784,36 +2693,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_WorkspaceDeletedResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Delete workspace
             tags:
@@ -1833,29 +2737,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-array_service_WorkspaceInviteResult'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
             summary: List workspace invites
             tags:
@@ -1876,36 +2776,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Accept workspace invite
             tags:
@@ -1926,36 +2821,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.WorkspaceInviteCreatedResponse'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "429":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Too Many Requests
             summary: Create workspace invite
             tags:
@@ -1981,29 +2871,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_WorkspaceInviteDeletedResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
             summary: Delete workspace invite
             tags:
@@ -2016,15 +2902,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-array_service_UserInviteResult'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: List my workspace invites
             tags:
@@ -2044,36 +2928,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Reject workspace invite
             tags:
@@ -2086,15 +2965,13 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-array_service_WorkspaceResult'
                     description: OK
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
             summary: List workspaces
             tags:
@@ -2114,29 +2991,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-array_service_WorkspaceMemberResult'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
             summary: List workspace members
             tags:
@@ -2162,29 +3035,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-any'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
             summary: Remove workspace member
             tags:
@@ -2205,36 +3074,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.APIResponse-api_WorkspaceMemberRoleResponseData'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Change member role
             tags:
@@ -2255,36 +3119,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.WorkspaceRenameResponse'
                     description: OK
                 "400":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Bad Request
                 "401":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Forbidden
                 "404":
                     content:
                         application/json:
                             schema:
-                                additionalProperties: true
-                                type: object
+                                $ref: '#/components/schemas/api.ErrorResponse'
                     description: Not Found
             summary: Rename workspace
             tags:

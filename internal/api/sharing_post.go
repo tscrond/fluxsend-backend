@@ -18,10 +18,10 @@ import (
 // @Accept json
 // @Produce json
 // @Param request body object true "Share request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 429 {object} map[string]any
+// @Success 200 {object} APIResponse[ShareResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
 // @Router /api/files/share [post]
 func (s *CoreHandlers) shareWith(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

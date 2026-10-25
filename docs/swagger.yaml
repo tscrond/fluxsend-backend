@@ -1,4 +1,1063 @@
 basePath: /
+definitions:
+  api.APIKeyCreatedResponseData:
+    properties:
+      api_key:
+        $ref: '#/definitions/service.CreateAPIKeyResult'
+    type: object
+  api.APIKeyListResponseData:
+    properties:
+      api_keys:
+        items:
+          $ref: '#/definitions/service.APIKeyResult'
+        type: array
+    type: object
+  api.APIResponse-any:
+    properties:
+      msg:
+        type: string
+      response: {}
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_APIKeyCreatedResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.APIKeyCreatedResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_APIKeyListResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.APIKeyListResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_AccountDeletedResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.AccountDeletedResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_FileDeleteResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.FileDeleteResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_FileMoveResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.FileMoveResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_FilesDeleteResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.FilesDeleteResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_FolderDeleteResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.FolderDeleteResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_FolderMoveResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.FolderMoveResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_FoldersResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.FoldersResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_NoteContentResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.NoteContentResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_NoteResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.NoteResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_PrivateDownloadTokenResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.PrivateDownloadTokenResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_ShareResolveResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.ShareResolveResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_ShareResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.ShareResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_ShareRevokeResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.ShareRevokeResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_SharedFilesResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.SharedFilesResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_UnseenSharesResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.UnseenSharesResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_UserBucketResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.UserBucketResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_UserDataResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.UserDataResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_UserIdentitiesResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.UserIdentitiesResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_UserStatsResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.UserStatsResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_WorkspaceCreatedResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.WorkspaceCreatedResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_WorkspaceDeletedResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.WorkspaceDeletedResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_WorkspaceFilesMoveResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.WorkspaceFilesMoveResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_WorkspaceInviteDeletedResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.WorkspaceInviteDeletedResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_WorkspaceMemberRoleResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.WorkspaceMemberRoleResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_WorkspaceQuotaResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.WorkspaceQuotaResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-array_service_UserInviteResult:
+    properties:
+      msg:
+        type: string
+      response:
+        items:
+          $ref: '#/definitions/service.UserInviteResult'
+        type: array
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-array_service_WorkspaceFileResult:
+    properties:
+      msg:
+        type: string
+      response:
+        items:
+          $ref: '#/definitions/service.WorkspaceFileResult'
+        type: array
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-array_service_WorkspaceInviteResult:
+    properties:
+      msg:
+        type: string
+      response:
+        items:
+          $ref: '#/definitions/service.WorkspaceInviteResult'
+        type: array
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-array_service_WorkspaceMemberResult:
+    properties:
+      msg:
+        type: string
+      response:
+        items:
+          $ref: '#/definitions/service.WorkspaceMemberResult'
+        type: array
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-array_service_WorkspaceResult:
+    properties:
+      msg:
+        type: string
+      response:
+        items:
+          $ref: '#/definitions/service.WorkspaceResult'
+        type: array
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-service_FilesTree:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/service.FilesTree'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-service_QuickShareResult:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/service.QuickShareResult'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-service_ShareInfo:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/service.ShareInfo'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-service_WorkspaceFilesTree:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/service.WorkspaceFilesTree'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-service_WorkspaceFolderResult:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/service.WorkspaceFolderResult'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-string:
+    properties:
+      msg:
+        type: string
+      response:
+        type: string
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.AccountDeletedResponseData:
+    properties:
+      account_deleted:
+        $ref: '#/definitions/api.DeletedAccountOwner'
+      bucket:
+        $ref: '#/definitions/api.DeletedBucket'
+    type: object
+  api.DailyActivity:
+    properties:
+      day:
+        type: string
+      shares:
+        type: integer
+      uploads:
+        type: integer
+    type: object
+  api.DeletedAccountOwner:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      user_name:
+        type: string
+    type: object
+  api.DeletedBucket:
+    properties:
+      deleted:
+        type: boolean
+      name:
+        type: string
+    type: object
+  api.ErrorResponse:
+    properties:
+      msg:
+        type: string
+      response: {}
+      status:
+        example: 400
+        type: integer
+    type: object
+  api.FileDeleteResponseData:
+    properties:
+      file_deleted:
+        type: string
+    type: object
+  api.FileMoveResponseData:
+    properties:
+      destination:
+        type: string
+      source:
+        type: string
+    type: object
+  api.FilesDeleteResponseData:
+    properties:
+      files_deleted:
+        items:
+          type: string
+        type: array
+      files_failed:
+        items:
+          type: string
+        type: array
+    type: object
+  api.FolderDeleteResponseData:
+    properties:
+      files_deleted:
+        type: integer
+      folder_deleted:
+        type: string
+    type: object
+  api.FolderMoveResponseData:
+    properties:
+      destination:
+        type: string
+      files_moved:
+        type: integer
+      source:
+        type: string
+    type: object
+  api.FoldersResponseData:
+    properties:
+      folders:
+        items:
+          type: string
+        type: array
+      path:
+        type: string
+    type: object
+  api.IdentityResponse:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      name:
+        type: string
+      provider:
+        type: string
+      provider_user_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  api.NoteContentResponseData:
+    properties:
+      content:
+        type: string
+    type: object
+  api.NoteResponseData:
+    properties:
+      note:
+        type: string
+    type: object
+  api.PrivateDownloadTokenResponseData:
+    properties:
+      private_download_token:
+        type: string
+    type: object
+  api.ShareResolveResponseData:
+    properties:
+      file_name:
+        type: string
+      url:
+        type: string
+    type: object
+  api.ShareResponseData:
+    properties:
+      notification_status:
+        type: string
+      sharing_info:
+        items:
+          $ref: '#/definitions/service.ShareResult'
+        type: array
+    type: object
+  api.ShareRevokeResponseData:
+    properties:
+      token_revoked:
+        type: string
+    type: object
+  api.SharedFilesResponseData:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/service.SharedFileInfo'
+        type: array
+    type: object
+  api.UnseenSharesResponseData:
+    properties:
+      count:
+        type: integer
+    type: object
+  api.UserBucketResponseData:
+    properties:
+      bucket_data:
+        $ref: '#/definitions/mappings.BucketData'
+    type: object
+  api.UserDataResponseData:
+    properties:
+      user_data:
+        $ref: '#/definitions/userdata.AuthorizedUserWithPlan'
+    type: object
+  api.UserIdentitiesResponseData:
+    properties:
+      has_password_identity:
+        type: boolean
+      identities:
+        items:
+          $ref: '#/definitions/api.IdentityResponse'
+        type: array
+    type: object
+  api.UserStatsResponseData:
+    properties:
+      active_shares:
+        type: integer
+      daily_shares:
+        items:
+          $ref: '#/definitions/api.DailyActivity'
+        type: array
+      daily_uploads:
+        items:
+          $ref: '#/definitions/api.DailyActivity'
+        type: array
+      files_last_7d:
+        type: integer
+      files_last_30d:
+        type: integer
+      files_today:
+        type: integer
+      owned_workspaces:
+        type: integer
+      public_shares:
+        type: integer
+      shares_today:
+        type: integer
+      targeted_shares:
+        type: integer
+      total_bytes:
+        type: integer
+      total_files:
+        type: integer
+      total_received:
+        type: integer
+      total_shares_sent:
+        type: integer
+      workspace_api_keys:
+        type: integer
+    type: object
+  api.WorkspaceCreatedResponseData:
+    properties:
+      workspace:
+        $ref: '#/definitions/api.WorkspaceIdentity'
+    type: object
+  api.WorkspaceDeletedResponseData:
+    properties:
+      workspace_id:
+        type: string
+    type: object
+  api.WorkspaceFilesMoveResponseData:
+    properties:
+      updated:
+        type: integer
+    type: object
+  api.WorkspaceIdentity:
+    properties:
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  api.WorkspaceInviteCreatedResponse:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/service.WorkspaceInviteResult'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.WorkspaceInviteDeletedResponseData:
+    properties:
+      invite_id:
+        type: string
+    type: object
+  api.WorkspaceMemberRoleResponseData:
+    properties:
+      role:
+        type: string
+      user_id:
+        type: string
+    type: object
+  api.WorkspaceQuotaResponseData:
+    properties:
+      api_key_count:
+        type: integer
+      file_count:
+        type: integer
+      folder_count:
+        type: integer
+      max_files_workspace:
+        type: integer
+      max_total_storage_bytes_workspace:
+        type: integer
+      max_users_workspace:
+        type: integer
+      max_workspace_api_keys:
+        type: integer
+      max_workspace_folders:
+        type: integer
+      member_count:
+        type: integer
+      total_bytes:
+        type: integer
+    type: object
+  api.WorkspaceRenameResponse:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/service.WorkspaceResult'
+      status:
+        example: 200
+        type: integer
+    type: object
+  mappings.BucketData:
+    properties:
+      bucket_name:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      objects:
+        items:
+          $ref: '#/definitions/mappings.ObjectMedatata'
+        type: array
+      storage_class:
+        type: string
+      time_created:
+        type: string
+    type: object
+  mappings.ObjectMedatata:
+    properties:
+      bucket:
+        type: string
+      content_type:
+        type: string
+      date_created:
+        type: string
+      date_deleted:
+        type: string
+      date_updated:
+        type: string
+      md5:
+        type: string
+      media_link:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+    type: object
+  service.APIKeyResult:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      last_used_at:
+        type: string
+      name:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+    type: object
+  service.CreateAPIKeyResult:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+      user_id:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  service.FileTreeEntry:
+    properties:
+      file_type:
+        type: string
+      md5_checksum:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+    type: object
+  service.FilesTree:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/service.FileTreeEntry'
+        type: array
+      folders:
+        items:
+          type: string
+        type: array
+      path:
+        type: string
+    type: object
+  service.QuickShareResult:
+    properties:
+      expires_at:
+        type: string
+      sharing_link:
+        type: string
+      sharing_token:
+        type: string
+    type: object
+  service.ShareInfo:
+    properties:
+      expires_at:
+        type: string
+      file_name:
+        type: string
+      password_protected:
+        type: boolean
+    type: object
+  service.ShareResult:
+    properties:
+      checksum:
+        type: string
+      expires_at:
+        type: string
+      file:
+        type: string
+      shared_by:
+        type: string
+      shared_for:
+        type: string
+      sharing_link:
+        type: string
+      sharing_token:
+        type: string
+    type: object
+  service.SharedFileInfo:
+    properties:
+      expires_at:
+        type: string
+      file_id:
+        type: integer
+      file_name:
+        type: string
+      file_type:
+        type: string
+      md5_checksum:
+        type: string
+      owner_id:
+        type: string
+      password_protected:
+        type: boolean
+      seen:
+        type: boolean
+      shared_by:
+        type: string
+      shared_for:
+        type: string
+      sharing_token:
+        type: string
+      size:
+        type: integer
+    type: object
+  service.UserInviteResult:
+    properties:
+      email:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      token:
+        type: string
+      workspace_id:
+        type: string
+      workspace_name:
+        type: string
+      workspace_slug:
+        type: string
+    type: object
+  service.WorkspaceFileResult:
+    properties:
+      created_at:
+        type: string
+      file_name:
+        type: string
+      file_type:
+        type: string
+      id:
+        type: string
+      md5_checksum:
+        type: string
+      path:
+        type: string
+      size:
+        type: integer
+      uploaded_by:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  service.WorkspaceFileTreeEntry:
+    properties:
+      created_at:
+        type: string
+      file_type:
+        type: string
+      id:
+        type: string
+      md5_checksum:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+      uploaded_by:
+        type: string
+      uploaded_by_email:
+        type: string
+    type: object
+  service.WorkspaceFilesTree:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/service.WorkspaceFileTreeEntry'
+        type: array
+      folders:
+        items:
+          $ref: '#/definitions/service.WorkspaceFolderTreeEntry'
+        type: array
+      path:
+        type: string
+    type: object
+  service.WorkspaceFolderResult:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      path:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  service.WorkspaceFolderTreeEntry:
+    properties:
+      created_at:
+        type: string
+      created_by_email:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+    type: object
+  service.WorkspaceInviteResult:
+    properties:
+      email:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  service.WorkspaceMemberResult:
+    properties:
+      email:
+        type: string
+      joined_at:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: string
+    type: object
+  service.WorkspaceResult:
+    properties:
+      created_at:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      role:
+        type: string
+      slug:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  userdata.AuthorizedUserWithPlan:
+    properties:
+      email:
+        type: string
+      family_name:
+        type: string
+      given_name:
+        type: string
+      locale:
+        type: string
+      max_file_size_bytes:
+        type: integer
+      max_files:
+        type: integer
+      max_files_sent_per_day:
+        type: integer
+      max_files_workspace:
+        type: integer
+      max_private_api_keys:
+        type: integer
+      max_shares_per_day:
+        type: integer
+      max_total_storage_bytes:
+        type: integer
+      max_total_storage_bytes_workspace:
+        type: integer
+      max_user_workspaces:
+        type: integer
+      max_users_workspace:
+        type: integer
+      max_workspace_api_keys:
+        type: integer
+      max_workspace_folders:
+        type: integer
+      name:
+        type: string
+      picture:
+        type: string
+      plan_id:
+        type: string
+      plan_name:
+        type: string
+      provider:
+        type: string
+      provider_user_id:
+        description: OAuth subject ID
+        type: string
+      user_id:
+        description: users.id UUID from our database
+        type: string
+    type: object
 externalDocs:
   description: OpenAPI
   url: https://swagger.io/resources/open-api/
@@ -38,28 +1097,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_APIKeyCreatedResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Create workspace API key
       tags:
       - API Keys
@@ -84,28 +1138,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete workspace API key
       tags:
       - API Keys
@@ -124,18 +1173,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_APIKeyListResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List workspace API keys
       tags:
       - API Keys
@@ -157,23 +1203,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_APIKeyCreatedResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Create private API key
       tags:
       - API Keys
@@ -193,23 +1235,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete private API key
       tags:
       - API Keys
@@ -222,13 +1260,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_APIKeyListResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List private API keys
       tags:
       - API Keys
@@ -252,23 +1288,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Download public share
       tags:
       - Downloads
@@ -292,18 +1324,15 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Download private file
       tags:
       - Downloads
@@ -328,23 +1357,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_NoteContentResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get file note
       tags:
       - Files
@@ -376,23 +1401,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_NoteResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Edit file note
       tags:
       - Files
@@ -409,23 +1430,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_FileDeleteResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete a file
       tags:
       - Files
@@ -447,18 +1464,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_FilesDeleteResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete multiple files
       tags:
       - Files
@@ -480,18 +1494,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_FileMoveResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Move file
       tags:
       - Files
@@ -513,18 +1524,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-service_QuickShareResult'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Create quick share
       tags:
       - Sharing
@@ -537,13 +1545,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_SharedFilesResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List received shares
       tags:
       - Sharing
@@ -565,18 +1571,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-string'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Mark received share as seen
       tags:
       - Sharing
@@ -589,13 +1592,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_UnseenSharesResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Count unseen received files
       tags:
       - Sharing
@@ -618,23 +1619,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_ShareResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Share files
       tags:
       - Sharing
@@ -647,13 +1644,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_SharedFilesResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List outgoing shares
       tags:
       - Sharing
@@ -672,18 +1667,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-service_FilesTree'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get file tree
       tags:
       - Files
@@ -709,23 +1701,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-string'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Upload a file
       tags:
       - Files
@@ -747,18 +1735,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_FolderDeleteResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete folder
       tags:
       - Files
@@ -775,13 +1760,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_FoldersResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List folders
       tags:
       - Files
@@ -803,18 +1786,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_FolderMoveResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Move folder
       tags:
       - Files
@@ -833,18 +1813,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-service_ShareInfo'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get public share info
       tags:
       - Sharing
@@ -874,28 +1851,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_ShareResolveResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Resolve public share
       tags:
       - Sharing
@@ -912,23 +1884,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_ShareRevokeResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Revoke share
       tags:
       - Sharing
@@ -951,18 +1919,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_AccountDeletedResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete account
       tags:
       - User
@@ -975,13 +1940,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_UserBucketResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get user bucket data
       tags:
       - User
@@ -994,13 +1957,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_UserDataResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get current user data
       tags:
       - User
@@ -1013,13 +1974,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_UserIdentitiesResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get linked identities
       tags:
       - User
@@ -1038,18 +1997,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_PrivateDownloadTokenResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Create private download token
       tags:
       - User
@@ -1063,13 +2019,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_UserStatsResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get user statistics
       tags:
       - User
@@ -1091,28 +2045,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete workspace file
       tags:
       - Workspace Files
@@ -1141,23 +2090,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Download workspace file
       tags:
       - Workspace Files
@@ -1179,28 +2124,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete workspace folder
       tags:
       - Workspace Files
@@ -1227,28 +2167,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_WorkspaceFilesMoveResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Move workspace folder
       tags:
       - Workspace Files
@@ -1275,28 +2210,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-service_WorkspaceFolderResult'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Create workspace folder
       tags:
       - Workspace Files
@@ -1323,28 +2253,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Move workspace file
       tags:
       - Workspace Files
@@ -1367,23 +2292,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-service_WorkspaceFilesTree'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get workspace file tree
       tags:
       - Workspace Files
@@ -1413,28 +2334,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-array_service_WorkspaceFileResult'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Upload workspace file
       tags:
       - Workspace Files
@@ -1454,18 +2370,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_WorkspaceQuotaResponseData'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Get workspace quota
       tags:
       - Workspaces
@@ -1487,23 +2400,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_WorkspaceCreatedResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Create workspace
       tags:
       - Workspaces
@@ -1520,28 +2429,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_WorkspaceDeletedResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete workspace
       tags:
       - Workspaces
@@ -1561,23 +2465,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-array_service_WorkspaceInviteResult'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List workspace invites
       tags:
       - Workspaces
@@ -1599,28 +2499,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Accept workspace invite
       tags:
       - Workspaces
@@ -1642,28 +2537,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.WorkspaceInviteCreatedResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "429":
           description: Too Many Requests
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Create workspace invite
       tags:
       - Workspaces
@@ -1686,23 +2576,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_WorkspaceInviteDeletedResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Delete workspace invite
       tags:
       - Workspaces
@@ -1716,13 +2602,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-array_service_UserInviteResult'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List my workspace invites
       tags:
       - Workspaces
@@ -1739,28 +2623,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Reject workspace invite
       tags:
       - Workspaces
@@ -1773,13 +2652,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-array_service_WorkspaceResult'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List workspaces
       tags:
       - Workspaces
@@ -1799,23 +2676,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-array_service_WorkspaceMemberResult'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: List workspace members
       tags:
       - Workspaces
@@ -1837,23 +2710,19 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-any'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Remove workspace member
       tags:
       - Workspaces
@@ -1876,28 +2745,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.APIResponse-api_WorkspaceMemberRoleResponseData'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Change member role
       tags:
       - Workspaces
@@ -1920,28 +2784,23 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.WorkspaceRenameResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Rename workspace
       tags:
       - Workspaces

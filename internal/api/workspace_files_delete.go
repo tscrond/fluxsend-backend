@@ -15,11 +15,11 @@ import (
 // @Tags Workspace Files
 // @Param workspace_id path string true "Workspace ID"
 // @Param file_id query string true "File ID"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -72,11 +72,11 @@ func (s *CoreHandlers) deleteWorkspaceFile(w http.ResponseWriter, r *http.Reques
 // @Tags Workspace Files
 // @Param workspace_id path string true "Workspace ID"
 // @Param path query string true "Folder path"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/folder/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
