@@ -42,9 +42,9 @@ type FilesTree struct {
 // FileService encapsulates all business logic for file management.
 type FileService interface {
 	CreateUploadWithId(ctx context.Context, fd *filedata.CreateUploadIdParams) (*filedata.CreateUploadIdResponse, error)
-	UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error)
-	AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error)
-	CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error)
+	UploadPart(ctx context.Context, uploadId string, userID uuid.UUID, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error)
+	AbortUpload(ctx context.Context, uploadId string, userID uuid.UUID) (*filedata.AbortUploadResult, error)
+	CompleteUpload(ctx context.Context, uploadId string, userID uuid.UUID) (*filedata.CompleteUploadResult, error)
 	Upload(ctx context.Context, fd *filedata.FileData) error
 	GetFilesTree(ctx context.Context, userID uuid.UUID, path string) (*FilesTree, error)
 	GetFolders(ctx context.Context, userID uuid.UUID, path string) ([]string, error)
@@ -81,7 +81,7 @@ var (
 	ErrMultipartUploadUnsupported = errors.New("multipart upload backend is not supported")
 )
 
-func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
+func (s *fileService) UploadPart(ctx context.Context, uploadId string, userID uuid.UUID, partNumber int32, body io.ReadCloser, size int64) (*filedata.UploadPartResult, error) {
 	if body != nil {
 		defer body.Close()
 	}
@@ -103,6 +103,9 @@ func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumbe
 	}
 	if upload.WorkspaceID.Valid {
 		return nil, fmt.Errorf("invalid_upload_id")
+	}
+	if upload.OwnerID != userID {
+		return nil, ErrAccessDenied
 	}
 
 	if upload.Status != "uploading" {
@@ -160,7 +163,7 @@ func (s *fileService) UploadPart(ctx context.Context, uploadId string, partNumbe
 	}, nil
 }
 
-func (s *fileService) AbortUpload(ctx context.Context, uploadId string) (*filedata.AbortUploadResult, error) {
+func (s *fileService) AbortUpload(ctx context.Context, uploadId string, userID uuid.UUID) (*filedata.AbortUploadResult, error) {
 	id, err := uuid.Parse(uploadId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid_upload_id")
@@ -172,6 +175,9 @@ func (s *fileService) AbortUpload(ctx context.Context, uploadId string) (*fileda
 	}
 	if upload.WorkspaceID.Valid {
 		return nil, fmt.Errorf("invalid_upload_id")
+	}
+	if upload.OwnerID != userID {
+		return nil, ErrAccessDenied
 	}
 
 	switch upload.Status {
@@ -224,7 +230,7 @@ func (s *fileService) AbortUpload(ctx context.Context, uploadId string) (*fileda
 	return uploadAbortResult(abortedUpload), nil
 }
 
-func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*filedata.CompleteUploadResult, error) {
+func (s *fileService) CompleteUpload(ctx context.Context, uploadId string, userID uuid.UUID) (*filedata.CompleteUploadResult, error) {
 	id, err := uuid.Parse(uploadId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid_upload_id")
@@ -236,6 +242,9 @@ func (s *fileService) CompleteUpload(ctx context.Context, uploadId string) (*fil
 	}
 	if upload.WorkspaceID.Valid {
 		return nil, fmt.Errorf("invalid_upload_id")
+	}
+	if upload.OwnerID != userID {
+		return nil, ErrAccessDenied
 	}
 
 	if upload.Status == "completed" {

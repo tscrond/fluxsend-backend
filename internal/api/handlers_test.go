@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -23,6 +24,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/config"
 	"github.com/tscrond/fluxsend-backend/internal/mocks"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/internal/service"
 	"github.com/tscrond/fluxsend-backend/internal/userdata"
 )
 
@@ -402,6 +404,73 @@ func TestUploadHandler_HappyPath(t *testing.T) {
 	srv.uploadHandler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUploadPartHandler_RejectsNonOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+	userID := uuid.New()
+	uploadID := uuid.New()
+
+	deps.files.EXPECT().
+		UploadPart(gomock.Any(), uploadID.String(), userID, int32(1), gomock.Any(), int64(4)).
+		Return(nil, service.ErrAccessDenied)
+
+	req := httptest.NewRequest(http.MethodPost, "/files/uploads/"+uploadID.String()+"/parts/1", strings.NewReader("part"))
+	req = injectAuth(req, "test@example.com", userID.String(), defaultPlan(uuid.NewString()))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("upload_id", uploadID.String())
+	rctx.URLParams.Add("part_id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	srv.uploadPartHandler(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestCompleteUploadHandler_RejectsNonOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+	userID := uuid.New()
+	uploadID := uuid.New()
+
+	deps.files.EXPECT().
+		CompleteUpload(gomock.Any(), uploadID.String(), userID).
+		Return(nil, service.ErrAccessDenied)
+
+	req := httptest.NewRequest(http.MethodPost, "/files/uploads/"+uploadID.String()+"/complete", nil)
+	req = injectAuth(req, "test@example.com", userID.String(), defaultPlan(uuid.NewString()))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("upload_id", uploadID.String())
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	srv.completeUploadHandler(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestAbortUploadHandler_RejectsNonOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+	userID := uuid.New()
+	uploadID := uuid.New()
+
+	deps.files.EXPECT().
+		AbortUpload(gomock.Any(), uploadID.String(), userID).
+		Return(nil, service.ErrAccessDenied)
+
+	req := httptest.NewRequest(http.MethodDelete, "/files/uploads/"+uploadID.String(), nil)
+	req = injectAuth(req, "test@example.com", userID.String(), defaultPlan(uuid.NewString()))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("upload_id", uploadID.String())
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	srv.abortUploadHandler(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
 // ── shareWith tests ───────────────────────────────────────────────────────────

@@ -159,9 +159,59 @@ func TestFileService_UploadPart_StorageReturnsNilResult(t *testing.T) {
 	q.EXPECT().GetUserBucketById(gomock.Any(), ownerID).Return(sql.NullString{Valid: true, String: bucket}, nil)
 	stor.EXPECT().UploadPart(gomock.Any(), bucket, storageMapping.String(), storageUploadID, int32(1), gomock.Any(), int64(4)).Return(nil, nil)
 
-	_, err := svc.UploadPart(context.Background(), uploadID.String(), 1, io.NopCloser(strings.NewReader("part")), 4)
+	_, err := svc.UploadPart(context.Background(), uploadID.String(), ownerID, 1, io.NopCloser(strings.NewReader("part")), 4)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "empty part result")
+}
+
+func TestFileService_PrivateMultipart_RejectsNonOwner(t *testing.T) {
+	uploadID := uuid.New()
+	ownerID := uuid.New()
+	callerID := uuid.New()
+
+	tests := []struct {
+		name string
+		call func(FileService) error
+	}{
+		{
+			name: "upload part",
+			call: func(svc FileService) error {
+				_, err := svc.UploadPart(context.Background(), uploadID.String(), callerID, 1, io.NopCloser(strings.NewReader("part")), 4)
+				return err
+			},
+		},
+		{
+			name: "complete upload",
+			call: func(svc FileService) error {
+				_, err := svc.CompleteUpload(context.Background(), uploadID.String(), callerID)
+				return err
+			},
+		},
+		{
+			name: "abort upload",
+			call: func(svc FileService) error {
+				_, err := svc.AbortUpload(context.Background(), uploadID.String(), callerID)
+				return err
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			q := mocks.NewMockQuerier(ctrl)
+			stor := mocks.NewMockObjectStorage(ctrl)
+			svc := newFileTestSvc(q, stor)
+
+			q.EXPECT().GetFileUploadById(gomock.Any(), uploadID).Return(sqlc.FileUpload{
+				ID:      uploadID,
+				OwnerID: ownerID,
+				Status:  "uploading",
+			}, nil)
+
+			assert.ErrorIs(t, tt.call(svc), ErrAccessDenied)
+		})
+	}
 }
 
 func TestFileService_CompleteUpload_HappyPath(t *testing.T) {
@@ -227,7 +277,7 @@ func TestFileService_CompleteUpload_HappyPath(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uploadID))
 	mock.ExpectCommit()
 
-	result, err := svc.CompleteUpload(context.Background(), uploadID.String())
+	result, err := svc.CompleteUpload(context.Background(), uploadID.String(), ownerID)
 	require.NoError(t, err)
 	assert.Equal(t, uploadID.String(), result.UploadId)
 	assert.Equal(t, "docs/report.pdf", result.FileName)
@@ -271,7 +321,7 @@ func TestFileService_AbortUpload_HappyPath(t *testing.T) {
 	stor.EXPECT().AbortMultipartUpload(gomock.Any(), bucket, storageMapping.String(), storageUploadID).Return(nil)
 	q.EXPECT().DeleteFileUploadPartsByUploadID(gomock.Any(), uploadID).Return(nil)
 
-	result, err := svc.AbortUpload(context.Background(), uploadID.String())
+	result, err := svc.AbortUpload(context.Background(), uploadID.String(), ownerID)
 	require.NoError(t, err)
 	assert.Equal(t, uploadID.String(), result.UploadId)
 	assert.Equal(t, "aborted", result.Status)
