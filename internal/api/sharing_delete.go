@@ -15,10 +15,10 @@ import (
 // @Description Revokes a previously created public share token.
 // @Tags Sharing
 // @Param token path string true "Share token"
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[ShareRevokeResponseData]
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/share/revoke/{token} [post]
 func (s *CoreHandlers) revokeShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

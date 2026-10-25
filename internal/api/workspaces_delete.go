@@ -14,11 +14,11 @@ import (
 // @Description Deletes a workspace owned by the authenticated user.
 // @Tags Workspaces
 // @Param workspace_id query string true "Workspace ID"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[WorkspaceDeletedResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/delete [delete]
 func (s *CoreHandlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -66,10 +66,10 @@ func (s *CoreHandlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 // @Tags Workspaces
 // @Param workspace_id query string true "Workspace ID"
 // @Param invite_id query string true "Invite ID"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[WorkspaceInviteDeletedResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/workspaces/invites/delete [delete]
 func (s *CoreHandlers) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -119,11 +119,11 @@ func (s *CoreHandlers) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 // @Description Rejects a workspace invite using its token.
 // @Tags Workspaces
 // @Param token query string true "Invite token"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/invites/reject [delete]
 func (s *CoreHandlers) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -165,10 +165,10 @@ func (s *CoreHandlers) rejectWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 // @Tags Workspaces
 // @Param workspace_id query string true "Workspace ID"
 // @Param user_id query string true "Member user ID"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/workspaces/members/remove [delete]
 func (s *CoreHandlers) removeWorkspaceMember(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {

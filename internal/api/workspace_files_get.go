@@ -19,10 +19,10 @@ import (
 // @Param workspace_id path string true "Workspace ID"
 // @Param path query string false "Path prefix"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[service.WorkspaceFilesTree]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/tree [get]
 func (s *CoreHandlers) getWorkspaceFilesTree(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -61,10 +61,10 @@ func (s *CoreHandlers) getWorkspaceFilesTree(w http.ResponseWriter, r *http.Requ
 // @Param file_id query string true "File ID"
 // @Param mode query string false "inline or download"
 // @Success 302 "Redirect to the signed URL"
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/download [get]
 func (s *CoreHandlers) downloadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

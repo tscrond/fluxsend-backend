@@ -23,9 +23,9 @@ import (
 // @Param token path string true "Download token"
 // @Param mode query string false "inline or download"
 // @Success 302 "Redirect to the signed URL"
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/d/private/{token} [get]
 func (s *CoreHandlers) downloadThroughProxyPersonal(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -78,9 +78,9 @@ func (s *CoreHandlers) downloadThroughProxyPersonal(w http.ResponseWriter, r *ht
 // @Tags Sharing
 // @Param token path string true "Share token"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 404 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[service.ShareInfo]
+// @Failure 404 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/share/info/{token} [get]
 func (s *CoreHandlers) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -125,11 +125,11 @@ func (s *CoreHandlers) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 // @Param token path string true "Share token"
 // @Param mode query string false "inline or download"
 // @Param request body object false "Optional password payload"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[ShareResolveResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/share/resolve/{token} [post]
 func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -217,10 +217,10 @@ func (s *CoreHandlers) publicDownloadURL(token, mode string) string {
 // @Param token path string true "Share token"
 // @Param mode query string false "inline or download"
 // @Success 302 "Redirect to the signed URL"
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/d/{token} [get]
 func (s *CoreHandlers) downloadThroughProxy(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -369,8 +369,8 @@ func sanitizeDownloadFilename(filename string) string {
 // @Description Returns all files shared with the current user.
 // @Tags Sharing
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[SharedFilesResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/received [get]
 func (s *CoreHandlers) getDataSharedForUser(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -402,8 +402,8 @@ func (s *CoreHandlers) getDataSharedForUser(w http.ResponseWriter, r *http.Reque
 // @Description Returns all files that the current user has shared with others.
 // @Tags Sharing
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[SharedFilesResponseData]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/shared_by_user [get]
 func (s *CoreHandlers) getDataSharedByUser(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

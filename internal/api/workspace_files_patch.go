@@ -19,11 +19,11 @@ import (
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
 // @Param request body object true "Move request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[any]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/move [patch]
 func (s *CoreHandlers) moveWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
@@ -86,11 +86,11 @@ func (s *CoreHandlers) moveWorkspaceFile(w http.ResponseWriter, r *http.Request)
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
 // @Param request body object true "Move request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[WorkspaceFilesMoveResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/folder/move [patch]
 func (s *CoreHandlers) moveWorkspaceFolder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {

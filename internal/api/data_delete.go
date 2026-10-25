@@ -15,10 +15,10 @@ import (
 // @Description Deletes a file from the authenticated user's personal storage.
 // @Tags Files
 // @Param file query string true "File path"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[FileDeleteResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/files/delete [delete]
 func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -61,9 +61,9 @@ func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body object true "Files to delete"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[FilesDeleteResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/files/delete/batch [delete]
 func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -111,9 +111,9 @@ func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) 
 // @Accept json
 // @Produce json
 // @Param request body object true "Delete account request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[AccountDeletedResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
 // @Router /api/user/account/delete [delete]
 func (s *CoreHandlers) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {

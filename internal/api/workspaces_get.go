@@ -13,8 +13,8 @@ import (
 // @Description Returns all workspaces visible to the authenticated user.
 // @Tags Workspaces
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[[]service.WorkspaceResult]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/workspaces/list [get]
 func (s *CoreHandlers) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -43,10 +43,10 @@ func (s *CoreHandlers) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 // @Tags Workspaces
 // @Param workspace_id query string true "Workspace ID"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[[]service.WorkspaceMemberResult]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/workspaces/members [get]
 func (s *CoreHandlers) getWorkspaceMembers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -87,10 +87,10 @@ func (s *CoreHandlers) getWorkspaceMembers(w http.ResponseWriter, r *http.Reques
 // @Tags Workspaces
 // @Param workspace_id query string true "Workspace ID"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[[]service.WorkspaceInviteResult]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/workspaces/invites [get]
 func (s *CoreHandlers) getWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -131,8 +131,8 @@ func (s *CoreHandlers) getWorkspaceInvites(w http.ResponseWriter, r *http.Reques
 // @Description Returns all workspace invites associated with the authenticated user.
 // @Tags Workspaces
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
+// @Success 200 {object} APIResponse[[]service.UserInviteResult]
+// @Failure 401 {object} ErrorResponse
 // @Router /api/workspaces/invites/mine [get]
 func (s *CoreHandlers) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -162,9 +162,9 @@ func (s *CoreHandlers) getMyWorkspaceInvites(w http.ResponseWriter, r *http.Requ
 // @Tags Workspaces
 // @Param workspace_id path string true "Workspace ID"
 // @Produce json
-// @Success 200 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
+// @Success 200 {object} APIResponse[WorkspaceQuotaResponseData]
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/quota [get]
 func (s *CoreHandlers) getWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())

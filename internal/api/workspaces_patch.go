@@ -17,11 +17,11 @@ import (
 // @Accept json
 // @Produce json
 // @Param request body object true "Workspace rename request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} WorkspaceRenameResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/rename [patch]
 func (s *CoreHandlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
@@ -94,11 +94,11 @@ func (s *CoreHandlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body object true "Member role change request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 404 {object} map[string]any
+// @Success 200 {object} APIResponse[WorkspaceMemberRoleResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/workspaces/members/role [patch]
 func (s *CoreHandlers) changeMemberRole(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {

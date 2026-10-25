@@ -1,5 +1,1618 @@
 {
   "components": {
+    "schemas": {
+      "api.APIKeyCreatedResponseData": {
+        "properties": {
+          "api_key": {
+            "$ref": "#/components/schemas/service.CreateAPIKeyResult"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIKeyListResponseData": {
+        "properties": {
+          "api_keys": {
+            "items": {
+              "$ref": "#/components/schemas/service.APIKeyResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-any": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {},
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_APIKeyCreatedResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.APIKeyCreatedResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_APIKeyListResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.APIKeyListResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_AccountDeletedResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.AccountDeletedResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_FileDeleteResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.FileDeleteResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_FileMoveResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.FileMoveResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_FilesDeleteResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.FilesDeleteResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_FolderDeleteResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.FolderDeleteResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_FolderMoveResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.FolderMoveResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_FoldersResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.FoldersResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_NoteContentResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.NoteContentResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_NoteResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.NoteResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_PrivateDownloadTokenResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.PrivateDownloadTokenResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_ShareResolveResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.ShareResolveResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_ShareResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.ShareResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_ShareRevokeResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.ShareRevokeResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_SharedFilesResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.SharedFilesResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_UnseenSharesResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.UnseenSharesResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_UserBucketResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.UserBucketResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_UserDataResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.UserDataResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_UserIdentitiesResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.UserIdentitiesResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_UserStatsResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.UserStatsResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_WorkspaceCreatedResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.WorkspaceCreatedResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_WorkspaceDeletedResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.WorkspaceDeletedResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_WorkspaceFilesMoveResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.WorkspaceFilesMoveResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_WorkspaceInviteDeletedResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.WorkspaceInviteDeletedResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_WorkspaceMemberRoleResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.WorkspaceMemberRoleResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-api_WorkspaceQuotaResponseData": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/api.WorkspaceQuotaResponseData"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-array_service_UserInviteResult": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "items": {
+              "$ref": "#/components/schemas/service.UserInviteResult"
+            },
+            "type": "array"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-array_service_WorkspaceFileResult": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "items": {
+              "$ref": "#/components/schemas/service.WorkspaceFileResult"
+            },
+            "type": "array"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-array_service_WorkspaceInviteResult": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "items": {
+              "$ref": "#/components/schemas/service.WorkspaceInviteResult"
+            },
+            "type": "array"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-array_service_WorkspaceMemberResult": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "items": {
+              "$ref": "#/components/schemas/service.WorkspaceMemberResult"
+            },
+            "type": "array"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-array_service_WorkspaceResult": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "items": {
+              "$ref": "#/components/schemas/service.WorkspaceResult"
+            },
+            "type": "array"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-service_FilesTree": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/service.FilesTree"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-service_QuickShareResult": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/service.QuickShareResult"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-service_ShareInfo": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/service.ShareInfo"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-service_WorkspaceFilesTree": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/service.WorkspaceFilesTree"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-service_WorkspaceFolderResult": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/service.WorkspaceFolderResult"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.APIResponse-string": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "type": "string"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.AccountDeletedResponseData": {
+        "properties": {
+          "account_deleted": {
+            "$ref": "#/components/schemas/api.DeletedAccountOwner"
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/api.DeletedBucket"
+          }
+        },
+        "type": "object"
+      },
+      "api.DailyActivity": {
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "shares": {
+            "type": "integer"
+          },
+          "uploads": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.DeletedAccountOwner": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.DeletedBucket": {
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.ErrorResponse": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {},
+          "status": {
+            "example": 400,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.FileDeleteResponseData": {
+        "properties": {
+          "file_deleted": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.FileMoveResponseData": {
+        "properties": {
+          "destination": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.FilesDeleteResponseData": {
+        "properties": {
+          "files_deleted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "files_failed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "api.FolderDeleteResponseData": {
+        "properties": {
+          "files_deleted": {
+            "type": "integer"
+          },
+          "folder_deleted": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.FolderMoveResponseData": {
+        "properties": {
+          "destination": {
+            "type": "string"
+          },
+          "files_moved": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.FoldersResponseData": {
+        "properties": {
+          "folders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.IdentityResponse": {
+        "properties": {
+          "avatar_url": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "provider_user_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.NoteContentResponseData": {
+        "properties": {
+          "content": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.NoteResponseData": {
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.PrivateDownloadTokenResponseData": {
+        "properties": {
+          "private_download_token": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.ShareResolveResponseData": {
+        "properties": {
+          "file_name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.ShareResponseData": {
+        "properties": {
+          "notification_status": {
+            "type": "string"
+          },
+          "sharing_info": {
+            "items": {
+              "$ref": "#/components/schemas/service.ShareResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "api.ShareRevokeResponseData": {
+        "properties": {
+          "token_revoked": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.SharedFilesResponseData": {
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/service.SharedFileInfo"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "api.UnseenSharesResponseData": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.UserBucketResponseData": {
+        "properties": {
+          "bucket_data": {
+            "$ref": "#/components/schemas/mappings.BucketData"
+          }
+        },
+        "type": "object"
+      },
+      "api.UserDataResponseData": {
+        "properties": {
+          "user_data": {
+            "$ref": "#/components/schemas/userdata.AuthorizedUserWithPlan"
+          }
+        },
+        "type": "object"
+      },
+      "api.UserIdentitiesResponseData": {
+        "properties": {
+          "has_password_identity": {
+            "type": "boolean"
+          },
+          "identities": {
+            "items": {
+              "$ref": "#/components/schemas/api.IdentityResponse"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "api.UserStatsResponseData": {
+        "properties": {
+          "active_shares": {
+            "type": "integer"
+          },
+          "daily_shares": {
+            "items": {
+              "$ref": "#/components/schemas/api.DailyActivity"
+            },
+            "type": "array"
+          },
+          "daily_uploads": {
+            "items": {
+              "$ref": "#/components/schemas/api.DailyActivity"
+            },
+            "type": "array"
+          },
+          "files_last_30d": {
+            "type": "integer"
+          },
+          "files_last_7d": {
+            "type": "integer"
+          },
+          "files_today": {
+            "type": "integer"
+          },
+          "owned_workspaces": {
+            "type": "integer"
+          },
+          "public_shares": {
+            "type": "integer"
+          },
+          "shares_today": {
+            "type": "integer"
+          },
+          "targeted_shares": {
+            "type": "integer"
+          },
+          "total_bytes": {
+            "type": "integer"
+          },
+          "total_files": {
+            "type": "integer"
+          },
+          "total_received": {
+            "type": "integer"
+          },
+          "total_shares_sent": {
+            "type": "integer"
+          },
+          "workspace_api_keys": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceCreatedResponseData": {
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/api.WorkspaceIdentity"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceDeletedResponseData": {
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceFilesMoveResponseData": {
+        "properties": {
+          "updated": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceIdentity": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceInviteCreatedResponse": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/service.WorkspaceInviteResult"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceInviteDeletedResponseData": {
+        "properties": {
+          "invite_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceMemberRoleResponseData": {
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceQuotaResponseData": {
+        "properties": {
+          "api_key_count": {
+            "type": "integer"
+          },
+          "file_count": {
+            "type": "integer"
+          },
+          "folder_count": {
+            "type": "integer"
+          },
+          "max_files_workspace": {
+            "type": "integer"
+          },
+          "max_total_storage_bytes_workspace": {
+            "type": "integer"
+          },
+          "max_users_workspace": {
+            "type": "integer"
+          },
+          "max_workspace_api_keys": {
+            "type": "integer"
+          },
+          "max_workspace_folders": {
+            "type": "integer"
+          },
+          "member_count": {
+            "type": "integer"
+          },
+          "total_bytes": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "api.WorkspaceRenameResponse": {
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/service.WorkspaceResult"
+          },
+          "status": {
+            "example": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "mappings.BucketData": {
+        "properties": {
+          "bucket_name": {
+            "type": "string"
+          },
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "objects": {
+            "items": {
+              "$ref": "#/components/schemas/mappings.ObjectMedatata"
+            },
+            "type": "array"
+          },
+          "storage_class": {
+            "type": "string"
+          },
+          "time_created": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mappings.ObjectMedatata": {
+        "properties": {
+          "bucket": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "date_created": {
+            "type": "string"
+          },
+          "date_deleted": {
+            "type": "string"
+          },
+          "date_updated": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          },
+          "media_link": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "service.APIKeyResult": {
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_used_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.CreateAPIKeyResult": {
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.FileTreeEntry": {
+        "properties": {
+          "file_type": {
+            "type": "string"
+          },
+          "md5_checksum": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "service.FilesTree": {
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/service.FileTreeEntry"
+            },
+            "type": "array"
+          },
+          "folders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.QuickShareResult": {
+        "properties": {
+          "expires_at": {
+            "type": "string"
+          },
+          "sharing_link": {
+            "type": "string"
+          },
+          "sharing_token": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.ShareInfo": {
+        "properties": {
+          "expires_at": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "password_protected": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "service.ShareResult": {
+        "properties": {
+          "checksum": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "shared_by": {
+            "type": "string"
+          },
+          "shared_for": {
+            "type": "string"
+          },
+          "sharing_link": {
+            "type": "string"
+          },
+          "sharing_token": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.SharedFileInfo": {
+        "properties": {
+          "expires_at": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "integer"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_type": {
+            "type": "string"
+          },
+          "md5_checksum": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "password_protected": {
+            "type": "boolean"
+          },
+          "seen": {
+            "type": "boolean"
+          },
+          "shared_by": {
+            "type": "string"
+          },
+          "shared_for": {
+            "type": "string"
+          },
+          "sharing_token": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "service.UserInviteResult": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "workspace_name": {
+            "type": "string"
+          },
+          "workspace_slug": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceFileResult": {
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "md5_checksum": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "uploaded_by": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceFileTreeEntry": {
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "file_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "md5_checksum": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "uploaded_by": {
+            "type": "string"
+          },
+          "uploaded_by_email": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceFilesTree": {
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/service.WorkspaceFileTreeEntry"
+            },
+            "type": "array"
+          },
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/service.WorkspaceFolderTreeEntry"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceFolderResult": {
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceFolderTreeEntry": {
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "created_by_email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceInviteResult": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceMemberResult": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "joined_at": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "service.WorkspaceResult": {
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "userdata.AuthorizedUserWithPlan": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "family_name": {
+            "type": "string"
+          },
+          "given_name": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "max_file_size_bytes": {
+            "type": "integer"
+          },
+          "max_files": {
+            "type": "integer"
+          },
+          "max_files_sent_per_day": {
+            "type": "integer"
+          },
+          "max_files_workspace": {
+            "type": "integer"
+          },
+          "max_private_api_keys": {
+            "type": "integer"
+          },
+          "max_shares_per_day": {
+            "type": "integer"
+          },
+          "max_total_storage_bytes": {
+            "type": "integer"
+          },
+          "max_total_storage_bytes_workspace": {
+            "type": "integer"
+          },
+          "max_user_workspaces": {
+            "type": "integer"
+          },
+          "max_users_workspace": {
+            "type": "integer"
+          },
+          "max_workspace_api_keys": {
+            "type": "integer"
+          },
+          "max_workspace_folders": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "picture": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "plan_name": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "provider_user_id": {
+            "description": "OAuth subject ID",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "users.id UUID from our database",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
     "securitySchemes": {
       "ApiKeyAuth": {
         "in": "header",
@@ -47,8 +1660,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_APIKeyCreatedResponseData"
                 }
               }
             },
@@ -58,8 +1670,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -69,8 +1680,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -80,8 +1690,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -114,8 +1723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -125,8 +1733,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -136,8 +1743,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -147,8 +1753,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -169,8 +1774,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_APIKeyListResponseData"
                 }
               }
             },
@@ -180,8 +1784,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -225,8 +1828,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_APIKeyCreatedResponseData"
                 }
               }
             },
@@ -236,8 +1838,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -247,8 +1848,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -258,8 +1858,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -269,8 +1868,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -314,8 +1912,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -325,8 +1922,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -336,8 +1932,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -347,8 +1942,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -358,8 +1952,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -391,8 +1984,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_APIKeyListResponseData"
                 }
               }
             },
@@ -402,8 +1994,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -413,8 +2004,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -457,8 +2047,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -468,8 +2057,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -479,8 +2067,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -523,8 +2110,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -534,8 +2120,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -545,8 +2130,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -556,8 +2140,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -589,8 +2172,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_FileDeleteResponseData"
                 }
               }
             },
@@ -600,8 +2182,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -611,8 +2192,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -622,8 +2202,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -656,8 +2235,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_FilesDeleteResponseData"
                 }
               }
             },
@@ -667,8 +2245,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -678,8 +2255,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -712,8 +2288,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_FileMoveResponseData"
                 }
               }
             },
@@ -723,8 +2298,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -734,8 +2308,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -768,8 +2341,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-service_QuickShareResult"
                 }
               }
             },
@@ -779,8 +2351,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -790,8 +2361,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -812,8 +2382,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_SharedFilesResponseData"
                 }
               }
             },
@@ -823,8 +2392,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -857,8 +2425,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-string"
                 }
               }
             },
@@ -868,8 +2435,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -879,8 +2445,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -901,8 +2466,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_UnseenSharesResponseData"
                 }
               }
             },
@@ -912,8 +2476,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -946,8 +2509,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_ShareResponseData"
                 }
               }
             },
@@ -957,8 +2519,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -968,8 +2529,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -979,8 +2539,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1001,8 +2560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_SharedFilesResponseData"
                 }
               }
             },
@@ -1012,8 +2570,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1044,8 +2601,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-service_FilesTree"
                 }
               }
             },
@@ -1055,8 +2611,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1066,8 +2621,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1113,8 +2667,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-string"
                 }
               }
             },
@@ -1124,8 +2677,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1135,8 +2687,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1146,8 +2697,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1188,8 +2738,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_NoteContentResponseData"
                 }
               }
             },
@@ -1199,8 +2748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1210,8 +2758,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1221,8 +2768,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1273,8 +2819,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_NoteResponseData"
                 }
               }
             },
@@ -1284,8 +2829,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1295,8 +2839,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1306,8 +2849,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1347,8 +2889,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_FolderDeleteResponseData"
                 }
               }
             },
@@ -1358,8 +2899,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1369,8 +2909,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1399,8 +2938,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_FoldersResponseData"
                 }
               }
             },
@@ -1410,8 +2948,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1444,8 +2981,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_FolderMoveResponseData"
                 }
               }
             },
@@ -1455,8 +2991,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1466,8 +3001,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1499,8 +3033,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-service_ShareInfo"
                 }
               }
             },
@@ -1510,8 +3043,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1521,8 +3053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1573,8 +3104,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_ShareResolveResponseData"
                 }
               }
             },
@@ -1584,8 +3114,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1595,8 +3124,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1606,8 +3134,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1617,8 +3144,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1650,8 +3176,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_ShareRevokeResponseData"
                 }
               }
             },
@@ -1661,8 +3186,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1672,8 +3196,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1683,8 +3206,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1717,8 +3239,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_AccountDeletedResponseData"
                 }
               }
             },
@@ -1728,8 +3249,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1739,8 +3259,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1761,8 +3280,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_UserBucketResponseData"
                 }
               }
             },
@@ -1772,8 +3290,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1794,8 +3311,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_UserDataResponseData"
                 }
               }
             },
@@ -1805,8 +3321,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1827,8 +3342,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_UserIdentitiesResponseData"
                 }
               }
             },
@@ -1838,8 +3352,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1871,8 +3384,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_PrivateDownloadTokenResponseData"
                 }
               }
             },
@@ -1882,8 +3394,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1893,8 +3404,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1915,8 +3425,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_UserStatsResponseData"
                 }
               }
             },
@@ -1926,8 +3435,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1960,8 +3468,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_WorkspaceCreatedResponseData"
                 }
               }
             },
@@ -1971,8 +3478,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1982,8 +3488,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -1993,8 +3498,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2026,8 +3530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_WorkspaceDeletedResponseData"
                 }
               }
             },
@@ -2037,8 +3540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2048,8 +3550,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2059,8 +3560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2070,8 +3570,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2103,8 +3602,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-array_service_WorkspaceInviteResult"
                 }
               }
             },
@@ -2114,8 +3612,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2125,8 +3622,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2136,8 +3632,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2170,8 +3665,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -2181,8 +3675,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2192,8 +3685,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2203,8 +3695,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2214,8 +3705,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2248,8 +3738,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.WorkspaceInviteCreatedResponse"
                 }
               }
             },
@@ -2259,8 +3748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2270,8 +3758,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2281,8 +3768,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2292,8 +3778,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2334,8 +3819,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_WorkspaceInviteDeletedResponseData"
                 }
               }
             },
@@ -2345,8 +3829,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2356,8 +3839,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2367,8 +3849,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2389,8 +3870,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-array_service_UserInviteResult"
                 }
               }
             },
@@ -2400,8 +3880,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2433,8 +3912,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -2444,8 +3922,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2455,8 +3932,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2466,8 +3942,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2477,8 +3952,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2499,8 +3973,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-array_service_WorkspaceResult"
                 }
               }
             },
@@ -2510,8 +3983,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2543,8 +4015,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-array_service_WorkspaceMemberResult"
                 }
               }
             },
@@ -2554,8 +4025,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2565,8 +4035,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2576,8 +4045,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2618,8 +4086,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -2629,8 +4096,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2640,8 +4106,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2651,8 +4116,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2685,8 +4149,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_WorkspaceMemberRoleResponseData"
                 }
               }
             },
@@ -2696,8 +4159,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2707,8 +4169,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2718,8 +4179,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2729,8 +4189,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2763,8 +4222,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.WorkspaceRenameResponse"
                 }
               }
             },
@@ -2774,8 +4232,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2785,8 +4242,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2796,8 +4252,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2807,8 +4262,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2849,8 +4303,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -2860,8 +4313,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2871,8 +4323,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2882,8 +4333,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2893,8 +4343,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2946,8 +4395,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2957,8 +4405,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2968,8 +4415,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -2979,8 +4425,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3021,8 +4466,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -3032,8 +4476,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3043,8 +4486,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3054,8 +4496,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3065,8 +4506,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3110,8 +4550,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_WorkspaceFilesMoveResponseData"
                 }
               }
             },
@@ -3121,8 +4560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3132,8 +4570,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3143,8 +4580,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3154,8 +4590,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3199,8 +4634,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-service_WorkspaceFolderResult"
                 }
               }
             },
@@ -3210,8 +4644,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3221,8 +4654,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3232,8 +4664,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3243,8 +4674,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3288,8 +4718,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-any"
                 }
               }
             },
@@ -3299,8 +4728,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3310,8 +4738,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3321,8 +4748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3332,8 +4758,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3373,8 +4798,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-service_WorkspaceFilesTree"
                 }
               }
             },
@@ -3384,8 +4808,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3395,8 +4818,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3406,8 +4828,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3464,8 +4885,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-array_service_WorkspaceFileResult"
                 }
               }
             },
@@ -3475,8 +4895,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3486,8 +4905,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3497,8 +4915,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3508,8 +4925,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3541,8 +4957,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.APIResponse-api_WorkspaceQuotaResponseData"
                 }
               }
             },
@@ -3552,8 +4967,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },
@@ -3563,8 +4977,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/api.ErrorResponse"
                 }
               }
             },

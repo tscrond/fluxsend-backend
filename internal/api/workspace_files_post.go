@@ -232,11 +232,11 @@ func (s *CoreHandlers) abortWorkspaceUploadHandler(w http.ResponseWriter, r *htt
 // @Param workspace_id path string true "Workspace ID"
 // @Param file formData file true "File to upload"
 // @Param folder formData string false "Destination folder"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 429 {object} map[string]any
+// @Success 200 {object} APIResponse[[]service.WorkspaceFileResult]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/upload [post]
 func (s *CoreHandlers) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
@@ -299,11 +299,11 @@ func (s *CoreHandlers) uploadWorkspaceFile(w http.ResponseWriter, r *http.Reques
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
 // @Param request body object true "Folder creation request"
-// @Success 200 {object} map[string]any
-// @Failure 400 {object} map[string]any
-// @Failure 401 {object} map[string]any
-// @Failure 403 {object} map[string]any
-// @Failure 429 {object} map[string]any
+// @Success 200 {object} APIResponse[service.WorkspaceFolderResult]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
 // @Router /api/workspaces/{workspace_id}/files/mkdir [post]
 func (s *CoreHandlers) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
