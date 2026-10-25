@@ -197,6 +197,9 @@ func (s *passwordAuthService) LoginUser(ctx context.Context, email, password str
 
 	match, err := hash.VerifyPasswordArgon2id(password, hashToVerify)
 	if err != nil {
+		if errors.Is(err, hash.ErrArgon2Busy) {
+			return "", err
+		}
 		if userErr == nil && hasCredentials {
 			return "", fmt.Errorf("verifying password: %w", err)
 		}

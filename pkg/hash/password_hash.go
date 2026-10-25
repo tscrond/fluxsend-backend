@@ -22,7 +22,10 @@ type argon2idParams struct {
 var (
 	errInvalidHash         = errors.New("invalid password hash format")
 	errIncompatibleVersion = errors.New("incompatible argon2 version")
-	defaultArgon2idParams  = argon2idParams{
+	// ErrArgon2Busy is returned when all Argon2 workers are occupied.
+	ErrArgon2Busy         = errors.New("argon2 worker limit reached")
+	argon2WorkerSlots     = make(chan struct{}, 4)
+	defaultArgon2idParams = argon2idParams{
 		memory:      64 * 1024,
 		iterations:  3,
 		parallelism: 2,
@@ -36,6 +39,12 @@ func HashPasswordArgon2id(password string) (string, error) {
 	if password == "" {
 		return "", errors.New("password cannot be empty")
 	}
+
+	release, err := acquireArgon2Worker()
+	if err != nil {
+		return "", err
+	}
+	defer release()
 
 	salt := make([]byte, defaultArgon2idParams.saltLength)
 	if _, err := rand.Read(salt); err != nil {
@@ -77,6 +86,12 @@ func VerifyPasswordArgon2id(password, encodedHash string) (bool, error) {
 		return false, err
 	}
 
+	release, err := acquireArgon2Worker()
+	if err != nil {
+		return false, err
+	}
+	defer release()
+
 	otherHash := argon2.IDKey(
 		[]byte(password),
 		salt,
@@ -88,6 +103,15 @@ func VerifyPasswordArgon2id(password, encodedHash string) (bool, error) {
 
 	match := subtle.ConstantTimeCompare(decodedHash, otherHash) == 1
 	return match, nil
+}
+
+func acquireArgon2Worker() (func(), error) {
+	select {
+	case argon2WorkerSlots <- struct{}{}:
+		return func() { <-argon2WorkerSlots }, nil
+	default:
+		return nil, ErrArgon2Busy
+	}
 }
 
 func parseArgon2idHash(encodedHash string) (argon2idParams, []byte, []byte, error) {

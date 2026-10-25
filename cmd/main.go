@@ -26,7 +26,7 @@ import (
 )
 
 // @title           FluxSend Developer API
-// @version         1.7.0
+// @version         1.8.8
 // @description     Fluxsend API endpoints
 
 // @contact.name   tscrond

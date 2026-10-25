@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,8 +36,14 @@ const (
 	passwordResetSelfChallengePurpose = "password_reset_self"
 	authRateLimitScopePasswordReset   = "password_reset_verify"
 	authRateLimitScopeResetSelfInit   = "password_reset_self_init"
+	authRateLimitScopeLoginPassword   = "login_password"
+	authRateLimitScopeRegisterSend    = "register_send"
 	passwordResetChallengeTTL         = 5 * time.Minute
 	passwordResetRequestCooldown      = 60 * time.Second
+	passwordLoginMaxAttempts          = 5
+	passwordLoginRateLimitWindow      = 15 * time.Minute
+	passwordRegistrationMaxAttempts   = 5
+	passwordRegistrationWindow        = time.Hour
 )
 
 var emailPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
@@ -61,6 +68,14 @@ func passwordResetSelfUserCooldownKey(userID uuid.UUID) string {
 
 func passwordResetSelfIPCooldownKey(ip string) string {
 	return "password-reset-self:ip:" + ip
+}
+
+func passwordLoginRateLimitKey(ip string) string {
+	return "password-login:ip:" + ip
+}
+
+func passwordRegistrationRateLimitKey(ip string) string {
+	return "password-register:ip:" + ip
 }
 
 func (s *APIServer) frontendRedirectURL(path string, query url.Values) string {
@@ -195,9 +210,38 @@ func (s *APIServer) passwordLoginHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	clientIP := pkg.GetClientIPFromContext(r.Context())
+	rateLimitKey := passwordLoginRateLimitKey(clientIP)
+	retryAfter, err := s.consumeAuthRateLimit(
+		r.Context(),
+		rateLimitKey,
+		authRateLimitScopeLoginPassword,
+		passwordLoginMaxAttempts,
+		passwordLoginRateLimitWindow,
+	)
+	if err != nil {
+		s.log.Errorw("failed to consume password login rate limit", "ip", clientIP, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	if retryAfter > 0 {
+		s.writeAuthRateLimitResponse(w, authRateLimitScopeLoginPassword, retryAfter, "Too many sign-in attempts. Please try again later.")
+		return
+	}
+
 	userID, err := s.passwordAuth.LoginUser(r.Context(), req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, pkghash.ErrArgon2Busy) {
+			s.writeAuthRateLimitResponse(w, authRateLimitScopeLoginPassword, time.Second, "Too many sign-in attempts. Please try again later.")
+			return
+		}
 		pkg.WriteJSONResponse(w, http.StatusUnauthorized, "access_denied", nil)
+		return
+	}
+
+	if err := s.resetAuthRateLimit(r.Context(), rateLimitKey, authRateLimitScopeLoginPassword); err != nil {
+		s.log.Errorw("failed to reset password login rate limit", "ip", clientIP, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
 	}
 
@@ -943,6 +987,24 @@ func (s *APIServer) createRegistrationRequest(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	clientIP := pkg.GetClientIPFromContext(r.Context())
+	retryAfter, err := s.consumeAuthRateLimit(
+		r.Context(),
+		passwordRegistrationRateLimitKey(clientIP),
+		authRateLimitScopeRegisterSend,
+		passwordRegistrationMaxAttempts,
+		passwordRegistrationWindow,
+	)
+	if err != nil {
+		s.log.Errorw("failed to consume password registration rate limit", "ip", clientIP, "error", err)
+		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
+		return
+	}
+	if retryAfter > 0 {
+		s.writeAuthRateLimitResponse(w, authRateLimitScopeRegisterSend, retryAfter, "Too many registration attempts. Please try again later.")
+		return
+	}
+
 	if err := s.passwordAuth.CheckUserExists(r.Context(), req.Email); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusForbidden, "forbidden", nil)
 		return
@@ -950,6 +1012,10 @@ func (s *APIServer) createRegistrationRequest(w http.ResponseWriter, r *http.Req
 
 	challengeID, token, err := s.passwordAuth.CreatePasswordAuthChallenge(r.Context(), req.Email, purpose, req.Password)
 	if err != nil {
+		if errors.Is(err, pkghash.ErrArgon2Busy) {
+			s.writeAuthRateLimitResponse(w, authRateLimitScopeRegisterSend, time.Second, "Too many registration attempts. Please try again later.")
+			return
+		}
 		s.log.Errorw("failed to create new user challenge", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "internal_error", nil)
 		return
@@ -1512,6 +1578,43 @@ func (s *APIServer) getOrCreateAuthRateLimit(ctx context.Context, key, scope str
 		Key:          key,
 		Scope:        scope,
 		AttemptCount: 0,
+	})
+}
+
+func (s *APIServer) consumeAuthRateLimit(ctx context.Context, key, scope string, maxAttempts int32, window time.Duration) (time.Duration, error) {
+	now := time.Now()
+	bucket, err := s.repository.Queries().ConsumeAuthRateLimitAttempt(ctx, sqlc.ConsumeAuthRateLimitAttemptParams{
+		Key:            key,
+		Scope:          scope,
+		WindowStartsAt: now.Add(-window),
+		MaxAttempts:    maxAttempts,
+		BlockedUntil:   now.Add(window),
+	})
+	if err != nil {
+		return 0, err
+	}
+	if bucket.BlockedUntil.Valid && now.Before(bucket.BlockedUntil.Time) {
+		return time.Until(bucket.BlockedUntil.Time), nil
+	}
+	return 0, nil
+}
+
+func (s *APIServer) resetAuthRateLimit(ctx context.Context, key, scope string) error {
+	return s.repository.Queries().ResetAuthRateLimit(ctx, sqlc.ResetAuthRateLimitParams{
+		Key:   key,
+		Scope: scope,
+	})
+}
+
+func (s *APIServer) writeAuthRateLimitResponse(w http.ResponseWriter, scope string, retryAfter time.Duration, message string) {
+	retryAfterSeconds := int64((retryAfter + time.Second - 1) / time.Second)
+	if retryAfterSeconds < 1 {
+		retryAfterSeconds = 1
+	}
+	w.Header().Set("Retry-After", strconv.FormatInt(retryAfterSeconds, 10))
+	s.metrics.RecordAuthRateLimitBlocked(scope)
+	pkg.WriteJSONResponse(w, http.StatusTooManyRequests, "too_many_requests", map[string]any{
+		"msg": message,
 	})
 }
 
