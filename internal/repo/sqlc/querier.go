@@ -56,7 +56,7 @@ type Querier interface {
 	DeleteWorkspaceFileById(ctx context.Context, arg DeleteWorkspaceFileByIdParams) error
 	DeleteWorkspaceFilesByPath(ctx context.Context, arg DeleteWorkspaceFilesByPathParams) error
 	DeleteWorkspaceFilesByPathPrefix(ctx context.Context, arg DeleteWorkspaceFilesByPathPrefixParams) error
-	DeleteWorkspaceInvite(ctx context.Context, id uuid.UUID) error
+	DeleteWorkspaceInvite(ctx context.Context, arg DeleteWorkspaceInviteParams) error
 	DeleteWorkspaceInviteByToken(ctx context.Context, token string) error
 	DeleteWorkspaceMember(ctx context.Context, arg DeleteWorkspaceMemberParams) error
 	FailFileUpload(ctx context.Context, id uuid.UUID) (FileUpload, error)

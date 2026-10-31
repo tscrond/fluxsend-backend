@@ -488,9 +488,13 @@ func TestWorkspaceService_DeleteWorkspaceInvite_HappyPath(t *testing.T) {
 	repo := mocks.NewMockRepository(ctrl)
 	svc := newWsSvc(q, repo, mocks.NewMockObjectStorage(ctrl))
 
+	wsID := uuid.New()
 	invID := uuid.New()
-	q.EXPECT().DeleteWorkspaceInvite(gomock.Any(), invID).Return(nil)
+	q.EXPECT().DeleteWorkspaceInvite(gomock.Any(), sqlc.DeleteWorkspaceInviteParams{
+		ID:          invID,
+		WorkspaceID: wsID,
+	}).Return(nil)
 
-	err := svc.DeleteWorkspaceInvite(context.Background(), invID)
+	err := svc.DeleteWorkspaceInvite(context.Background(), wsID, invID)
 	assert.NoError(t, err)
 }

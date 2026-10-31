@@ -103,7 +103,7 @@ func (s *CoreHandlers) deleteWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := s.workspaces.DeleteWorkspaceInvite(r.Context(), inviteID); err != nil {
+	if err := s.workspaces.DeleteWorkspaceInvite(r.Context(), workspaceID, inviteID); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusInternalServerError, "", "internal_error")
 		return
 	}

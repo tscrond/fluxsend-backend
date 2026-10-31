@@ -741,3 +741,46 @@ func TestCreateWorkspace_HappyPath(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+// ── deleteWorkspaceInvite tests ──────────────────────────────────────────────
+
+func TestDeleteWorkspaceInvite_HappyPath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+
+	userID := uuid.New()
+	planID := uuid.New()
+	workspaceID := uuid.New()
+	inviteID := uuid.New()
+
+	deps.workspaces.EXPECT().GetUserWorkspaceRole(gomock.Any(), userID, workspaceID).Return("admin", nil)
+	deps.workspaces.EXPECT().DeleteWorkspaceInvite(gomock.Any(), workspaceID, inviteID).Return(nil)
+
+	req := httptest.NewRequest(http.MethodDelete, "/workspaces/invites/delete?workspace_id="+workspaceID.String()+"&invite_id="+inviteID.String(), nil)
+	req = injectAuth(req, "user@example.com", userID.String(), defaultPlan(planID.String()))
+
+	w := httptest.NewRecorder()
+	srv.deleteWorkspaceInvite(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestDeleteWorkspaceInvite_ForbiddenForNonAdmin(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+
+	userID := uuid.New()
+	planID := uuid.New()
+	workspaceID := uuid.New()
+	inviteID := uuid.New()
+
+	deps.workspaces.EXPECT().GetUserWorkspaceRole(gomock.Any(), userID, workspaceID).Return("member", nil)
+
+	req := httptest.NewRequest(http.MethodDelete, "/workspaces/invites/delete?workspace_id="+workspaceID.String()+"&invite_id="+inviteID.String(), nil)
+	req = injectAuth(req, "user@example.com", userID.String(), defaultPlan(planID.String()))
+
+	w := httptest.NewRecorder()
+	srv.deleteWorkspaceInvite(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}

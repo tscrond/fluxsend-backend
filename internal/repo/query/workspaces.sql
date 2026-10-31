@@ -70,7 +70,7 @@ RETURNING *;
 
 -- name: DeleteWorkspaceInvite :exec
 DELETE FROM workspace_invites
-WHERE id = $1;
+WHERE id = $1 AND workspace_id = $2;
 
 -- name: DeleteWorkspaceInviteByToken :exec
 DELETE FROM workspace_invites
