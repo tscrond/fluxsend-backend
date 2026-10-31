@@ -40,6 +40,10 @@ Recommended options:
 - HAProxy
 - Kubernetes ingress
 
+Set `TRUSTED_PROXY_CIDRS` to the IPs or CIDRs of every proxy hop between the
+client and backend. FluxSend accepts `X-Forwarded-For` only when the direct TCP
+peer is in this allowlist; without it, the direct connection address is used.
+
 ## Deployment options
 
 Use one of the following deployment patterns:

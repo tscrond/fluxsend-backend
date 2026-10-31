@@ -74,6 +74,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("api.enable_google_auth", false)
 	v.SetDefault("api.enable_github_auth", false)
 	v.SetDefault("api.enable_password_auth", false)
+	v.SetDefault("api.trusted_proxy_cidrs", []string{})
 	v.SetDefault("mail.provider", "standard")
 	v.SetDefault("cli.listen_port", "8091")
 	v.SetDefault("cli.route_prefix", "/api")

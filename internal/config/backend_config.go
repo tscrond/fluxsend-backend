@@ -9,6 +9,7 @@ type BackendConfig struct {
 	MailFrom               string
 	HTMLSanitizationPolicy *bluemonday.Policy
 	AuthWhitelist          []string
+	TrustedProxyCIDRs      []string
 	AdminUsername          string
 	AdminPassword          string
 }
