@@ -219,11 +219,16 @@ func (q *Queries) DeleteWorkspace(ctx context.Context, id uuid.UUID) (Workspace,
 
 const deleteWorkspaceInvite = `-- name: DeleteWorkspaceInvite :exec
 DELETE FROM workspace_invites
-WHERE id = $1
+WHERE id = $1 AND workspace_id = $2
 `
 
-func (q *Queries) DeleteWorkspaceInvite(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteWorkspaceInvite, id)
+type DeleteWorkspaceInviteParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+}
+
+func (q *Queries) DeleteWorkspaceInvite(ctx context.Context, arg DeleteWorkspaceInviteParams) error {
+	_, err := q.db.ExecContext(ctx, deleteWorkspaceInvite, arg.ID, arg.WorkspaceID)
 	return err
 }
 

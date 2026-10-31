@@ -509,17 +509,17 @@ func (mr *MockWorkspaceServiceMockRecorder) DeleteWorkspace(ctx, workspaceID any
 }
 
 // DeleteWorkspaceInvite mocks base method.
-func (m *MockWorkspaceService) DeleteWorkspaceInvite(ctx context.Context, inviteID uuid.UUID) error {
+func (m *MockWorkspaceService) DeleteWorkspaceInvite(ctx context.Context, workspaceID, inviteID uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteWorkspaceInvite", ctx, inviteID)
+	ret := m.ctrl.Call(m, "DeleteWorkspaceInvite", ctx, workspaceID, inviteID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteWorkspaceInvite indicates an expected call of DeleteWorkspaceInvite.
-func (mr *MockWorkspaceServiceMockRecorder) DeleteWorkspaceInvite(ctx, inviteID any) *gomock.Call {
+func (mr *MockWorkspaceServiceMockRecorder) DeleteWorkspaceInvite(ctx, workspaceID, inviteID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWorkspaceInvite", reflect.TypeOf((*MockWorkspaceService)(nil).DeleteWorkspaceInvite), ctx, inviteID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWorkspaceInvite", reflect.TypeOf((*MockWorkspaceService)(nil).DeleteWorkspaceInvite), ctx, workspaceID, inviteID)
 }
 
 // GetUserInvites mocks base method.

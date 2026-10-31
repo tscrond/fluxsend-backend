@@ -678,17 +678,17 @@ func (mr *MockQuerierMockRecorder) DeleteWorkspaceFilesByPathPrefix(ctx, arg any
 }
 
 // DeleteWorkspaceInvite mocks base method.
-func (m *MockQuerier) DeleteWorkspaceInvite(ctx context.Context, id uuid.UUID) error {
+func (m *MockQuerier) DeleteWorkspaceInvite(ctx context.Context, arg sqlc.DeleteWorkspaceInviteParams) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteWorkspaceInvite", ctx, id)
+	ret := m.ctrl.Call(m, "DeleteWorkspaceInvite", ctx, arg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteWorkspaceInvite indicates an expected call of DeleteWorkspaceInvite.
-func (mr *MockQuerierMockRecorder) DeleteWorkspaceInvite(ctx, id any) *gomock.Call {
+func (mr *MockQuerierMockRecorder) DeleteWorkspaceInvite(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWorkspaceInvite", reflect.TypeOf((*MockQuerier)(nil).DeleteWorkspaceInvite), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWorkspaceInvite", reflect.TypeOf((*MockQuerier)(nil).DeleteWorkspaceInvite), ctx, arg)
 }
 
 // DeleteWorkspaceInviteByToken mocks base method.

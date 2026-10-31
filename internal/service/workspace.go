@@ -60,7 +60,7 @@ type WorkspaceService interface {
 	GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMemberResult, error)
 	GetWorkspaceInvites(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceInviteResult, error)
 	CreateWorkspaceInvite(ctx context.Context, workspaceID uuid.UUID, email, token, role string) (*WorkspaceInviteResult, error)
-	DeleteWorkspaceInvite(ctx context.Context, inviteID uuid.UUID) error
+	DeleteWorkspaceInvite(ctx context.Context, workspaceID uuid.UUID, inviteID uuid.UUID) error
 	GetUserInvites(ctx context.Context, email string) ([]UserInviteResult, error)
 	AcceptWorkspaceInvite(ctx context.Context, token string, userID uuid.UUID, userEmail string) error
 	RejectWorkspaceInvite(ctx context.Context, token string, userEmail string) error
@@ -308,9 +308,12 @@ func (w *workspaceService) UpdateMemberRole(ctx context.Context, workspaceID uui
 	return nil
 }
 
-func (w *workspaceService) DeleteWorkspaceInvite(ctx context.Context, inviteID uuid.UUID) error {
-	if err := w.queries.DeleteWorkspaceInvite(ctx, inviteID); err != nil {
-		logger.FromContext(ctx).Errorw("error deleting workspace invite", "invite_id", inviteID, "error", err)
+func (w *workspaceService) DeleteWorkspaceInvite(ctx context.Context, workspaceID uuid.UUID, inviteID uuid.UUID) error {
+	if err := w.queries.DeleteWorkspaceInvite(ctx, sqlc.DeleteWorkspaceInviteParams{
+		ID:          inviteID,
+		WorkspaceID: workspaceID,
+	}); err != nil {
+		logger.FromContext(ctx).Errorw("error deleting workspace invite", "workspace_id", workspaceID, "invite_id", inviteID, "error", err)
 		return err
 	}
 	return nil
