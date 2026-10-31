@@ -1071,7 +1071,7 @@ info:
     name: MIT
     url: https://mit-license.org/
   title: FluxSend Developer API
-  version: 1.7.0
+  version: 1.8.8
 paths:
   /api/api_keys/{workspace_id}/create:
     post:

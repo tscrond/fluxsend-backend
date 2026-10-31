@@ -1636,7 +1636,7 @@
       "url": "https://mit-license.org/"
     },
     "title": "FluxSend Developer API",
-    "version": "1.7.0"
+    "version": "1.8.8"
   },
   "openapi": "3.0.3",
   "paths": {
