@@ -62,7 +62,7 @@ type Querier interface {
 	FailFileUpload(ctx context.Context, id uuid.UUID) (FileUpload, error)
 	GetAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error)
 	GetAuthRateLimitByKeyAndScope(ctx context.Context, arg GetAuthRateLimitByKeyAndScopeParams) (AuthRateLimit, error)
-	GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (GetAuthorizedCLIUserInfoByAPIKeyRow, error)
+	GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, keyLookupHash sql.NullString) (GetAuthorizedCLIUserInfoByAPIKeyRow, error)
 	GetBucketAndObjectFromToken(ctx context.Context, sharingToken string) (GetBucketAndObjectFromTokenRow, error)
 	GetBucketObjectAndOwnerFromPrivateToken(ctx context.Context, privateDownloadToken sql.NullString) (GetBucketObjectAndOwnerFromPrivateTokenRow, error)
 	GetEmailVerificationChallengeById(ctx context.Context, id uuid.UUID) (EmailVerificationChallenge, error)

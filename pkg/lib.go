@@ -215,6 +215,11 @@ func GenerateSecureAPIKey() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(key), nil
 }
 
+func SHA256Hex(value string) string {
+	digest := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(digest[:])
+}
+
 func ParseUUIDValue(v interface{}) (uuid.UUID, bool) {
 	switch val := v.(type) {
 	case nil:

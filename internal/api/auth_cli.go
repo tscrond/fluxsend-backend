@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -52,8 +53,12 @@ func (s *CLIServer) authMiddleware(next http.Handler) http.Handler {
 				log.Errorf("missing API key")
 				return
 			}
+			apiKeyLookupHash := pkg.SHA256Hex(apiKey)
 
-			authorizedCLIUser, err := s.repository.Queries().GetAuthorizedCLIUserInfoByAPIKey(r.Context(), apiKey)
+			authorizedCLIUser, err := s.repository.Queries().GetAuthorizedCLIUserInfoByAPIKey(
+				r.Context(),
+				sql.NullString{String: apiKeyLookupHash, Valid: true},
+			)
 			if err != nil {
 				s.metrics.RecordAPIKeyRequest(domainLabel, "invalid")
 				log.Errorw("cannot find valid API key", "error", err)

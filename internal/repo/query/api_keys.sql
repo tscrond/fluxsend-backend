@@ -1,6 +1,6 @@
 -- name: CreateAPIKey :one
-INSERT INTO api_keys (created_by_user_id, name, key_hash, description, status)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO api_keys (created_by_user_id, name, key_hash, key_lookup_hash, description, status)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: CreateAPIKeyScope :exec
@@ -106,7 +106,7 @@ WITH key_binding AS (
 	LEFT JOIN api_key_user_assignments akua ON akua.api_key_id = ak.id
 	LEFT JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
 	LEFT JOIN workspaces w ON w.id = akw.workspace_id
-	WHERE ak.key_hash = crypt($1, ak.key_hash)
+	WHERE ak.key_lookup_hash = sqlc.arg(key_lookup_hash)
 	  AND ak.revoked_at IS NULL
 	  AND ak.status = 'active'
 	GROUP BY ak.id, ak.created_by_user_id

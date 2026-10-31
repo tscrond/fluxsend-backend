@@ -12,6 +12,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/apikeydata"
 	"github.com/tscrond/fluxsend-backend/internal/repo"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
+	"github.com/tscrond/fluxsend-backend/pkg"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -71,6 +72,7 @@ func (s *apiKeyService) CreateWorkspaceAPIKey(ctx context.Context, akd *apikeyda
 	if err != nil {
 		return nil, fmt.Errorf("hashing api key: %w", err)
 	}
+	keyLookupHash := pkg.SHA256Hex(akd.Key)
 
 	tx, err := s.repository.BeginTx(ctx, nil)
 	if err != nil {
@@ -90,6 +92,7 @@ func (s *apiKeyService) CreateWorkspaceAPIKey(ctx context.Context, akd *apikeyda
 		CreatedByUserID: akd.CreatedByUserID,
 		Name:            akd.Name,
 		KeyHash:         string(keyHash),
+		KeyLookupHash:   sql.NullString{String: keyLookupHash, Valid: true},
 		Description:     sql.NullString{String: akd.Description, Valid: akd.Description != ""},
 		Status:          "active",
 	})
@@ -206,6 +209,7 @@ func (s *apiKeyService) CreatePrivateAPIKey(ctx context.Context, akd *apikeydata
 	if err != nil {
 		return nil, fmt.Errorf("hashing api key: %w", err)
 	}
+	keyLookupHash := pkg.SHA256Hex(akd.Key)
 
 	tx, err := s.repository.BeginTx(ctx, nil)
 	if err != nil {
@@ -225,6 +229,7 @@ func (s *apiKeyService) CreatePrivateAPIKey(ctx context.Context, akd *apikeydata
 		CreatedByUserID: akd.CreatedByUserID,
 		Name:            akd.Name,
 		KeyHash:         string(keyHash),
+		KeyLookupHash:   sql.NullString{String: keyLookupHash, Valid: true},
 		Description:     sql.NullString{String: akd.Description, Valid: akd.Description != ""},
 		Status:          "active",
 	})
