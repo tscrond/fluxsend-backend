@@ -223,6 +223,21 @@ func (mr *MockQuerierMockRecorder) ConsumeActiveEmailVerificationChallengesByUse
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConsumeActiveEmailVerificationChallengesByUserAndPurpose", reflect.TypeOf((*MockQuerier)(nil).ConsumeActiveEmailVerificationChallengesByUserAndPurpose), ctx, arg)
 }
 
+// ConsumeAuthRateLimitAttempt mocks base method.
+func (m *MockQuerier) ConsumeAuthRateLimitAttempt(ctx context.Context, arg sqlc.ConsumeAuthRateLimitAttemptParams) (sqlc.AuthRateLimit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConsumeAuthRateLimitAttempt", ctx, arg)
+	ret0, _ := ret[0].(sqlc.AuthRateLimit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConsumeAuthRateLimitAttempt indicates an expected call of ConsumeAuthRateLimitAttempt.
+func (mr *MockQuerierMockRecorder) ConsumeAuthRateLimitAttempt(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConsumeAuthRateLimitAttempt", reflect.TypeOf((*MockQuerier)(nil).ConsumeAuthRateLimitAttempt), ctx, arg)
+}
+
 // ConsumeEmailVerificationChallenge mocks base method.
 func (m *MockQuerier) ConsumeEmailVerificationChallenge(ctx context.Context, id uuid.UUID) (sqlc.EmailVerificationChallenge, error) {
 	m.ctrl.T.Helper()
@@ -2005,6 +2020,20 @@ func (m *MockQuerier) RenameWorkspaceWithSlug(ctx context.Context, arg sqlc.Rena
 func (mr *MockQuerierMockRecorder) RenameWorkspaceWithSlug(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameWorkspaceWithSlug", reflect.TypeOf((*MockQuerier)(nil).RenameWorkspaceWithSlug), ctx, arg)
+}
+
+// ResetAuthRateLimit mocks base method.
+func (m *MockQuerier) ResetAuthRateLimit(ctx context.Context, arg sqlc.ResetAuthRateLimitParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetAuthRateLimit", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetAuthRateLimit indicates an expected call of ResetAuthRateLimit.
+func (mr *MockQuerierMockRecorder) ResetAuthRateLimit(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetAuthRateLimit", reflect.TypeOf((*MockQuerier)(nil).ResetAuthRateLimit), ctx, arg)
 }
 
 // RevokePrivateAPIKey mocks base method.

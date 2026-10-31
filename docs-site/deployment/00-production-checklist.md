@@ -70,6 +70,7 @@ Single-origin (`https://app.example.com`) is recommended: the frontend nginx pro
 - [ ] Upstream to frontend `:8000` (single-origin)
 - [ ] `client_max_body_size >= 100M` + upload timeouts
 - [ ] Preserve `Host`, `X-Real-IP`, `X-Forwarded-For`
+- [ ] Set `TRUSTED_PROXY_CIDRS` to every proxy hop that supplies `X-Forwarded-For`
 - [ ] Certs issued + autorenew verified
 - [ ] HSTS after HTTPS confirmed
 - [ ] Firewall 3000/8091/1414/9464/9000/9001/5432

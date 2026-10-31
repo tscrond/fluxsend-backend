@@ -14,6 +14,7 @@ func GetEnvVarMap() map[string]string {
 		"api.enable_google_auth":                 "ENABLE_GOOGLE_AUTH",
 		"api.enable_github_auth":                 "ENABLE_GITHUB_AUTH",
 		"api.enable_password_auth":               "ENABLE_PASSWORD_AUTH",
+		"api.trusted_proxy_cidrs":                "TRUSTED_PROXY_CIDRS",
 		"api.db.host":                            "DB_HOST",
 		"api.db.user":                            "POSTGRES_USER",
 		"api.db.password":                        "POSTGRES_PASSWORD",

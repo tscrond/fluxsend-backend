@@ -61,6 +61,57 @@ func (q *Queries) ConsumeActiveEmailVerificationChallengesByUserAndPurpose(ctx c
 	return err
 }
 
+const consumeAuthRateLimitAttempt = `-- name: ConsumeAuthRateLimitAttempt :one
+INSERT INTO auth_rate_limits (key, scope, attempt_count)
+VALUES ($1, $2, 1)
+ON CONFLICT (key, scope) DO UPDATE
+SET attempt_count = CASE
+        WHEN auth_rate_limits.blocked_until > now() THEN auth_rate_limits.attempt_count
+        WHEN auth_rate_limits.updated_at <= $3::timestamp THEN 1
+        ELSE auth_rate_limits.attempt_count + 1
+    END,
+    blocked_until = CASE
+        WHEN auth_rate_limits.blocked_until > now() THEN auth_rate_limits.blocked_until
+        WHEN auth_rate_limits.updated_at <= $3::timestamp THEN NULL
+        WHEN auth_rate_limits.attempt_count >= $4 THEN $5::timestamptz
+        ELSE NULL
+    END,
+    updated_at = CASE
+        WHEN auth_rate_limits.blocked_until > now() THEN auth_rate_limits.updated_at
+        ELSE now()
+    END
+RETURNING id, key, scope, attempt_count, blocked_until, created_at, updated_at
+`
+
+type ConsumeAuthRateLimitAttemptParams struct {
+	Key            string    `json:"key"`
+	Scope          string    `json:"scope"`
+	WindowStartsAt time.Time `json:"window_starts_at"`
+	MaxAttempts    int32     `json:"max_attempts"`
+	BlockedUntil   time.Time `json:"blocked_until"`
+}
+
+func (q *Queries) ConsumeAuthRateLimitAttempt(ctx context.Context, arg ConsumeAuthRateLimitAttemptParams) (AuthRateLimit, error) {
+	row := q.db.QueryRowContext(ctx, consumeAuthRateLimitAttempt,
+		arg.Key,
+		arg.Scope,
+		arg.WindowStartsAt,
+		arg.MaxAttempts,
+		arg.BlockedUntil,
+	)
+	var i AuthRateLimit
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Scope,
+		&i.AttemptCount,
+		&i.BlockedUntil,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const consumeEmailVerificationChallenge = `-- name: ConsumeEmailVerificationChallenge :one
 UPDATE email_verification_challenges
 SET consumed_at = now()
@@ -91,6 +142,8 @@ func (q *Queries) ConsumeEmailVerificationChallenge(ctx context.Context, id uuid
 const createAuthRateLimit = `-- name: CreateAuthRateLimit :one
 INSERT INTO auth_rate_limits (key, scope, attempt_count)
 VALUES ($1, $2, $3)
+ON CONFLICT (key, scope) DO UPDATE
+SET key = EXCLUDED.key
 RETURNING id, key, scope, attempt_count, blocked_until, created_at, updated_at
 `
 
@@ -327,6 +380,21 @@ func (q *Queries) IncrementAuthRateLimitAttemptCount(ctx context.Context, arg In
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const resetAuthRateLimit = `-- name: ResetAuthRateLimit :exec
+DELETE FROM auth_rate_limits
+WHERE key = $1 AND scope = $2
+`
+
+type ResetAuthRateLimitParams struct {
+	Key   string `json:"key"`
+	Scope string `json:"scope"`
+}
+
+func (q *Queries) ResetAuthRateLimit(ctx context.Context, arg ResetAuthRateLimitParams) error {
+	_, err := q.db.ExecContext(ctx, resetAuthRateLimit, arg.Key, arg.Scope)
+	return err
 }
 
 const updatePasswordCredentials = `-- name: UpdatePasswordCredentials :one

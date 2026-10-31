@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/csv"
 	"fmt"
+	"net/netip"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -23,6 +24,7 @@ type APIServerConfig struct {
 	EnableGitHubAuth   bool
 	EnablePasswordAuth bool
 	AuthWhitelist      []string
+	TrustedProxyCIDRs  []string
 }
 
 func NewAPIServerConfig(v *viper.Viper) (*APIServerConfig, error) {
@@ -93,7 +95,11 @@ func NewAPIServerConfig(v *viper.Viper) (*APIServerConfig, error) {
 		}
 	}
 
-	authWhitelist := whitelistValues(v, "api.email_whitelist")
+	authWhitelist := listValues(v, "api.email_whitelist")
+	trustedProxyCIDRs, err := trustedProxyCIDRValues(v, "api.trusted_proxy_cidrs")
+	if err != nil {
+		return nil, err
+	}
 	apiConfig := APIServerConfig{
 		ListenPort:         v.GetString("api.listen_port"),
 		GoogleClientID:     googleClientID,
@@ -114,6 +120,7 @@ func NewAPIServerConfig(v *viper.Viper) (*APIServerConfig, error) {
 		EnableGitHubAuth:   enableGitHubAuth,
 		EnablePasswordAuth: enablePasswordAuth,
 		AuthWhitelist:      authWhitelist,
+		TrustedProxyCIDRs:  trustedProxyCIDRs,
 	}
 
 	return &apiConfig, nil
@@ -131,7 +138,40 @@ func requiredString(v *viper.Viper, key string) (string, error) {
 	return value, nil
 }
 
-func whitelistValues(v *viper.Viper, key string) []string {
+func trustedProxyCIDRValues(v *viper.Viper, key string) ([]string, error) {
+	values := listValues(v, key)
+	prefixes := make([]string, 0, len(values))
+	for _, raw := range values {
+		prefix, err := parseTrustedProxyPrefix(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid %s value %q: %w", key, raw, err)
+		}
+		prefixes = append(prefixes, prefix.String())
+	}
+	return prefixes, nil
+}
+
+func parseTrustedProxyPrefix(raw string) (netip.Prefix, error) {
+	if strings.Contains(raw, "/") {
+		prefix, err := netip.ParsePrefix(raw)
+		if err != nil {
+			return netip.Prefix{}, err
+		}
+		return prefix.Masked(), nil
+	}
+
+	addr, err := netip.ParseAddr(raw)
+	if err != nil {
+		return netip.Prefix{}, err
+	}
+	if addr.Zone() != "" {
+		return netip.Prefix{}, fmt.Errorf("zones are not supported")
+	}
+	addr = addr.Unmap()
+	return netip.PrefixFrom(addr, addr.BitLen()), nil
+}
+
+func listValues(v *viper.Viper, key string) []string {
 	rawValues := []string{}
 
 	switch value := v.Get(key).(type) {

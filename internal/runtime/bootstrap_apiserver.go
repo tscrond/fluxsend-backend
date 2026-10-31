@@ -86,6 +86,7 @@ func BuildAPIServer(log *zap.SugaredLogger, apiConfig *config.APIServerConfig, r
 		MailFrom:               apiConfig.MailFrom,
 		HTMLSanitizationPolicy: runtime.HTMLSanitizationPolicy,
 		AuthWhitelist:          apiConfig.AuthWhitelist,
+		TrustedProxyCIDRs:      apiConfig.TrustedProxyCIDRs,
 	}
 
 	return api.NewAPIServer(backendConfig, api.APIServerDependencies{

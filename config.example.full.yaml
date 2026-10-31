@@ -18,6 +18,10 @@ api:
   backend_endpoint: "http://localhost:3000"
   mail_from: "noreply@example.com"
 
+  # IPs/CIDRs of every reverse-proxy hop allowed to supply X-Forwarded-For.
+  # Leave empty when clients connect directly to the backend.
+  trusted_proxy_cidrs: []
+
   db:
     host: "localhost"
     user: "fluxsend"

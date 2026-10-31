@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
 	"github.com/tscrond/fluxsend-backend/internal/auth"
 	"github.com/tscrond/fluxsend-backend/internal/cdn"
@@ -194,7 +193,7 @@ func NewAPIServer(backendConfig config.BackendConfig, deps APIServerDependencies
 func (s *APIServer) Handler() http.Handler {
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestLogger(s.log), chimiddleware.ClientIPFromRemoteAddr, s.metrics.HTTPMiddleware())
+	r.Use(middleware.RequestLogger(s.log), middleware.TrustedProxyClientIP(s.backendConfig.TrustedProxyCIDRs), s.metrics.HTTPMiddleware())
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.backendConfig.FrontendEndpoint},

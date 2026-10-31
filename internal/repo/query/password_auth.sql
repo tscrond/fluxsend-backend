@@ -57,6 +57,8 @@ RETURNING *;
 -- name: CreateAuthRateLimit :one
 INSERT INTO auth_rate_limits (key, scope, attempt_count)
 VALUES ($1, $2, $3)
+ON CONFLICT (key, scope) DO UPDATE
+SET key = EXCLUDED.key
 RETURNING *;
 
 -- name: IncrementAuthRateLimitAttemptCount :one
@@ -77,3 +79,27 @@ SET blocked_until = $3,
 WHERE key = $1 AND scope = $2
 RETURNING *;
 
+-- name: ConsumeAuthRateLimitAttempt :one
+INSERT INTO auth_rate_limits (key, scope, attempt_count)
+VALUES ($1, $2, 1)
+ON CONFLICT (key, scope) DO UPDATE
+SET attempt_count = CASE
+        WHEN auth_rate_limits.blocked_until > now() THEN auth_rate_limits.attempt_count
+        WHEN auth_rate_limits.updated_at <= sqlc.arg(window_starts_at)::timestamp THEN 1
+        ELSE auth_rate_limits.attempt_count + 1
+    END,
+    blocked_until = CASE
+        WHEN auth_rate_limits.blocked_until > now() THEN auth_rate_limits.blocked_until
+        WHEN auth_rate_limits.updated_at <= sqlc.arg(window_starts_at)::timestamp THEN NULL
+        WHEN auth_rate_limits.attempt_count >= sqlc.arg(max_attempts) THEN sqlc.arg(blocked_until)::timestamptz
+        ELSE NULL
+    END,
+    updated_at = CASE
+        WHEN auth_rate_limits.blocked_until > now() THEN auth_rate_limits.updated_at
+        ELSE now()
+    END
+RETURNING *;
+
+-- name: ResetAuthRateLimit :exec
+DELETE FROM auth_rate_limits
+WHERE key = $1 AND scope = $2;

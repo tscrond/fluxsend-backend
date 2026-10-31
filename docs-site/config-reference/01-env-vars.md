@@ -19,6 +19,7 @@ The following table documents the environment variables supported by the backend
 | ENABLE_GOOGLE_AUTH | Enables Google OAuth login | `false` | No |
 | ENABLE_GITHUB_AUTH | Enables GitHub OAuth login | `false` | No |
 | ENABLE_PASSWORD_AUTH | Enables email/password auth | `false` | No |
+| TRUSTED_PROXY_CIDRS | Comma-separated IPs/CIDRs of reverse proxies allowed to supply `X-Forwarded-For` | `""` | If behind a proxy |
 | GOOGLE_CLIENT_ID | Google OAuth client ID | `""` | If Google auth enabled |
 | GOOGLE_CLIENT_SECRET | Google OAuth client secret | `""` | If Google auth enabled |
 | GITHUB_OAUTH_CLIENT_ID | GitHub OAuth app client ID | `""` | If GitHub auth enabled |

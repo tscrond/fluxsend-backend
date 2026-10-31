@@ -25,6 +25,7 @@ type Querier interface {
 	CheckWorkspacesPerUserQuota(ctx context.Context, ownerID uuid.UUID) (bool, error)
 	CompleteFileUpload(ctx context.Context, arg CompleteFileUploadParams) (uuid.UUID, error)
 	ConsumeActiveEmailVerificationChallengesByUserAndPurpose(ctx context.Context, arg ConsumeActiveEmailVerificationChallengesByUserAndPurposeParams) error
+	ConsumeAuthRateLimitAttempt(ctx context.Context, arg ConsumeAuthRateLimitAttemptParams) (AuthRateLimit, error)
 	ConsumeEmailVerificationChallenge(ctx context.Context, id uuid.UUID) (EmailVerificationChallenge, error)
 	CountUnseenShares(ctx context.Context, sharedFor sql.NullString) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
@@ -150,6 +151,7 @@ type Querier interface {
 	MoveWorkspaceFilesByPathPrefix(ctx context.Context, arg MoveWorkspaceFilesByPathPrefixParams) error
 	RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error)
 	RenameWorkspaceWithSlug(ctx context.Context, arg RenameWorkspaceWithSlugParams) (Workspace, error)
+	ResetAuthRateLimit(ctx context.Context, arg ResetAuthRateLimitParams) error
 	RevokePrivateAPIKey(ctx context.Context, arg RevokePrivateAPIKeyParams) (ApiKey, error)
 	RevokeWorkspaceAPIKey(ctx context.Context, arg RevokeWorkspaceAPIKeyParams) (ApiKey, error)
 	SaveFileUploadPart(ctx context.Context, arg SaveFileUploadPartParams) (int64, error)
