@@ -23,6 +23,7 @@ type ApiKey struct {
 	LastUsedAt      sql.NullTime   `json:"last_used_at"`
 	RevokedAt       sql.NullTime   `json:"revoked_at"`
 	RevokedByUserID uuid.NullUUID  `json:"revoked_by_user_id"`
+	KeyLookupHash   sql.NullString `json:"key_lookup_hash"`
 }
 
 type ApiKeyScope struct {

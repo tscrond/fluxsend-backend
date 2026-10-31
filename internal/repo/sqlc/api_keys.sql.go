@@ -70,15 +70,16 @@ func (q *Queries) CheckPrivateAPIKeyQuota(ctx context.Context, userID uuid.UUID)
 }
 
 const createAPIKey = `-- name: CreateAPIKey :one
-INSERT INTO api_keys (created_by_user_id, name, key_hash, description, status)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, created_by_user_id, created_at, name, key_hash, description, status, last_used_at, revoked_at, revoked_by_user_id
+INSERT INTO api_keys (created_by_user_id, name, key_hash, key_lookup_hash, description, status)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, created_by_user_id, created_at, name, key_hash, description, status, last_used_at, revoked_at, revoked_by_user_id, key_lookup_hash
 `
 
 type CreateAPIKeyParams struct {
 	CreatedByUserID uuid.UUID      `json:"created_by_user_id"`
 	Name            string         `json:"name"`
 	KeyHash         string         `json:"key_hash"`
+	KeyLookupHash   sql.NullString `json:"key_lookup_hash"`
 	Description     sql.NullString `json:"description"`
 	Status          string         `json:"status"`
 }
@@ -88,6 +89,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Api
 		arg.CreatedByUserID,
 		arg.Name,
 		arg.KeyHash,
+		arg.KeyLookupHash,
 		arg.Description,
 		arg.Status,
 	)
@@ -103,6 +105,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Api
 		&i.LastUsedAt,
 		&i.RevokedAt,
 		&i.RevokedByUserID,
+		&i.KeyLookupHash,
 	)
 	return i, err
 }
@@ -122,7 +125,7 @@ func (q *Queries) CreateAPIKeyScope(ctx context.Context, arg CreateAPIKeyScopePa
 }
 
 const getAPIKey = `-- name: GetAPIKey :one
-SELECT id, created_by_user_id, created_at, name, key_hash, description, status, last_used_at, revoked_at, revoked_by_user_id FROM api_keys WHERE id = $1
+SELECT id, created_by_user_id, created_at, name, key_hash, description, status, last_used_at, revoked_at, revoked_by_user_id, key_lookup_hash FROM api_keys WHERE id = $1
 `
 
 func (q *Queries) GetAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) {
@@ -139,6 +142,7 @@ func (q *Queries) GetAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) {
 		&i.LastUsedAt,
 		&i.RevokedAt,
 		&i.RevokedByUserID,
+		&i.KeyLookupHash,
 	)
 	return i, err
 }
@@ -158,7 +162,7 @@ WITH key_binding AS (
 	LEFT JOIN api_key_user_assignments akua ON akua.api_key_id = ak.id
 	LEFT JOIN api_key_workspaces akw ON akw.api_key_id = ak.id
 	LEFT JOIN workspaces w ON w.id = akw.workspace_id
-	WHERE ak.key_hash = crypt($1, ak.key_hash)
+	WHERE ak.key_lookup_hash = $1
 	  AND ak.revoked_at IS NULL
 	  AND ak.status = 'active'
 	GROUP BY ak.id, ak.created_by_user_id
@@ -196,8 +200,8 @@ type GetAuthorizedCLIUserInfoByAPIKeyRow struct {
 	WorkspaceOwnerCount   int64          `json:"workspace_owner_count"`
 }
 
-func (q *Queries) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, crypt string) (GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
-	row := q.db.QueryRowContext(ctx, getAuthorizedCLIUserInfoByAPIKey, crypt)
+func (q *Queries) GetAuthorizedCLIUserInfoByAPIKey(ctx context.Context, keyLookupHash sql.NullString) (GetAuthorizedCLIUserInfoByAPIKeyRow, error) {
+	row := q.db.QueryRowContext(ctx, getAuthorizedCLIUserInfoByAPIKey, keyLookupHash)
 	var i GetAuthorizedCLIUserInfoByAPIKeyRow
 	err := row.Scan(
 		&i.ApiKeyID,
@@ -368,7 +372,7 @@ WHERE ak.id = $1
 	AND aku.api_key_id = ak.id
 	AND aku.user_id = $2
 	AND ak.revoked_at IS NULL
-RETURNING ak.id, ak.created_by_user_id, ak.created_at, ak.name, ak.key_hash, ak.description, ak.status, ak.last_used_at, ak.revoked_at, ak.revoked_by_user_id
+RETURNING ak.id, ak.created_by_user_id, ak.created_at, ak.name, ak.key_hash, ak.description, ak.status, ak.last_used_at, ak.revoked_at, ak.revoked_by_user_id, ak.key_lookup_hash
 `
 
 type RevokePrivateAPIKeyParams struct {
@@ -391,6 +395,7 @@ func (q *Queries) RevokePrivateAPIKey(ctx context.Context, arg RevokePrivateAPIK
 		&i.LastUsedAt,
 		&i.RevokedAt,
 		&i.RevokedByUserID,
+		&i.KeyLookupHash,
 	)
 	return i, err
 }
@@ -405,7 +410,7 @@ WHERE ak.id = $1
 	AND akw.api_key_id = ak.id
 	AND akw.workspace_id = $2
 	AND ak.revoked_at IS NULL
-RETURNING ak.id, ak.created_by_user_id, ak.created_at, ak.name, ak.key_hash, ak.description, ak.status, ak.last_used_at, ak.revoked_at, ak.revoked_by_user_id
+RETURNING ak.id, ak.created_by_user_id, ak.created_at, ak.name, ak.key_hash, ak.description, ak.status, ak.last_used_at, ak.revoked_at, ak.revoked_by_user_id, ak.key_lookup_hash
 `
 
 type RevokeWorkspaceAPIKeyParams struct {
@@ -428,6 +433,7 @@ func (q *Queries) RevokeWorkspaceAPIKey(ctx context.Context, arg RevokeWorkspace
 		&i.LastUsedAt,
 		&i.RevokedAt,
 		&i.RevokedByUserID,
+		&i.KeyLookupHash,
 	)
 	return i, err
 }

@@ -63,10 +63,10 @@ func TestAPIKeyService_CreateWorkspaceAPIKey_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO api_keys (created_by_user_id, name, key_hash, description, status)")).
-		WithArgs(createdByID, "workspace key", sqlmock.AnyArg(), sql.NullString{String: "description", Valid: true}, "active").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "created_by_user_id", "created_at", "name", "key_hash", "description", "status", "last_used_at", "revoked_at", "revoked_by_user_id"}).
-			AddRow(apiKeyID, createdByID, createdAt, "workspace key", "hashed-key", "description", "active", nil, nil, nil))
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO api_keys (created_by_user_id, name, key_hash, key_lookup_hash, description, status)")).
+		WithArgs(createdByID, "workspace key", sqlmock.AnyArg(), sqlmock.AnyArg(), sql.NullString{String: "description", Valid: true}, "active").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "created_by_user_id", "created_at", "name", "key_hash", "description", "status", "last_used_at", "revoked_at", "revoked_by_user_id", "key_lookup_hash"}).
+			AddRow(apiKeyID, createdByID, createdAt, "workspace key", "hashed-key", "description", "active", nil, nil, nil, "lookup-hash"))
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO api_key_scopes (api_key_id, scope) VALUES ($1,$2)")).
 		WithArgs(apiKeyID, "workspaces:read").
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -115,10 +115,10 @@ func TestAPIKeyService_CreateWorkspaceAPIKey_RollsBackOnScopeError(t *testing.T)
 	require.NoError(t, err)
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO api_keys (created_by_user_id, name, key_hash, description, status)")).
-		WithArgs(createdByID, "workspace key", sqlmock.AnyArg(), sql.NullString{String: "description", Valid: true}, "active").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "created_by_user_id", "created_at", "name", "key_hash", "description", "status", "last_used_at", "revoked_at", "revoked_by_user_id"}).
-			AddRow(apiKeyID, createdByID, createdAt, "workspace key", "hashed-key", "description", "active", nil, nil, nil))
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO api_keys (created_by_user_id, name, key_hash, key_lookup_hash, description, status)")).
+		WithArgs(createdByID, "workspace key", sqlmock.AnyArg(), sqlmock.AnyArg(), sql.NullString{String: "description", Valid: true}, "active").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "created_by_user_id", "created_at", "name", "key_hash", "description", "status", "last_used_at", "revoked_at", "revoked_by_user_id", "key_lookup_hash"}).
+			AddRow(apiKeyID, createdByID, createdAt, "workspace key", "hashed-key", "description", "active", nil, nil, nil, "lookup-hash"))
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO api_key_scopes (api_key_id, scope) VALUES ($1,$2)")).
 		WithArgs(apiKeyID, "workspaces:read").
 		WillReturnError(assert.AnError)
