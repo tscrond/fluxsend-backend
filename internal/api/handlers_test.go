@@ -484,6 +484,7 @@ func TestShareWith_WrongMethod(t *testing.T) {
 	srv.shareWith(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, "application/json", w.Result().Header.Get("Content-Type"))
 }
 
 func TestShareWith_NoAuth(t *testing.T) {

@@ -173,16 +173,20 @@ func JSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("failed to encode json response: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		JSON(w, map[string]any{
+		if fallbackErr := json.NewEncoder(w).Encode(map[string]any{
 			"status":   http.StatusInternalServerError,
 			"response": "Error encoding JSON",
-		})
+		}); fallbackErr != nil {
+			log.Printf("failed to encode fallback json response: %v", fallbackErr)
+		}
 		return
 	}
 }
 
 func WriteJSONResponse(w http.ResponseWriter, responseStatus int, customMessage string, customResponse any) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(responseStatus)
 
 	resp := map[string]any{
