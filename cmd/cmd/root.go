@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -32,6 +33,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/logger"
 	appmetrics "github.com/tscrond/fluxsend-backend/internal/metrics"
 	runtime "github.com/tscrond/fluxsend-backend/internal/runtime"
+	"github.com/tscrond/fluxsend-backend/internal/service"
 )
 
 var cfgFile string
@@ -119,6 +121,17 @@ func RunDeveloperAPI(cmd *cobra.Command, args []string) {
 	}
 	defer baseRuntime.Close(log)
 
+	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
+	defer cleanupCancel()
+	service.NewAbandonedUploadCleaner(
+		log,
+		baseRuntime.Repository.Queries(),
+		baseRuntime.BucketHandler,
+		service.DefaultAbandonedUploadCleanupInterval,
+		service.DefaultAbandonedUploadMaxAge,
+		service.DefaultAbandonedUploadBatchSize,
+	).Start(cleanupCtx)
+
 	cliServer := runtime.BuildCLIServer(log, cliConfig, baseRuntime)
 
 	servers := []runtime.NamedHTTPServer{{
@@ -184,6 +197,17 @@ func RunFullBackend(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	defer baseRuntime.Close(log)
+
+	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
+	defer cleanupCancel()
+	service.NewAbandonedUploadCleaner(
+		log,
+		baseRuntime.Repository.Queries(),
+		baseRuntime.BucketHandler,
+		service.DefaultAbandonedUploadCleanupInterval,
+		service.DefaultAbandonedUploadMaxAge,
+		service.DefaultAbandonedUploadBatchSize,
+	).Start(cleanupCtx)
 
 	apiServerRuntime, err := runtime.BuildAPIServerRuntime(log, apiConfig, baseRuntime)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -224,6 +225,57 @@ func (q *Queries) ListFileUploadPartsByUploadID(ctx context.Context, uploadID uu
 			&i.StorageMetadata,
 			&i.Size,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStaleFileUploads = `-- name: ListStaleFileUploads :many
+SELECT id, owner_id, storage_backend, storage_upload_id, storage_mapping, file_name, file_type, expected_size, uploaded_size, status, created_at, updated_at, workspace_id, path FROM file_uploads
+WHERE status = 'uploading'
+  AND updated_at < $1
+ORDER BY updated_at
+LIMIT $2
+`
+
+type ListStaleFileUploadsParams struct {
+	UpdatedAt time.Time `json:"updated_at"`
+	Limit     int32     `json:"limit"`
+}
+
+func (q *Queries) ListStaleFileUploads(ctx context.Context, arg ListStaleFileUploadsParams) ([]FileUpload, error) {
+	rows, err := q.db.QueryContext(ctx, listStaleFileUploads, arg.UpdatedAt, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FileUpload
+	for rows.Next() {
+		var i FileUpload
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.StorageBackend,
+			&i.StorageUploadID,
+			&i.StorageMapping,
+			&i.FileName,
+			&i.FileType,
+			&i.ExpectedSize,
+			&i.UploadedSize,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.WorkspaceID,
+			&i.Path,
 		); err != nil {
 			return nil, err
 		}

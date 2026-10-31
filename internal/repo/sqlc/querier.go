@@ -136,6 +136,7 @@ type Querier interface {
 	ListFileUploadPartsByUploadID(ctx context.Context, uploadID uuid.UUID) ([]FileUploadPart, error)
 	ListPlansAdmin(ctx context.Context) ([]Plan, error)
 	ListPrivateAPIKeysByUserID(ctx context.Context, userID uuid.UUID) ([]ListPrivateAPIKeysByUserIDRow, error)
+	ListStaleFileUploads(ctx context.Context, arg ListStaleFileUploadsParams) ([]FileUpload, error)
 	ListUsersAdmin(ctx context.Context) ([]ListUsersAdminRow, error)
 	ListWorkspaceAPIKeys(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceAPIKeysRow, error)
 	ListWorkspaceIDsByOwner(ctx context.Context, ownerID uuid.UUID) ([]uuid.UUID, error)

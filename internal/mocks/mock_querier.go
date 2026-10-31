@@ -1799,6 +1799,21 @@ func (mr *MockQuerierMockRecorder) ListPrivateAPIKeysByUserID(ctx, userID any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPrivateAPIKeysByUserID", reflect.TypeOf((*MockQuerier)(nil).ListPrivateAPIKeysByUserID), ctx, userID)
 }
 
+// ListStaleFileUploads mocks base method.
+func (m *MockQuerier) ListStaleFileUploads(ctx context.Context, arg sqlc.ListStaleFileUploadsParams) ([]sqlc.FileUpload, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListStaleFileUploads", ctx, arg)
+	ret0, _ := ret[0].([]sqlc.FileUpload)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListStaleFileUploads indicates an expected call of ListStaleFileUploads.
+func (mr *MockQuerierMockRecorder) ListStaleFileUploads(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStaleFileUploads", reflect.TypeOf((*MockQuerier)(nil).ListStaleFileUploads), ctx, arg)
+}
+
 // ListUsersAdmin mocks base method.
 func (m *MockQuerier) ListUsersAdmin(ctx context.Context) ([]sqlc.ListUsersAdminRow, error) {
 	m.ctrl.T.Helper()
