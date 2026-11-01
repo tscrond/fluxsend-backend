@@ -72,6 +72,13 @@ SELECT * FROM file_upload_parts
 WHERE upload_id = $1
 ORDER BY part_number;
 
+-- name: ListStaleFileUploads :many
+SELECT * FROM file_uploads
+WHERE status = 'uploading'
+  AND updated_at < $1
+ORDER BY updated_at
+LIMIT $2;
+
 -- name: SaveFileUploadPart :one
 WITH target AS (
   SELECT fu.id AS upload_id
