@@ -14,11 +14,6 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-type moveRequest struct {
-	Source      string `json:"source"`
-	Destination string `json:"destination"`
-}
-
 func normalizePath(path string) string {
 	trimmed := strings.TrimSpace(path)
 	return strings.Trim(trimmed, "/")
@@ -186,7 +181,7 @@ func (s *CoreHandlers) deleteFolder(w http.ResponseWriter, r *http.Request) {
 // @Tags Files
 // @Accept json
 // @Produce json
-// @Param request body object true "Move request"
+// @Param request body MoveRequest true "Move request"
 // @Success 200 {object} APIResponse[FileMoveResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -204,7 +199,7 @@ func (s *CoreHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req moveRequest
+	var req MoveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return
@@ -239,7 +234,7 @@ func (s *CoreHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 // @Tags Files
 // @Accept json
 // @Produce json
-// @Param request body object true "Move request"
+// @Param request body MoveRequest true "Move request"
 // @Success 200 {object} APIResponse[FolderMoveResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -257,7 +252,7 @@ func (s *CoreHandlers) moveFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req moveRequest
+	var req MoveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return

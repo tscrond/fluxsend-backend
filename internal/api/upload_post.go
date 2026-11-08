@@ -18,12 +18,26 @@ import (
 )
 
 type CreateUploadRequest struct {
-	Filename    string `json:"filename"`
-	Size        int64  `json:"size"`
-	ContentType string `json:"content_type"`
-	Folder      string `json:"folder"`
+	Filename    string `json:"filename" binding:"required" example:"report.pdf"`
+	Size        int64  `json:"size" binding:"required" example:"104857600"`
+	ContentType string `json:"content_type" example:"application/pdf"`
+	Folder      string `json:"folder" example:"documents"`
 }
 
+// uploadInitHandler initializes a resumable multipart upload.
+// @Summary Initialize personal file multipart upload
+// @Description Creates an upload session for a personal file and returns the upload ID and recommended chunk size.
+// @Tags Files
+// @Accept json
+// @Produce json
+// @Param request body CreateUploadRequest true "Multipart upload initialization request"
+// @Success 200 {object} APIResponse[MultipartUploadInitResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 413 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/files/uploads [post]
 func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -102,6 +116,19 @@ func (s *CoreHandlers) uploadInitHandler(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// uploadPartHandler uploads one chunk of a resumable multipart upload.
+// @Summary Upload personal file multipart part
+// @Description Uploads one raw chunk for a personal multipart upload. Chunks may be uploaded concurrently and must use part numbers starting at 1. POST is the canonical method; PUT is also accepted.
+// @Tags Files
+// @Accept application/octet-stream
+// @Produce json
+// @Param upload_id path string true "Multipart upload ID"
+// @Param part_id path int true "Part number starting at 1"
+// @Param part body string true "Raw chunk bytes" Format(binary)
+// @Success 200 {object} APIResponse[MultipartUploadPartResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Router /api/files/uploads/{upload_id}/parts/{part_id} [post]
 func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPut && r.Method != http.MethodPost {
@@ -162,6 +189,19 @@ func (s *CoreHandlers) uploadPartHandler(w http.ResponseWriter, r *http.Request)
 	pkg.WriteJSONResponse(w, http.StatusOK, "uploaded_chunk", result)
 }
 
+// completeUploadHandler finalizes a resumable multipart upload.
+// @Summary Complete personal file multipart upload
+// @Description Finalizes a personal multipart upload after all parts have been uploaded and creates the file.
+// @Tags Files
+// @Produce json
+// @Param upload_id path string true "Multipart upload ID"
+// @Success 200 {object} APIResponse[MultipartUploadCompleteResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 409 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Failure 501 {object} ErrorResponse
+// @Router /api/files/uploads/{upload_id}/complete [post]
 func (s *CoreHandlers) completeUploadHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -209,6 +249,18 @@ func (s *CoreHandlers) completeUploadHandler(w http.ResponseWriter, r *http.Requ
 	pkg.WriteJSONResponse(w, http.StatusOK, "upload_completed", result)
 }
 
+// abortUploadHandler aborts a resumable multipart upload.
+// @Summary Abort personal file multipart upload
+// @Description Aborts an incomplete personal multipart upload and releases its uploaded parts.
+// @Tags Files
+// @Produce json
+// @Param upload_id path string true "Multipart upload ID"
+// @Success 200 {object} APIResponse[MultipartUploadAbortResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Failure 501 {object} ErrorResponse
+// @Router /api/files/uploads/{upload_id} [delete]
 func (s *CoreHandlers) abortUploadHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodDelete {

@@ -22,6 +22,7 @@ import (
 	"github.com/tscrond/fluxsend-backend/internal/apimocks"
 	storagetypes "github.com/tscrond/fluxsend-backend/internal/cloud_storage/types"
 	"github.com/tscrond/fluxsend-backend/internal/config"
+	"github.com/tscrond/fluxsend-backend/internal/filedata"
 	"github.com/tscrond/fluxsend-backend/internal/mocks"
 	"github.com/tscrond/fluxsend-backend/internal/repo/sqlc"
 	"github.com/tscrond/fluxsend-backend/internal/service"
@@ -427,6 +428,42 @@ func TestUploadPartHandler_RejectsNonOwner(t *testing.T) {
 	srv.uploadPartHandler(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestUploadPartHandler_ReturnsSnakeCaseJSON(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv, deps := newTestServer(ctrl)
+	userID := uuid.New()
+	uploadID := uuid.New()
+
+	deps.files.EXPECT().
+		UploadPart(gomock.Any(), uploadID.String(), userID, int32(1), gomock.Any(), int64(4)).
+		Return(&filedata.UploadPartResult{
+			PartNumber:      1,
+			Size:            4,
+			StorageMetadata: map[string]any{"etag": "part-etag"},
+		}, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/files/uploads/"+uploadID.String()+"/parts/1", strings.NewReader("part"))
+	req = injectAuth(req, "test@example.com", userID.String(), defaultPlan(uuid.NewString()))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("upload_id", uploadID.String())
+	rctx.URLParams.Add("part_id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	srv.uploadPartHandler(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var body struct {
+		Response map[string]any `json:"response"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, float64(1), body.Response["part_number"])
+	assert.Equal(t, float64(4), body.Response["size"])
+	assert.Equal(t, map[string]any{"etag": "part-etag"}, body.Response["storage_metadata"])
+	assert.NotContains(t, body.Response, "PartNumber")
+	assert.NotContains(t, body.Response, "StorageMetadata")
 }
 
 func TestCompleteUploadHandler_RejectsNonOwner(t *testing.T) {

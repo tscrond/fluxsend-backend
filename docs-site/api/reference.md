@@ -27,6 +27,7 @@ This page is generated from the current OpenAPI 3 document. Regenerate it with `
 | POST | /api/folders/move | Move folder | Moves a personal folder to another path. |
 | GET | /api/folders | List folders | Returns the folders that exist at the supplied personal path. |
 | DELETE | /api/folders | Delete folder | Deletes a personal folder and optionally all nested files and folders when recursive is true. |
+| POST | /api/files/uploads | Initialize personal file multipart upload | Creates an upload session for a personal file and returns the upload ID and recommended chunk size. |
 | POST | /api/files/upload | Upload a file | Uploads a file to the current user's personal storage and optionally stores it in a folder. |
 | GET | /api/files/tree | Get file tree | Returns the authenticated user's personal file tree for a given path prefix. |
 | POST | /api/files/move | Move file | Moves a personal file from one path to another. |
@@ -34,6 +35,9 @@ This page is generated from the current OpenAPI 3 document. Regenerate it with `
 | DELETE | /api/files/delete | Delete a file | Deletes a file from the authenticated user's personal storage. |
 | GET | /api/files/{checksum}/note | Get file note | Returns the note content for a file identified by checksum and file name. |
 | PUT | /api/files/{checksum}/note | Edit file note | Updates or creates the note for a file identified by checksum and file name. |
+| POST | /api/files/uploads/{upload_id}/complete | Complete personal file multipart upload | Finalizes a personal multipart upload after all parts have been uploaded and creates the file. |
+| DELETE | /api/files/uploads/{upload_id} | Abort personal file multipart upload | Aborts an incomplete personal multipart upload and releases its uploaded parts. |
+| POST | /api/files/uploads/{upload_id}/parts/{part_id} | Upload personal file multipart part | Uploads one raw chunk for a personal multipart upload. Chunks may be uploaded concurrently and must use part numbers starting at 1. POST is the canonical method; PUT is also accepted. |
 
 ## Sharing
 
@@ -64,6 +68,7 @@ This page is generated from the current OpenAPI 3 document. Regenerate it with `
 
 | Method | Path | Summary | Description |
 | --- | --- | --- | --- |
+| POST | /api/workspaces/{workspace_id}/files/uploads | Initialize workspace file multipart upload | Creates an upload session for a workspace file and returns the upload ID and recommended chunk size. |
 | POST | /api/workspaces/{workspace_id}/files/upload | Upload workspace file | Uploads a file into a workspace folder for users with write access. |
 | GET | /api/workspaces/{workspace_id}/files/tree | Get workspace file tree | Returns the file tree for a workspace path visible to the caller. |
 | PATCH | /api/workspaces/{workspace_id}/files/move | Move workspace file | Moves a file to another path within the same workspace. |
@@ -72,6 +77,9 @@ This page is generated from the current OpenAPI 3 document. Regenerate it with `
 | DELETE | /api/workspaces/{workspace_id}/files/folder/delete | Delete workspace folder | Deletes a workspace folder when the caller has write access. |
 | GET | /api/workspaces/{workspace_id}/files/download | Download workspace file | Creates a signed download URL for a workspace file and redirects or proxies based on mode. |
 | DELETE | /api/workspaces/{workspace_id}/files/delete | Delete workspace file | Deletes a workspace file when the caller has write access. |
+| POST | /api/workspaces/{workspace_id}/files/uploads/{upload_id}/complete | Complete workspace file multipart upload | Finalizes a workspace multipart upload after all parts have been uploaded and creates the file. |
+| DELETE | /api/workspaces/{workspace_id}/files/uploads/{upload_id} | Abort workspace file multipart upload | Aborts an incomplete workspace multipart upload and releases its uploaded parts. |
+| POST | /api/workspaces/{workspace_id}/files/uploads/{upload_id}/parts/{part_id} | Upload workspace file multipart part | Uploads one raw chunk for a workspace multipart upload. Chunks may be uploaded concurrently and must use part numbers starting at 1. POST is the canonical method; PUT is also accepted. |
 
 ## Workspaces
 

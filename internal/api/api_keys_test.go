@@ -18,20 +18,20 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestGetWorkspaceAPIKeyParameters_HappyPath(t *testing.T) {
+func TestDecodeWorkspaceAPIKeyCreateRequest_HappyPath(t *testing.T) {
 	req := httptest.NewRequest("POST", "/api_keys/workspace/create", strings.NewReader(`{"name":"workspace key","description":"desc","scopes":["workspaces:read","workspaces:files:read"]}`))
 
-	params, err := getAPIKeyParameters(req)
+	params, err := decodeStrictJSON[WorkspaceAPIKeyCreateRequest](req.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "workspace key", params.Name)
 	assert.Equal(t, "desc", params.Description)
 	assert.Equal(t, []string{"workspaces:read", "workspaces:files:read"}, params.Scopes)
 }
 
-func TestGetWorkspaceAPIKeyParameters_RejectsUnknownFields(t *testing.T) {
+func TestDecodeWorkspaceAPIKeyCreateRequest_RejectsUnknownFields(t *testing.T) {
 	req := httptest.NewRequest("POST", "/api_keys/workspace/create", strings.NewReader(`{"name":"workspace key","description":"desc","scopes":["workspaces:read"],"users_authorized":["123"]}`))
 
-	_, err := getAPIKeyParameters(req)
+	_, err := decodeStrictJSON[WorkspaceAPIKeyCreateRequest](req.Body)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "unknown field")
 }

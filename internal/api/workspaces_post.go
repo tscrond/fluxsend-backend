@@ -19,7 +19,7 @@ import (
 // @Tags Workspaces
 // @Accept json
 // @Produce json
-// @Param request body object true "Workspace create request"
+// @Param request body WorkspaceCreateRequest true "Workspace create request"
 // @Success 200 {object} APIResponse[WorkspaceCreatedResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -55,10 +55,7 @@ func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var workspaceResponse struct {
-		Slug string `json:"slug"`
-		Name string `json:"name"`
-	}
+	var workspaceResponse WorkspaceCreateRequest
 
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&workspaceResponse); err != nil {
@@ -106,7 +103,7 @@ func (s *CoreHandlers) createWorkspace(w http.ResponseWriter, r *http.Request) {
 // @Tags Workspaces
 // @Accept json
 // @Produce json
-// @Param request body object true "Workspace invite request"
+// @Param request body WorkspaceInviteCreateRequest true "Workspace invite request"
 // @Success 200 {object} WorkspaceInviteCreatedResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -126,11 +123,7 @@ func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req struct {
-		WorkspaceID string `json:"workspace_id"`
-		Email       string `json:"email"`
-		Role        string `json:"role"`
-	}
+	var req WorkspaceInviteCreateRequest
 
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -195,7 +188,7 @@ func (s *CoreHandlers) createWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 // @Tags Workspaces
 // @Accept json
 // @Produce json
-// @Param request body object true "Invite acceptance request"
+// @Param request body WorkspaceInviteAcceptRequest true "Invite acceptance request"
 // @Success 200 {object} APIResponse[any]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -214,9 +207,7 @@ func (s *CoreHandlers) acceptWorkspaceInvite(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req struct {
-		Token string `json:"token"`
-	}
+	var req WorkspaceInviteAcceptRequest
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Token == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "token_required")

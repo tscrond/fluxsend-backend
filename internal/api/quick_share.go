@@ -18,7 +18,7 @@ import (
 // @Tags Sharing
 // @Accept json
 // @Produce json
-// @Param request body object true "Quick share request"
+// @Param request body QuickShareRequest true "Quick share request"
 // @Success 200 {object} APIResponse[service.QuickShareResult]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -42,11 +42,6 @@ func (s *CoreHandlers) quickShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type QuickShareRequest struct {
-		Object   string `json:"object"`
-		Duration string `json:"duration"`
-		Password string `json:"password"`
-	}
 	var req QuickShareRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_json")
@@ -125,7 +120,7 @@ func (s *CoreHandlers) getUnseenReceivedCount(w http.ResponseWriter, r *http.Req
 // @Tags Sharing
 // @Accept json
 // @Produce json
-// @Param request body object true "Mark seen request"
+// @Param request body MarkSeenRequest true "Mark seen request"
 // @Success 200 {object} APIResponse[string]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -143,9 +138,6 @@ func (s *CoreHandlers) markReceivedSeen(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	type MarkSeenRequest struct {
-		SharingToken string `json:"sharing_token"`
-	}
 	var req MarkSeenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_json")

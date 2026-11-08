@@ -52,11 +52,11 @@ type UploadPartParams struct {
 	Size       int64
 }
 type UploadPartResult struct {
-	PartNumber int32
-	Size       int64
+	PartNumber int32 `json:"part_number"`
+	Size       int64 `json:"size"`
 
 	// Provider-specific data needed for CompleteMultipartUpload
-	StorageMetadata map[string]any
+	StorageMetadata map[string]any `json:"storage_metadata,omitempty"`
 }
 
 type CompleteUploadResult struct {

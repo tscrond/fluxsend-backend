@@ -18,7 +18,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
-// @Param request body object true "Move request"
+// @Param request body WorkspaceFileMoveRequest true "Move request"
 // @Success 200 {object} APIResponse[any]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -47,10 +47,7 @@ func (s *CoreHandlers) moveWorkspaceFile(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var req struct {
-		FileID      string `json:"file_id"`
-		Destination string `json:"destination"`
-	}
+	var req WorkspaceFileMoveRequest
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_request")
@@ -85,7 +82,7 @@ func (s *CoreHandlers) moveWorkspaceFile(w http.ResponseWriter, r *http.Request)
 // @Accept json
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
-// @Param request body object true "Move request"
+// @Param request body MoveRequest true "Move request"
 // @Success 200 {object} APIResponse[WorkspaceFilesMoveResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -114,10 +111,7 @@ func (s *CoreHandlers) moveWorkspaceFolder(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var req struct {
-		Source      string `json:"source"`
-		Destination string `json:"destination"`
-	}
+	var req MoveRequest
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Source == "" || req.Destination == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_request")

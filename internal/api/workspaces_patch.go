@@ -16,7 +16,7 @@ import (
 // @Tags Workspaces
 // @Accept json
 // @Produce json
-// @Param request body object true "Workspace rename request"
+// @Param request body WorkspaceRenameRequest true "Workspace rename request"
 // @Success 200 {object} WorkspaceRenameResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -35,11 +35,7 @@ func (s *CoreHandlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body struct {
-		WorkspaceID string `json:"workspace_id"`
-		Name        string `json:"name"`
-		Slug        string `json:"slug"`
-	}
+	var body WorkspaceRenameRequest
 
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -93,7 +89,7 @@ func (s *CoreHandlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 // @Tags Workspaces
 // @Accept json
 // @Produce json
-// @Param request body object true "Member role change request"
+// @Param request body WorkspaceMemberRoleRequest true "Member role change request"
 // @Success 200 {object} APIResponse[WorkspaceMemberRoleResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -112,11 +108,7 @@ func (s *CoreHandlers) changeMemberRole(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var body struct {
-		WorkspaceID string `json:"workspace_id"`
-		UserID      string `json:"user_id"`
-		Role        string `json:"role"`
-	}
+	var body WorkspaceMemberRoleRequest
 
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

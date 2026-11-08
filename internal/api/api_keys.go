@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -12,44 +13,14 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
-type apiKeyRequest struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Scopes      []string `json:"scopes"`
-}
-
-type deleteApiKeyRequest struct {
-	APIKeyID string `json:"api_key_id"`
-}
-
-func getAPIKeyParameters(r *http.Request) (*apiKeyRequest, error) {
-	var keyRequest struct {
-		Name        string   `json:"name"`
-		Description string   `json:"description"`
-		Scopes      []string `json:"scopes"`
-	}
-
-	decoder := json.NewDecoder(r.Body)
+func decodeStrictJSON[T any](r io.Reader) (T, error) {
+	var request T
+	decoder := json.NewDecoder(r)
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&keyRequest); err != nil {
-		return nil, err
+	if err := decoder.Decode(&request); err != nil {
+		return request, err
 	}
-
-	return &apiKeyRequest{
-		Name:        keyRequest.Name,
-		Description: keyRequest.Description,
-		Scopes:      keyRequest.Scopes,
-	}, nil
-}
-
-func getDeleteAPIKeyParameters(r *http.Request) (*deleteApiKeyRequest, error) {
-	var req deleteApiKeyRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		return nil, err
-	}
-	return &req, nil
+	return request, nil
 }
 
 // createWorkspaceAPIKey creates an API key for a workspace.
@@ -59,7 +30,7 @@ func getDeleteAPIKeyParameters(r *http.Request) (*deleteApiKeyRequest, error) {
 // @Accept json
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
-// @Param request body object true "API key create request"
+// @Param request body WorkspaceAPIKeyCreateRequest true "API key create request"
 // @Success 200 {object} APIResponse[APIKeyCreatedResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -100,7 +71,7 @@ func (s *CoreHandlers) createWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 	}
 
 	defer r.Body.Close()
-	apiKeyData, err := getAPIKeyParameters(r)
+	apiKeyData, err := decodeStrictJSON[WorkspaceAPIKeyCreateRequest](r.Body)
 	if err != nil {
 		log.Errorw("wrong request body parameters", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_json")
@@ -193,7 +164,7 @@ func (s *CoreHandlers) listWorkspaceAPIKeys(w http.ResponseWriter, r *http.Reque
 // @Tags API Keys
 // @Accept json
 // @Param workspace_id path string true "Workspace ID"
-// @Param request body object true "Delete API key request"
+// @Param request body APIKeyDeleteRequest true "Delete API key request"
 // @Success 200 {object} APIResponse[any]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -224,7 +195,7 @@ func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 	}
 
 	defer r.Body.Close()
-	req, err := getDeleteAPIKeyParameters(r)
+	req, err := decodeStrictJSON[APIKeyDeleteRequest](r.Body)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_json")
 		return
@@ -256,7 +227,7 @@ func (s *CoreHandlers) deleteWorkspaceAPIKey(w http.ResponseWriter, r *http.Requ
 // @Tags API Keys
 // @Accept json
 // @Produce json
-// @Param request body object true "API key create request"
+// @Param request body PrivateAPIKeyCreateRequest true "API key create request"
 // @Success 200 {object} APIResponse[APIKeyCreatedResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -297,7 +268,7 @@ func (s *CoreHandlers) createPrivateAPIKey(w http.ResponseWriter, r *http.Reques
 	}
 
 	defer r.Body.Close()
-	apiKeyData, err := getAPIKeyParameters(r)
+	apiKeyData, err := decodeStrictJSON[PrivateAPIKeyCreateRequest](r.Body)
 	if err != nil {
 		log.Errorw("wrong request body parameters", "error", err)
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_json")
@@ -375,7 +346,7 @@ func (s *CoreHandlers) listPrivateAPIKeys(w http.ResponseWriter, r *http.Request
 // @Description Deletes a private API key owned by the authenticated user.
 // @Tags API Keys
 // @Accept json
-// @Param request body object true "Delete API key request"
+// @Param request body APIKeyDeleteRequest true "Delete API key request"
 // @Success 200 {object} APIResponse[any]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -395,7 +366,7 @@ func (s *CoreHandlers) deletePrivateAPIKey(w http.ResponseWriter, r *http.Reques
 	}
 
 	defer r.Body.Close()
-	req, err := getDeleteAPIKeyParameters(r)
+	req, err := decodeStrictJSON[APIKeyDeleteRequest](r.Body)
 	if err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_json")
 		return

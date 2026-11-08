@@ -29,7 +29,7 @@ func (s *CoreHandlers) fileNotesHandler(w http.ResponseWriter, r *http.Request) 
 // @Produce json
 // @Param checksum path string true "File checksum"
 // @Param file_name query string true "File name"
-// @Param request body object true "Note content request"
+// @Param request body NoteContentRequest true "Note content request"
 // @Success 200 {object} APIResponse[NoteResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
@@ -59,10 +59,7 @@ func (s *CoreHandlers) editFileNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type NoteContent struct {
-		Content string `json:"content"`
-	}
-	var req NoteContent
+	var req NoteContentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "no_content", "")
 		return
