@@ -16,6 +16,21 @@ import (
 	pkg "github.com/tscrond/fluxsend-backend/pkg"
 )
 
+// initWorkspaceUploadHandler initializes a resumable workspace multipart upload.
+// @Summary Initialize workspace file multipart upload
+// @Description Creates an upload session for a workspace file and returns the upload ID and recommended chunk size.
+// @Tags Workspace Files
+// @Accept json
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param request body CreateUploadRequest true "Multipart upload initialization request"
+// @Success 200 {object} APIResponse[MultipartUploadInitResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 429 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/workspaces/{workspace_id}/files/uploads [post]
 func (s *CoreHandlers) initWorkspaceUploadHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -81,6 +96,21 @@ func (s *CoreHandlers) initWorkspaceUploadHandler(w http.ResponseWriter, r *http
 	})
 }
 
+// uploadWorkspacePartHandler uploads one chunk of a workspace multipart upload.
+// @Summary Upload workspace file multipart part
+// @Description Uploads one raw chunk for a workspace multipart upload. Chunks may be uploaded concurrently and must use part numbers starting at 1. POST is the canonical method; PUT is also accepted.
+// @Tags Workspace Files
+// @Accept application/octet-stream
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param upload_id path string true "Multipart upload ID"
+// @Param part_id path int true "Part number starting at 1"
+// @Param part body string true "Raw chunk bytes" Format(binary)
+// @Success 200 {object} APIResponse[MultipartUploadPartResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Router /api/workspaces/{workspace_id}/files/uploads/{upload_id}/parts/{part_id} [post]
 func (s *CoreHandlers) uploadWorkspacePartHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut && r.Method != http.MethodPost {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
@@ -128,6 +158,21 @@ func (s *CoreHandlers) uploadWorkspacePartHandler(w http.ResponseWriter, r *http
 	pkg.WriteJSONResponse(w, http.StatusOK, "uploaded_chunk", result)
 }
 
+// completeWorkspaceUploadHandler finalizes a resumable workspace multipart upload.
+// @Summary Complete workspace file multipart upload
+// @Description Finalizes a workspace multipart upload after all parts have been uploaded and creates the file.
+// @Tags Workspace Files
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param upload_id path string true "Multipart upload ID"
+// @Success 200 {object} APIResponse[MultipartUploadCompleteResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 409 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Failure 501 {object} ErrorResponse
+// @Router /api/workspaces/{workspace_id}/files/uploads/{upload_id}/complete [post]
 func (s *CoreHandlers) completeWorkspaceUploadHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodPost {
@@ -179,6 +224,20 @@ func (s *CoreHandlers) completeWorkspaceUploadHandler(w http.ResponseWriter, r *
 	pkg.WriteJSONResponse(w, http.StatusOK, "upload_completed", result)
 }
 
+// abortWorkspaceUploadHandler aborts a resumable workspace multipart upload.
+// @Summary Abort workspace file multipart upload
+// @Description Aborts an incomplete workspace multipart upload and releases its uploaded parts.
+// @Tags Workspace Files
+// @Produce json
+// @Param workspace_id path string true "Workspace ID"
+// @Param upload_id path string true "Multipart upload ID"
+// @Success 200 {object} APIResponse[MultipartUploadAbortResponseData]
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Failure 501 {object} ErrorResponse
+// @Router /api/workspaces/{workspace_id}/files/uploads/{upload_id} [delete]
 func (s *CoreHandlers) abortWorkspaceUploadHandler(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromContext(r.Context())
 	if r.Method != http.MethodDelete {
@@ -298,7 +357,7 @@ func (s *CoreHandlers) uploadWorkspaceFile(w http.ResponseWriter, r *http.Reques
 // @Accept json
 // @Produce json
 // @Param workspace_id path string true "Workspace ID"
-// @Param request body object true "Folder creation request"
+// @Param request body WorkspaceFolderCreateRequest true "Folder creation request"
 // @Success 200 {object} APIResponse[service.WorkspaceFolderResult]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -328,10 +387,7 @@ func (s *CoreHandlers) mkdirWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		FolderName string `json:"folder_name"`
-		ParentPath string `json:"parent_path"`
-	}
+	var req WorkspaceFolderCreateRequest
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.FolderName == "" {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_request")

@@ -60,7 +60,7 @@ func (s *CoreHandlers) deleteFile(w http.ResponseWriter, r *http.Request) {
 // @Tags Files
 // @Accept json
 // @Produce json
-// @Param request body object true "Files to delete"
+// @Param request body FileBatchDeleteRequest true "Files to delete"
 // @Success 200 {object} APIResponse[FilesDeleteResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -71,10 +71,7 @@ func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	type ObjectsToDelete struct {
-		Files []string `json:"files"`
-	}
-	var objToDelete ObjectsToDelete
+	var objToDelete FileBatchDeleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&objToDelete); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)
 		return
@@ -110,7 +107,7 @@ func (s *CoreHandlers) deleteFilesBatch(w http.ResponseWriter, r *http.Request) 
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param request body object true "Delete account request"
+// @Param request body DeleteAccountRequest true "Delete account request"
 // @Success 200 {object} APIResponse[AccountDeletedResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -127,9 +124,6 @@ func (s *CoreHandlers) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type DeleteAccountRequest struct {
-		DeleteUserData bool `json:"delete_user_data"`
-	}
 	var req DeleteAccountRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", nil)

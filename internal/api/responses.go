@@ -103,6 +103,30 @@ type FileDeleteResponseData struct {
 	FileDeleted string `json:"file_deleted"`
 }
 
+type MultipartUploadInitResponseData struct {
+	UploadID  string `json:"upload_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ChunkSize int64  `json:"chunk_size" example:"8388608"`
+}
+
+type MultipartUploadPartResponseData struct {
+	PartNumber      int32          `json:"part_number" example:"1"`
+	Size            int64          `json:"size" example:"8388608"`
+	StorageMetadata map[string]any `json:"storage_metadata,omitempty"`
+}
+
+type MultipartUploadCompleteResponseData struct {
+	UploadID    string `json:"upload_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	FileName    string `json:"file_name" example:"report.pdf"`
+	MD5Checksum string `json:"md5_checksum" example:"d41d8cd98f00b204e9800998ecf8427e"`
+	Size        int64  `json:"size" example:"104857600"`
+}
+
+type MultipartUploadAbortResponseData struct {
+	UploadID     string `json:"upload_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Status       string `json:"status" example:"aborted"`
+	UploadedSize int64  `json:"uploaded_size" example:"0"`
+}
+
 type FilesDeleteResponseData struct {
 	FilesDeleted []string `json:"files_deleted"`
 	FilesFailed  []string `json:"files_failed"`

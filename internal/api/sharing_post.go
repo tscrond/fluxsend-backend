@@ -17,7 +17,7 @@ import (
 // @Tags Sharing
 // @Accept json
 // @Produce json
-// @Param request body object true "Share request"
+// @Param request body ShareRequest true "Share request"
 // @Success 200 {object} APIResponse[ShareResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -42,13 +42,6 @@ func (s *CoreHandlers) shareWith(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type ShareRequest struct {
-		ForUser   string   `json:"email"`
-		Objects   []string `json:"objects"`
-		Duration  string   `json:"duration"`
-		Password  string   `json:"password"`
-		SendEmail bool     `json:"send_email"`
-	}
 	var req ShareRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "invalid_json")
@@ -65,7 +58,7 @@ func (s *CoreHandlers) shareWith(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shares, notificationStatus, err := s.shares.ShareWith(r.Context(), authUser.Email, userUUID, req.ForUser, req.Objects, req.Duration, req.Password, req.SendEmail)
+	shares, notificationStatus, err := s.shares.ShareWith(r.Context(), authUser.Email, userUUID, req.Email, req.Objects, req.Duration, req.Password, req.SendEmail)
 	if err != nil {
 		if errors.Is(err, service.ErrPasswordTooLong) {
 			pkg.WriteJSONResponse(w, http.StatusBadRequest, "", "password_too_long")

@@ -42,7 +42,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.PrivateAPIKeyCreateRequest"
                         }
                     }
                 ],
@@ -91,7 +91,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.APIKeyDeleteRequest"
                         }
                     }
                 ],
@@ -176,7 +176,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceAPIKeyCreateRequest"
                         }
                     }
                 ],
@@ -238,7 +238,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.APIKeyDeleteRequest"
                         }
                     }
                 ],
@@ -481,7 +481,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.FileBatchDeleteRequest"
                         }
                     }
                 ],
@@ -527,7 +527,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.MoveRequest"
                         }
                     }
                 ],
@@ -573,7 +573,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.QuickShareRequest"
                         }
                     }
                 ],
@@ -645,7 +645,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.MarkSeenRequest"
                         }
                     }
                 ],
@@ -717,7 +717,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.ShareRequest"
                         }
                     }
                 ],
@@ -871,6 +871,243 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/files/uploads": {
+            "post": {
+                "description": "Creates an upload session for a personal file and returns the upload ID and recommended chunk size.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Initialize personal file multipart upload",
+                "parameters": [
+                    {
+                        "description": "Multipart upload initialization request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.CreateUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadInitResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/uploads/{upload_id}": {
+            "delete": {
+                "description": "Aborts an incomplete personal multipart upload and releases its uploaded parts.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Abort personal file multipart upload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Multipart upload ID",
+                        "name": "upload_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadAbortResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/uploads/{upload_id}/complete": {
+            "post": {
+                "description": "Finalizes a personal multipart upload after all parts have been uploaded and creates the file.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Complete personal file multipart upload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Multipart upload ID",
+                        "name": "upload_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadCompleteResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/uploads/{upload_id}/parts/{part_id}": {
+            "post": {
+                "description": "Uploads one raw chunk for a personal multipart upload. Chunks may be uploaded concurrently and must use part numbers starting at 1. POST is the canonical method; PUT is also accepted.",
+                "consumes": [
+                    "application/octet-stream"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Upload personal file multipart part",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Multipart upload ID",
+                        "name": "upload_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Part number starting at 1",
+                        "name": "part_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "format": "binary",
+                        "description": "Raw chunk bytes",
+                        "name": "part",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadPartResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/files/{checksum}/note": {
             "get": {
                 "description": "Returns the note content for a file identified by checksum and file name.",
@@ -957,7 +1194,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.NoteContentRequest"
                         }
                     }
                 ],
@@ -1085,7 +1322,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.MoveRequest"
                         }
                     }
                 ],
@@ -1184,7 +1421,7 @@ const docTemplate = `{
                         "name": "request",
                         "in": "body",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.SharePasswordRequest"
                         }
                     }
                 ],
@@ -1286,7 +1523,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.DeleteAccountRequest"
                         }
                     }
                 ],
@@ -1477,7 +1714,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceCreateRequest"
                         }
                     }
                 ],
@@ -1626,7 +1863,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceInviteAcceptRequest"
                         }
                     }
                 ],
@@ -1684,7 +1921,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceInviteCreateRequest"
                         }
                     }
                 ],
@@ -1993,7 +2230,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceMemberRoleRequest"
                         }
                     }
                 ],
@@ -2051,7 +2288,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceRenameRequest"
                         }
                     }
                 ],
@@ -2290,7 +2527,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.MoveRequest"
                         }
                     }
                 ],
@@ -2355,7 +2592,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceFolderCreateRequest"
                         }
                     }
                 ],
@@ -2420,7 +2657,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.WorkspaceFileMoveRequest"
                         }
                     }
                 ],
@@ -2580,6 +2817,289 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/workspaces/{workspace_id}/files/uploads": {
+            "post": {
+                "description": "Creates an upload session for a workspace file and returns the upload ID and recommended chunk size.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspace Files"
+                ],
+                "summary": "Initialize workspace file multipart upload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Multipart upload initialization request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.CreateUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadInitResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/workspaces/{workspace_id}/files/uploads/{upload_id}": {
+            "delete": {
+                "description": "Aborts an incomplete workspace multipart upload and releases its uploaded parts.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspace Files"
+                ],
+                "summary": "Abort workspace file multipart upload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Multipart upload ID",
+                        "name": "upload_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadAbortResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/workspaces/{workspace_id}/files/uploads/{upload_id}/complete": {
+            "post": {
+                "description": "Finalizes a workspace multipart upload after all parts have been uploaded and creates the file.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspace Files"
+                ],
+                "summary": "Complete workspace file multipart upload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Multipart upload ID",
+                        "name": "upload_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadCompleteResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/workspaces/{workspace_id}/files/uploads/{upload_id}/parts/{part_id}": {
+            "post": {
+                "description": "Uploads one raw chunk for a workspace multipart upload. Chunks may be uploaded concurrently and must use part numbers starting at 1. POST is the canonical method; PUT is also accepted.",
+                "consumes": [
+                    "application/octet-stream"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspace Files"
+                ],
+                "summary": "Upload workspace file multipart part",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Multipart upload ID",
+                        "name": "upload_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Part number starting at 1",
+                        "name": "part_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "format": "binary",
+                        "description": "Raw chunk bytes",
+                        "name": "part",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIResponse-api_MultipartUploadPartResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/workspaces/{workspace_id}/quota": {
             "get": {
                 "description": "Returns storage, file, folder, member, and API key quota information for a workspace.",
@@ -2628,6 +3148,19 @@ const docTemplate = `{
             "properties": {
                 "api_key": {
                     "$ref": "#/definitions/service.CreateAPIKeyResult"
+                }
+            }
+        },
+        "api.APIKeyDeleteRequest": {
+            "type": "object",
+            "required": [
+                "api_key_id"
+            ],
+            "properties": {
+                "api_key_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
             }
         },
@@ -2783,6 +3316,66 @@ const docTemplate = `{
                 },
                 "response": {
                     "$ref": "#/definitions/api.FoldersResponseData"
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "api.APIResponse-api_MultipartUploadAbortResponseData": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "response": {
+                    "$ref": "#/definitions/api.MultipartUploadAbortResponseData"
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "api.APIResponse-api_MultipartUploadCompleteResponseData": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "response": {
+                    "$ref": "#/definitions/api.MultipartUploadCompleteResponseData"
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "api.APIResponse-api_MultipartUploadInitResponseData": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "response": {
+                    "$ref": "#/definitions/api.MultipartUploadInitResponseData"
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "api.APIResponse-api_MultipartUploadPartResponseData": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "response": {
+                    "$ref": "#/definitions/api.MultipartUploadPartResponseData"
                 },
                 "status": {
                     "type": "integer",
@@ -3251,6 +3844,31 @@ const docTemplate = `{
                 }
             }
         },
+        "api.CreateUploadRequest": {
+            "type": "object",
+            "required": [
+                "filename",
+                "size"
+            ],
+            "properties": {
+                "content_type": {
+                    "type": "string",
+                    "example": "application/pdf"
+                },
+                "filename": {
+                    "type": "string",
+                    "example": "report.pdf"
+                },
+                "folder": {
+                    "type": "string",
+                    "example": "documents"
+                },
+                "size": {
+                    "type": "integer",
+                    "example": 104857600
+                }
+            }
+        },
         "api.DailyActivity": {
             "type": "object",
             "properties": {
@@ -3262,6 +3880,15 @@ const docTemplate = `{
                 },
                 "uploads": {
                     "type": "integer"
+                }
+            }
+        },
+        "api.DeleteAccountRequest": {
+            "type": "object",
+            "properties": {
+                "delete_user_data": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -3300,6 +3927,25 @@ const docTemplate = `{
                 "status": {
                     "type": "integer",
                     "example": 400
+                }
+            }
+        },
+        "api.FileBatchDeleteRequest": {
+            "type": "object",
+            "required": [
+                "files"
+            ],
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "movies/m1.mov",
+                        "photos/p1.jpg",
+                        "photos2/photo.png"
+                    ]
                 }
             }
         },
@@ -3410,6 +4056,113 @@ const docTemplate = `{
                 }
             }
         },
+        "api.MarkSeenRequest": {
+            "type": "object",
+            "required": [
+                "sharing_token"
+            ],
+            "properties": {
+                "sharing_token": {
+                    "type": "string",
+                    "example": "share-token"
+                }
+            }
+        },
+        "api.MoveRequest": {
+            "type": "object",
+            "required": [
+                "destination",
+                "source"
+            ],
+            "properties": {
+                "destination": {
+                    "type": "string",
+                    "example": "archive/new-name.pdf"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "documents/old-name.pdf"
+                }
+            }
+        },
+        "api.MultipartUploadAbortResponseData": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "aborted"
+                },
+                "upload_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "uploaded_size": {
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "api.MultipartUploadCompleteResponseData": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string",
+                    "example": "report.pdf"
+                },
+                "md5_checksum": {
+                    "type": "string",
+                    "example": "d41d8cd98f00b204e9800998ecf8427e"
+                },
+                "size": {
+                    "type": "integer",
+                    "example": 104857600
+                },
+                "upload_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "api.MultipartUploadInitResponseData": {
+            "type": "object",
+            "properties": {
+                "chunk_size": {
+                    "type": "integer",
+                    "example": 8388608
+                },
+                "upload_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "api.MultipartUploadPartResponseData": {
+            "type": "object",
+            "properties": {
+                "part_number": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "size": {
+                    "type": "integer",
+                    "example": 8388608
+                },
+                "storage_metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "api.NoteContentRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "Quarterly report"
+                }
+            }
+        },
         "api.NoteContentResponseData": {
             "type": "object",
             "properties": {
@@ -3426,11 +4179,110 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PrivateAPIKeyCreateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "scopes"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "CI deployment key"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "ci-deploy"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "private_files:read",
+                            "private_files:write",
+                            "private_files:delete",
+                            "private_files:share"
+                        ]
+                    },
+                    "example": [
+                        "private_files:read",
+                        "private_files:write"
+                    ]
+                }
+            }
+        },
         "api.PrivateDownloadTokenResponseData": {
             "type": "object",
             "properties": {
                 "private_download_token": {
                     "type": "string"
+                }
+            }
+        },
+        "api.QuickShareRequest": {
+            "type": "object",
+            "required": [
+                "object"
+            ],
+            "properties": {
+                "duration": {
+                    "type": "string",
+                    "example": "24h"
+                },
+                "object": {
+                    "type": "string",
+                    "example": "documents/report.pdf"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "share-secret"
+                }
+            }
+        },
+        "api.SharePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "share-secret"
+                }
+            }
+        },
+        "api.ShareRequest": {
+            "type": "object",
+            "required": [
+                "duration",
+                "email",
+                "objects"
+            ],
+            "properties": {
+                "duration": {
+                    "type": "string",
+                    "example": "24h"
+                },
+                "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "colleague@example.com"
+                },
+                "objects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "documents/report.pdf",
+                        "images/chart.png"
+                    ]
+                },
+                "password": {
+                    "type": "string",
+                    "example": "share-secret"
+                },
+                "send_email": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -3572,6 +4424,63 @@ const docTemplate = `{
                 }
             }
         },
+        "api.WorkspaceAPIKeyCreateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "scopes"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "CI deployment key"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "ci-deploy"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "workspaces:read",
+                            "workspaces:write",
+                            "workspaces:delete",
+                            "workspaces:members:read",
+                            "workspaces:members:manage",
+                            "workspaces:invites:manage",
+                            "workspaces:files:read",
+                            "workspaces:files:write",
+                            "workspaces:files:delete"
+                        ]
+                    },
+                    "example": [
+                        "workspaces:read",
+                        "workspaces:files:read"
+                    ]
+                }
+            }
+        },
+        "api.WorkspaceCreateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "slug"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "example": "Platform Team"
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 48,
+                    "example": "platform-team"
+                }
+            }
+        },
         "api.WorkspaceCreatedResponseData": {
             "type": "object",
             "properties": {
@@ -3588,11 +4497,45 @@ const docTemplate = `{
                 }
             }
         },
+        "api.WorkspaceFileMoveRequest": {
+            "type": "object",
+            "required": [
+                "destination",
+                "file_id"
+            ],
+            "properties": {
+                "destination": {
+                    "type": "string",
+                    "example": "archive/report.pdf"
+                },
+                "file_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "0f8fad5b-d9cb-469f-a165-70867728950e"
+                }
+            }
+        },
         "api.WorkspaceFilesMoveResponseData": {
             "type": "object",
             "properties": {
                 "updated": {
                     "type": "integer"
+                }
+            }
+        },
+        "api.WorkspaceFolderCreateRequest": {
+            "type": "object",
+            "required": [
+                "folder_name"
+            ],
+            "properties": {
+                "folder_name": {
+                    "type": "string",
+                    "example": "reports"
+                },
+                "parent_path": {
+                    "type": "string",
+                    "example": "documents"
                 }
             }
         },
@@ -3604,6 +4547,47 @@ const docTemplate = `{
                 },
                 "slug": {
                     "type": "string"
+                }
+            }
+        },
+        "api.WorkspaceInviteAcceptRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "example": "invite-token"
+                }
+            }
+        },
+        "api.WorkspaceInviteCreateRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "role",
+                "workspace_id"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "colleague@example.com"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "admin",
+                        "editor",
+                        "viewer"
+                    ],
+                    "example": "editor"
+                },
+                "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
             }
         },
@@ -3627,6 +4611,36 @@ const docTemplate = `{
             "properties": {
                 "invite_id": {
                     "type": "string"
+                }
+            }
+        },
+        "api.WorkspaceMemberRoleRequest": {
+            "type": "object",
+            "required": [
+                "role",
+                "user_id",
+                "workspace_id"
+            ],
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "owner",
+                        "admin",
+                        "editor",
+                        "viewer"
+                    ],
+                    "example": "editor"
+                },
+                "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "0f8fad5b-d9cb-469f-a165-70867728950e"
+                },
+                "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
             }
         },
@@ -3673,6 +4687,30 @@ const docTemplate = `{
                 },
                 "total_bytes": {
                     "type": "integer"
+                }
+            }
+        },
+        "api.WorkspaceRenameRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "workspace_id"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "example": "Renamed Workspace"
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 48,
+                    "example": "renamed-workspace"
+                },
+                "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
             }
         },

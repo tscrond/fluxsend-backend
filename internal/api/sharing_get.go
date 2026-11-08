@@ -124,7 +124,7 @@ func (s *CoreHandlers) publicShareInfo(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param token path string true "Share token"
 // @Param mode query string false "inline or download"
-// @Param request body object false "Optional password payload"
+// @Param request body SharePasswordRequest false "Optional password payload"
 // @Success 200 {object} APIResponse[ShareResolveResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -149,9 +149,7 @@ func (s *CoreHandlers) resolvePublicShare(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var body struct {
-		Password string `json:"password"`
-	}
+	var body SharePasswordRequest
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "invalid_json", "")

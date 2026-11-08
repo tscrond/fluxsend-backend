@@ -5,6 +5,15 @@ definitions:
       api_key:
         $ref: '#/definitions/service.CreateAPIKeyResult'
     type: object
+  api.APIKeyDeleteRequest:
+    properties:
+      api_key_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        type: string
+    required:
+    - api_key_id
+    type: object
   api.APIKeyListResponseData:
     properties:
       api_keys:
@@ -107,6 +116,46 @@ definitions:
         type: string
       response:
         $ref: '#/definitions/api.FoldersResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_MultipartUploadAbortResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.MultipartUploadAbortResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_MultipartUploadCompleteResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.MultipartUploadCompleteResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_MultipartUploadInitResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.MultipartUploadInitResponseData'
+      status:
+        example: 200
+        type: integer
+    type: object
+  api.APIResponse-api_MultipartUploadPartResponseData:
+    properties:
+      msg:
+        type: string
+      response:
+        $ref: '#/definitions/api.MultipartUploadPartResponseData'
       status:
         example: 200
         type: integer
@@ -418,6 +467,24 @@ definitions:
       bucket:
         $ref: '#/definitions/api.DeletedBucket'
     type: object
+  api.CreateUploadRequest:
+    properties:
+      content_type:
+        example: application/pdf
+        type: string
+      filename:
+        example: report.pdf
+        type: string
+      folder:
+        example: documents
+        type: string
+      size:
+        example: 104857600
+        type: integer
+    required:
+    - filename
+    - size
+    type: object
   api.DailyActivity:
     properties:
       day:
@@ -426,6 +493,12 @@ definitions:
         type: integer
       uploads:
         type: integer
+    type: object
+  api.DeleteAccountRequest:
+    properties:
+      delete_user_data:
+        example: true
+        type: boolean
     type: object
   api.DeletedAccountOwner:
     properties:
@@ -451,6 +524,19 @@ definitions:
       status:
         example: 400
         type: integer
+    type: object
+  api.FileBatchDeleteRequest:
+    properties:
+      files:
+        example:
+        - movies/m1.mov
+        - photos/p1.jpg
+        - photos2/photo.png
+        items:
+          type: string
+        type: array
+    required:
+    - files
     type: object
   api.FileDeleteResponseData:
     properties:
@@ -521,6 +607,81 @@ definitions:
       user_id:
         type: string
     type: object
+  api.MarkSeenRequest:
+    properties:
+      sharing_token:
+        example: share-token
+        type: string
+    required:
+    - sharing_token
+    type: object
+  api.MoveRequest:
+    properties:
+      destination:
+        example: archive/new-name.pdf
+        type: string
+      source:
+        example: documents/old-name.pdf
+        type: string
+    required:
+    - destination
+    - source
+    type: object
+  api.MultipartUploadAbortResponseData:
+    properties:
+      status:
+        example: aborted
+        type: string
+      upload_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      uploaded_size:
+        example: 0
+        type: integer
+    type: object
+  api.MultipartUploadCompleteResponseData:
+    properties:
+      file_name:
+        example: report.pdf
+        type: string
+      md5_checksum:
+        example: d41d8cd98f00b204e9800998ecf8427e
+        type: string
+      size:
+        example: 104857600
+        type: integer
+      upload_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  api.MultipartUploadInitResponseData:
+    properties:
+      chunk_size:
+        example: 8388608
+        type: integer
+      upload_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  api.MultipartUploadPartResponseData:
+    properties:
+      part_number:
+        example: 1
+        type: integer
+      size:
+        example: 8388608
+        type: integer
+      storage_metadata:
+        additionalProperties: {}
+        type: object
+    type: object
+  api.NoteContentRequest:
+    properties:
+      content:
+        example: Quarterly report
+        maxLength: 500
+        type: string
+    type: object
   api.NoteContentResponseData:
     properties:
       content:
@@ -531,10 +692,81 @@ definitions:
       note:
         type: string
     type: object
+  api.PrivateAPIKeyCreateRequest:
+    properties:
+      description:
+        example: CI deployment key
+        type: string
+      name:
+        example: ci-deploy
+        type: string
+      scopes:
+        example:
+        - private_files:read
+        - private_files:write
+        items:
+          enum:
+          - private_files:read
+          - private_files:write
+          - private_files:delete
+          - private_files:share
+          type: string
+        type: array
+    required:
+    - name
+    - scopes
+    type: object
   api.PrivateDownloadTokenResponseData:
     properties:
       private_download_token:
         type: string
+    type: object
+  api.QuickShareRequest:
+    properties:
+      duration:
+        example: 24h
+        type: string
+      object:
+        example: documents/report.pdf
+        type: string
+      password:
+        example: share-secret
+        type: string
+    required:
+    - object
+    type: object
+  api.SharePasswordRequest:
+    properties:
+      password:
+        example: share-secret
+        type: string
+    type: object
+  api.ShareRequest:
+    properties:
+      duration:
+        example: 24h
+        type: string
+      email:
+        example: colleague@example.com
+        format: email
+        type: string
+      objects:
+        example:
+        - documents/report.pdf
+        - images/chart.png
+        items:
+          type: string
+        type: array
+      password:
+        example: share-secret
+        type: string
+      send_email:
+        example: true
+        type: boolean
+    required:
+    - duration
+    - email
+    - objects
     type: object
   api.ShareResolveResponseData:
     properties:
@@ -625,6 +857,49 @@ definitions:
       workspace_api_keys:
         type: integer
     type: object
+  api.WorkspaceAPIKeyCreateRequest:
+    properties:
+      description:
+        example: CI deployment key
+        type: string
+      name:
+        example: ci-deploy
+        type: string
+      scopes:
+        example:
+        - workspaces:read
+        - workspaces:files:read
+        items:
+          enum:
+          - workspaces:read
+          - workspaces:write
+          - workspaces:delete
+          - workspaces:members:read
+          - workspaces:members:manage
+          - workspaces:invites:manage
+          - workspaces:files:read
+          - workspaces:files:write
+          - workspaces:files:delete
+          type: string
+        type: array
+    required:
+    - name
+    - scopes
+    type: object
+  api.WorkspaceCreateRequest:
+    properties:
+      name:
+        example: Platform Team
+        maxLength: 64
+        type: string
+      slug:
+        example: platform-team
+        maxLength: 48
+        type: string
+    required:
+    - name
+    - slug
+    type: object
   api.WorkspaceCreatedResponseData:
     properties:
       workspace:
@@ -635,10 +910,34 @@ definitions:
       workspace_id:
         type: string
     type: object
+  api.WorkspaceFileMoveRequest:
+    properties:
+      destination:
+        example: archive/report.pdf
+        type: string
+      file_id:
+        example: 0f8fad5b-d9cb-469f-a165-70867728950e
+        format: uuid
+        type: string
+    required:
+    - destination
+    - file_id
+    type: object
   api.WorkspaceFilesMoveResponseData:
     properties:
       updated:
         type: integer
+    type: object
+  api.WorkspaceFolderCreateRequest:
+    properties:
+      folder_name:
+        example: reports
+        type: string
+      parent_path:
+        example: documents
+        type: string
+    required:
+    - folder_name
     type: object
   api.WorkspaceIdentity:
     properties:
@@ -646,6 +945,36 @@ definitions:
         type: string
       slug:
         type: string
+    type: object
+  api.WorkspaceInviteAcceptRequest:
+    properties:
+      token:
+        example: invite-token
+        type: string
+    required:
+    - token
+    type: object
+  api.WorkspaceInviteCreateRequest:
+    properties:
+      email:
+        example: colleague@example.com
+        format: email
+        type: string
+      role:
+        enum:
+        - admin
+        - editor
+        - viewer
+        example: editor
+        type: string
+      workspace_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        type: string
+    required:
+    - email
+    - role
+    - workspace_id
     type: object
   api.WorkspaceInviteCreatedResponse:
     properties:
@@ -661,6 +990,29 @@ definitions:
     properties:
       invite_id:
         type: string
+    type: object
+  api.WorkspaceMemberRoleRequest:
+    properties:
+      role:
+        enum:
+        - owner
+        - admin
+        - editor
+        - viewer
+        example: editor
+        type: string
+      user_id:
+        example: 0f8fad5b-d9cb-469f-a165-70867728950e
+        format: uuid
+        type: string
+      workspace_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        type: string
+    required:
+    - role
+    - user_id
+    - workspace_id
     type: object
   api.WorkspaceMemberRoleResponseData:
     properties:
@@ -691,6 +1043,24 @@ definitions:
         type: integer
       total_bytes:
         type: integer
+    type: object
+  api.WorkspaceRenameRequest:
+    properties:
+      name:
+        example: Renamed Workspace
+        maxLength: 64
+        type: string
+      slug:
+        example: renamed-workspace
+        maxLength: 48
+        type: string
+      workspace_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        type: string
+    required:
+    - name
+    - workspace_id
     type: object
   api.WorkspaceRenameResponse:
     properties:
@@ -1090,7 +1460,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceAPIKeyCreateRequest'
       produces:
       - application/json
       responses:
@@ -1133,7 +1503,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.APIKeyDeleteRequest'
       responses:
         "200":
           description: OK
@@ -1196,7 +1566,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.PrivateAPIKeyCreateRequest'
       produces:
       - application/json
       responses:
@@ -1230,7 +1600,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.APIKeyDeleteRequest'
       responses:
         "200":
           description: OK
@@ -1394,7 +1764,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.NoteContentRequest'
       produces:
       - application/json
       responses:
@@ -1457,7 +1827,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.FileBatchDeleteRequest'
       produces:
       - application/json
       responses:
@@ -1487,7 +1857,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.MoveRequest'
       produces:
       - application/json
       responses:
@@ -1517,7 +1887,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.QuickShareRequest'
       produces:
       - application/json
       responses:
@@ -1564,7 +1934,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.MarkSeenRequest'
       produces:
       - application/json
       responses:
@@ -1612,7 +1982,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.ShareRequest'
       produces:
       - application/json
       responses:
@@ -1717,6 +2087,168 @@ paths:
       summary: Upload a file
       tags:
       - Files
+  /api/files/uploads:
+    post:
+      consumes:
+      - application/json
+      description: Creates an upload session for a personal file and returns the upload
+        ID and recommended chunk size.
+      parameters:
+      - description: Multipart upload initialization request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadInitResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Initialize personal file multipart upload
+      tags:
+      - Files
+  /api/files/uploads/{upload_id}:
+    delete:
+      description: Aborts an incomplete personal multipart upload and releases its
+        uploaded parts.
+      parameters:
+      - description: Multipart upload ID
+        in: path
+        name: upload_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadAbortResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "501":
+          description: Not Implemented
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Abort personal file multipart upload
+      tags:
+      - Files
+  /api/files/uploads/{upload_id}/complete:
+    post:
+      description: Finalizes a personal multipart upload after all parts have been
+        uploaded and creates the file.
+      parameters:
+      - description: Multipart upload ID
+        in: path
+        name: upload_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadCompleteResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "501":
+          description: Not Implemented
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Complete personal file multipart upload
+      tags:
+      - Files
+  /api/files/uploads/{upload_id}/parts/{part_id}:
+    post:
+      consumes:
+      - application/octet-stream
+      description: Uploads one raw chunk for a personal multipart upload. Chunks may
+        be uploaded concurrently and must use part numbers starting at 1. POST is
+        the canonical method; PUT is also accepted.
+      parameters:
+      - description: Multipart upload ID
+        in: path
+        name: upload_id
+        required: true
+        type: string
+      - description: Part number starting at 1
+        in: path
+        name: part_id
+        required: true
+        type: integer
+      - description: Raw chunk bytes
+        format: binary
+        in: body
+        name: part
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadPartResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Upload personal file multipart part
+      tags:
+      - Files
   /api/folders:
     delete:
       description: Deletes a personal folder and optionally all nested files and folders
@@ -1779,7 +2311,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.MoveRequest'
       produces:
       - application/json
       responses:
@@ -1844,7 +2376,7 @@ paths:
         in: body
         name: request
         schema:
-          type: object
+          $ref: '#/definitions/api.SharePasswordRequest'
       produces:
       - application/json
       responses:
@@ -1912,7 +2444,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.DeleteAccountRequest'
       produces:
       - application/json
       responses:
@@ -2160,7 +2692,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.MoveRequest'
       produces:
       - application/json
       responses:
@@ -2203,7 +2735,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceFolderCreateRequest'
       produces:
       - application/json
       responses:
@@ -2246,7 +2778,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceFileMoveRequest'
       produces:
       - application/json
       responses:
@@ -2354,6 +2886,200 @@ paths:
       summary: Upload workspace file
       tags:
       - Workspace Files
+  /api/workspaces/{workspace_id}/files/uploads:
+    post:
+      consumes:
+      - application/json
+      description: Creates an upload session for a workspace file and returns the
+        upload ID and recommended chunk size.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Multipart upload initialization request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadInitResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Initialize workspace file multipart upload
+      tags:
+      - Workspace Files
+  /api/workspaces/{workspace_id}/files/uploads/{upload_id}:
+    delete:
+      description: Aborts an incomplete workspace multipart upload and releases its
+        uploaded parts.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Multipart upload ID
+        in: path
+        name: upload_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadAbortResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "501":
+          description: Not Implemented
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Abort workspace file multipart upload
+      tags:
+      - Workspace Files
+  /api/workspaces/{workspace_id}/files/uploads/{upload_id}/complete:
+    post:
+      description: Finalizes a workspace multipart upload after all parts have been
+        uploaded and creates the file.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Multipart upload ID
+        in: path
+        name: upload_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadCompleteResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "501":
+          description: Not Implemented
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Complete workspace file multipart upload
+      tags:
+      - Workspace Files
+  /api/workspaces/{workspace_id}/files/uploads/{upload_id}/parts/{part_id}:
+    post:
+      consumes:
+      - application/octet-stream
+      description: Uploads one raw chunk for a workspace multipart upload. Chunks
+        may be uploaded concurrently and must use part numbers starting at 1. POST
+        is the canonical method; PUT is also accepted.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: workspace_id
+        required: true
+        type: string
+      - description: Multipart upload ID
+        in: path
+        name: upload_id
+        required: true
+        type: string
+      - description: Part number starting at 1
+        in: path
+        name: part_id
+        required: true
+        type: integer
+      - description: Raw chunk bytes
+        format: binary
+        in: body
+        name: part
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.APIResponse-api_MultipartUploadPartResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Upload workspace file multipart part
+      tags:
+      - Workspace Files
   /api/workspaces/{workspace_id}/quota:
     get:
       description: Returns storage, file, folder, member, and API key quota information
@@ -2393,7 +3119,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceCreateRequest'
       produces:
       - application/json
       responses:
@@ -2492,7 +3218,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceInviteAcceptRequest'
       produces:
       - application/json
       responses:
@@ -2530,7 +3256,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceInviteCreateRequest'
       produces:
       - application/json
       responses:
@@ -2738,7 +3464,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceMemberRoleRequest'
       produces:
       - application/json
       responses:
@@ -2777,7 +3503,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/api.WorkspaceRenameRequest'
       produces:
       - application/json
       responses:
