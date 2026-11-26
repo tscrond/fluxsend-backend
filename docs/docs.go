@@ -1628,7 +1628,7 @@ const docTemplate = `{
             }
         },
         "/api/user/private/download_token": {
-            "post": {
+            "get": {
                 "description": "Generates a download token for a private file name.",
                 "produces": [
                     "application/json"

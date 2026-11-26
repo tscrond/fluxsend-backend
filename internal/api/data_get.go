@@ -135,7 +135,7 @@ func (s *CoreHandlers) getUserIdentities(w http.ResponseWriter, r *http.Request)
 // @Success 200 {object} APIResponse[PrivateDownloadTokenResponseData]
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
-// @Router /api/user/private/download_token [post]
+// @Router /api/user/private/download_token [get]
 func (s *CoreHandlers) getUserPrivateFileByName(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		pkg.WriteJSONResponse(w, http.StatusBadRequest, "bad_request", "")
