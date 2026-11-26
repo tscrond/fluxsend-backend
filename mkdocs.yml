@@ -82,6 +82,14 @@ nav:
       - Metrics: deployment/06-metrics.md
       - Self-hosted MinIO: deployment/05-self-hosted-minio.md
       - Kubernetes: deployment/04-kubernetes.md
+  - SDKs:
+      - Go SDK:
+          - Overview: sdks/go/index.md
+          - Quickstart: sdks/go/quickstart.md
+          - Configuration & authentication: sdks/go/configuration-authentication.md
+          - Errors & reliability: sdks/go/errors-reliability.md
+          - Files & transfers: sdks/go/files-transfers.md
+          - Operations & versions: sdks/go/operations-versions.md
   - API Reference:
       - Overview: api/index.md
       - Endpoint Reference: api/reference.md
