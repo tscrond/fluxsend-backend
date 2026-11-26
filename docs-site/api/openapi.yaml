@@ -2707,7 +2707,7 @@ paths:
             tags:
                 - User
     /api/user/private/download_token:
-        post:
+        get:
             description: Generates a download token for a private file name.
             parameters:
                 - description: File name
