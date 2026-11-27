@@ -72,12 +72,26 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ matrix.registry }}/${{ inputs.image-name-dockerhub }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Extract Docker metadata (GHCR)
         id: meta-ghcr
         uses: docker/metadata-action@v5
         with:
           images: ${{ matrix.registry }}/${{ inputs.image-name-github }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image to Docker Hub (${{ inputs.arch }})
         if: matrix.registry == 'docker.io' && github.event_name != 'pull_request'
